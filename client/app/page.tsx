@@ -14,7 +14,7 @@ export default function Home() {
 
       {/* Hero Section */}
       <main className="flex flex-col items-center justify-center text-center py-20 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
-        <h1 className="text-5xl font-bold mb-4">
+        <h1 className="text-5xl font-bold mb-4 ml-4 mr-4">
           Stay Informed Without Endless Scrolling
         </h1>
         <p className="text-xl mb-8 ml-8 mr-8">
