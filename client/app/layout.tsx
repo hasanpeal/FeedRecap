@@ -18,7 +18,7 @@ export default function RootLayout({
         <title>FeedRecap</title>
         <meta
           name="description"
-          content="Signez is a real-time sign language learning platform that uses advanced machine learning models to provide accurate predictions."
+          content="FeedRecap is an AI-powered app that curates top tweets from X formerly known as Twitter, based on your selected categories and preferred delivery times. Stay informed with personalized newsletters on topics like Politics, Financial Markets, Sports, Tech, and more, delivered directly to your inbox. Customize your news consumption effortlessly and track engagement through a user-friendly dashboard. Join FeedRecap and never miss the latest updates without the endless scrolling"
         />
       </head>
       <body className={inter.className}>
