@@ -492,7 +492,7 @@ cron.schedule(
       const timeSlot =
         currentHour === 9
           ? "Morning"
-          : currentHour === 16
+          : currentHour === 15
           ? "Afternoon"
           : currentHour === 20
           ? "Night"

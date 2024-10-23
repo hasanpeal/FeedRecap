@@ -171,7 +171,7 @@ const Signup: React.FC = () => {
 
           if (result.data.code == 0) {
             setEmailContext(email);
-            toast.success("Sign up successful")
+            toast.success("Sign up successful", {id: "success2"})
             const response = await axios.get(
               `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
               {
