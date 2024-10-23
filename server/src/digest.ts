@@ -63,6 +63,9 @@ async function cleanNewsletterText(text: string) {
 
 // Fetch and store tweets for specified categories
 async function fetchAndStoreTweets(categories: string[]): Promise<void> {
+  console.log(
+    "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
+  );
   const categoryAccounts: { [key: string]: string[] } = {
     Politics: [
       "Politico",
@@ -450,9 +453,9 @@ async function sendNewsletterEmail(
   }
 }
 
-// First cron job: Fetch new tweets every 6 hours
+// First cron job: Fetch new tweets every 4 hours
 cron.schedule(
-  "0 */6 * * *",
+  "0 */4 * * *",
   async () => {
     console.log(
       "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
