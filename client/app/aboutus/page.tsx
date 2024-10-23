@@ -39,7 +39,7 @@ export default function AboutUs() {
             politics, finance, sports, or tech, FeedRecap ensures you&apos;re
             always in the loop
           </p>
-          <h3 className="text-3xl font-semibold text-gray-800 mb-6">
+          <h3 className="text-3xl font-semibold text-gray-800 mb-6 text-center">
             Our Mission
           </h3>
           <p className="text-gray-600 text-lg mb-8">
@@ -49,7 +49,9 @@ export default function AboutUs() {
             valuable, personalized content that keeps you connected to the
             topics you care about most
           </p>
-          <h3 className="text-3xl font-semibold text-gray-800">How It Works</h3>
+          <h3 className="text-3xl font-semibold text-gray-800 text-center">
+            How It Works
+          </h3>
           <ul className="list-disc list-inside text-gray-600 text-lg mb-8">
             <li>Sign up and create a profile to get started</li>
             <li>
