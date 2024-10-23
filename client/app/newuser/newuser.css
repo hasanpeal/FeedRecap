@@ -36,7 +36,15 @@
   color: white;
 }
 
+/* Hover effect for non-active buttons */
+.categoryButton:not(.active):hover, .timeButton:not(.active):hover {
+  background-color: white; /* Subtle grey background for hover */
+
+}
+
 .categoryButton:hover, .timeButton:hover {
   background-color: #4A00FF;
-  color: white;
+  
 }
+
+
