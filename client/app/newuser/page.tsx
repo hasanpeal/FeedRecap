@@ -56,9 +56,6 @@ export default function SelectCategories() {
       return;
     } else {
       setLoading(true);
-      router.push("/dashboard");
-    }
-    
 
     try {
       const response = await axios.post(
@@ -72,10 +69,14 @@ export default function SelectCategories() {
       );
       if (response.data.code == 0) {
         toast.success("Preference Saved");
+        router.push("/dashboard");
       } else toast.error("Server error");
     } catch (err) {
       toast.error("Server error");
     }
+    }
+    
+
   };
 
   return (
