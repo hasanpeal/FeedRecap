@@ -169,10 +169,22 @@ const Signup: React.FC = () => {
             }
           );
 
-          if (result) {
+          if (result.data.code == 0) {
+            setEmailContext(email);
             toast.success("Sign up successful")
-            router.push("/signin");
-          }
+            const response = await axios.get(
+              `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
+              {
+                params: { email: email },
+              }
+            );
+
+            if (response.data.code == 0 && response.data.isNewUser)
+              router.push("/newuser");
+            else if (response.data.code == 0 && !response.data.isNewUser)
+              router.push("/dashboard");
+            else toast.error("Server Error");
+          } else toast.error("Server error");
         } catch (error) {
           console.log(error);
         }
