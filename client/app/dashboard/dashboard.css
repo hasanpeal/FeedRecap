@@ -43,7 +43,6 @@
 
 .category-button:not(.active):hover {
   background-color: white;
-  color: white;
 }
 
 .action-button {
