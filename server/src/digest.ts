@@ -261,7 +261,7 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
 
 
 // Generate newsletter using Gemini AI
-async function generateNewsletter(
+export async function generateNewsletter(
   tweetsByCategory: {
     category: string;
     tweetsByUser: { screenName: string; tweets: string[] }[];
@@ -347,7 +347,7 @@ async function generateNewsletter(
 
 
 // Function to calculate top 5 tweets from different users
-async function fetchTweetsForCategories(
+export async function fetchTweetsForCategories(
   categories: string[]
 ): Promise<{ tweetsByCategory: any[]; top5Tweets: any[] }> {
   const tweetsByCategory: {
@@ -429,7 +429,7 @@ async function fetchTweetsForCategories(
 
 
 // Send email using SendGrid
-async function sendNewsletterEmail(
+export async function sendNewsletterEmail(
   user: IUser,
   newsletter: string
 ): Promise<void> {
