@@ -227,34 +227,34 @@ app.post("/updateUserPreferences", async (req, res) => {
     console.log(updatedUser);
     if (updatedUser) {
       // Asynchronous operation to generate and send the newsletter
-      // (async () => {
-      //   try {
-      //     // Fetch the latest tweets based on the newly updated preferences
-      //     const { tweetsByCategory, top5Tweets } =
-      //       await fetchTweetsForCategories(categories);
+      (async () => {
+        try {
+          // Fetch the latest tweets based on the newly updated preferences
+          const { tweetsByCategory, top5Tweets } =
+            await fetchTweetsForCategories(categories);
 
-      //     // Generate the newsletter
-      //     const newsletter = await generateNewsletter(
-      //       tweetsByCategory,
-      //       top5Tweets
-      //     );
+          // Generate the newsletter
+          const newsletter = await generateNewsletter(
+            tweetsByCategory,
+            top5Tweets
+          );
 
-      //     if (newsletter) {
-      //       // Send the generated newsletter to the updated user
-      //       await sendNewsletterEmail(updatedUser, newsletter);
-      //       console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
-      //     } else {
-      //       console.error(
-      //         `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
-      //       );
-      //     }
-      //   } catch (err) {
-      //     console.error(
-      //       `❌ [Error]: Error generating or sending newsletter for ${email}:`,
-      //       err
-      //     );
-      //   }
-      // })(); // Immediately invoked async function
+          if (newsletter) {
+            // Send the generated newsletter to the updated user
+            await sendNewsletterEmail(updatedUser, newsletter);
+            console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
+          } else {
+            console.error(
+              `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
+            );
+          }
+        } catch (err) {
+          console.error(
+            `❌ [Error]: Error generating or sending newsletter for ${email}:`,
+            err
+          );
+        }
+      })(); // Immediately invoked async function
 
       return res
         .status(200)
