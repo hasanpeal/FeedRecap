@@ -41,7 +41,7 @@
 }
 
 
-.category-button:hover {
+.category-button:not(.active):hover {
   background-color: #4a00ff;
   color: white;
 }
