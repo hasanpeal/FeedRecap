@@ -57,13 +57,25 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
     "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
   );
   const categoryAccounts: { [key: string]: string[] } = {
-    Politics: ["Politico", "Shellenberger", "Axios", "TheChiefNerd", "CNN"],
+    // Politics: ["Politico", "Shellenberger", "Axios", "TheChiefNerd", "CNN"],
+    // Geopolitics: ["Faytuks", "EndgameWWIII", "sentdefender", "Global_Mil_Info"],
+    // Finance: ["financialjuice", "ForexLive", "DeItaone", "WSJ", "SullyCNBC"],
+    // AI: ["pmddomingos", "AndrewYNg", "tegmark", "deepmind", "OpenAI"],
+    // Tech: ["paulgraham", "ycombinator", "jason", "elonmusk", "shl"],
+    // Crypto: ["VitalikButerin", "pierre_crypt0", "APompliano", "aantonop", "ErikVoorhees"],
+    // Meme: ["stoolpresidente", "litcapital", "trustfundterry", "TheoVon"]
+    Politics: ["Politico", "Shellenberger", "Axios", "TheChiefNerd"],
     Geopolitics: ["Faytuks", "EndgameWWIII", "sentdefender", "Global_Mil_Info"],
-    Finance: ["financialjuice", "ForexLive", "DeItaone", "WSJ", "SullyCNBC"],
-    AI: ["pmddomingos", "AndrewYNg", "tegmark", "deepmind", "OpenAI"],
-    Tech: ["paulgraham", "ycombinator", "jason", "elonmusk", "shl"],
-    Crypto: ["VitalikButerin", "pierre_crypt0", "APompliano", "aantonop", "ErikVoorhees"],
-    Meme: ["stoolpresidente", "litcapital", "trustfundterry", "TheoVon"] 
+    Finance: ["financialjuice", "ForexLive", "DeItaone", "WSJ"],
+    AI: ["pmddomingos", "AndrewYNg", "tegmark", "OpenAI"],
+    Tech: ["paulgraham", "ycombinator", "jason", "elonmusk"],
+    Crypto: [
+      "VitalikButerin",
+      "pierre_crypt0",
+      "APompliano",
+      "ErikVoorhees",
+    ],
+    Meme: ["stoolpresidente", "litcapital", "trustfundterry", "TheoVon"],
   };
 
   for (const category of categories) {
@@ -104,7 +116,7 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
 
         const topTweets = recentTweets
           .sort((a: any, b: any) => b.favorites - a.favorites)
-          .slice(0, 15)
+          .slice(0, 10)
           .map((tweet: any) => ({
             text: tweet.text,
             likes: tweet.favorites, // Accessing the 'favorites' field for likes
@@ -166,7 +178,7 @@ export async function generateNewsletter(
           parts: [
             {
               text:
-                `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. Follow ALL OF THESE rules strictly!! (Take as long as you want to process):
+                `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 11 OF THESE RULES!! (Take as long as you want to process):
 
 1. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
 2. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
@@ -522,7 +534,15 @@ cron.schedule('0 */4 * * *', () => {
 //     "🔄 [Manual Test]: Starting the manual tweet fetching and newsletter generation process..."
 //   );
 
-//   sendDigest();
+//   await fetchAndStoreTweets([
+//     "Politics",
+//     "Geopolitics",
+//     "Finance",
+//     "AI",
+//     "Tech",
+//     "Crypto",
+//     "Meme",
+//   ]);
 //   // Fetch a sample user for testing (make sure the user exists in your database)
 //   const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec(); // Replace with a valid email
 //   if (!user) {
