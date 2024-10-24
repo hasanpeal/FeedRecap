@@ -5,23 +5,23 @@ import "@/app/home.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import CookieConsent from "@/components/cookies";
+import AnnouncementBar from "@/components/announcement";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-100 homeMain">
       {/* Navbar */}
+      <AnnouncementBar />
       <Navbar />
 
       {/* Hero Section */}
-      <main className="flex flex-col items-center justify-center text-center py-20 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white">
+      <main className="flex flex-col items-center justify-center text-center py-20 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-300 text-white">
         <h1 className="text-5xl font-bold mb-4 ml-4 mr-4">
-          Stay Informed Without Endless Scrolling
+          Stay Informed and Save Time
         </h1>
         <p className="text-xl mb-8 ml-8 mr-8">
-          Discover top tweets curated just for you—delivered to your inbox at
-          your preferred time. FeedRecap helps you keep up with the news that
-          matters, without endless scrolling through social media platform X.
-          Sign up today and get your first personalized newsletter!
+          FeedRecap gives you daily curated tweets and summaries of current
+          events accross politics, finance, tech, AI, and many more
         </p>
         <div className="flex space-x-4">
           <Link href="/signin">

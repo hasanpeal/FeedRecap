@@ -230,13 +230,13 @@ app.post("/updateUserPreferences", async (req, res) => {
       (async () => {
         try {
           // Fetch the latest tweets based on the newly updated preferences
-          const { tweetsByCategory, top5Tweets } =
+          const { tweetsByCategory, top15Tweets } =
             await fetchTweetsForCategories(categories);
 
           // Generate the newsletter
           const newsletter = await generateNewsletter(
             tweetsByCategory,
-            top5Tweets
+            top15Tweets
           );
 
           if (newsletter) {

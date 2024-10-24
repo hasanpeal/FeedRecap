@@ -404,9 +404,9 @@ export default function Signin() {
   }
 
   return (
-    <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 mainStart">
+    <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-300 mainStart">
       <Navbar2 />
-      <div className="mainContainer pb-40 mt-48 ">
+      <div className="mainContainer pb-40 mt-28 ">
         <div className="card bg-base-100 w-96 shadow-xl cardDiv">
           <Toaster />
           <article className="text-center text-xl text-bold mt-4">

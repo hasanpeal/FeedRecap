@@ -1,3 +1,4 @@
+//import axios from "axios";
 import axios from "axios";
 import mongoose, { Document, Schema } from "mongoose";
 import sgMail from "@sendgrid/mail";
@@ -12,19 +13,11 @@ import { htmlToText } from "html-to-text";
 // Set up SendGrid API
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
-// async function dbConnect() {
-//   let connection = await db;
-//   if(connection) console.log("✅ [User Database]: Connected to the user database.");
-// }
-
-// dbConnect();
-
-
 // MongoDB Tweet Document Interface
 interface ITweet extends Document {
   category: string;
   screenName: string;
-  tweets: { text: string; likes: number }[];
+  tweets: { text: string; likes: number; tweet_id: string }[];
   createdAt: Date;
 }
 
@@ -32,7 +25,7 @@ interface ITweet extends Document {
 const tweetSchema: Schema = new mongoose.Schema({
   category: { type: String, required: true },
   screenName: { type: String, required: true },
-  tweets: [{ text: String, likes: Number }],
+  tweets: [{ text: String, likes: Number, tweet_id: String }],
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -58,132 +51,17 @@ async function cleanNewsletterText(text: string) {
  return text.replace(/\*\*|\*/g, "");
 }
 
-
-
-
 // Fetch and store tweets for specified categories
 async function fetchAndStoreTweets(categories: string[]): Promise<void> {
   console.log(
     "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
   );
   const categoryAccounts: { [key: string]: string[] } = {
-    Politics: [
-      "Politico",
-      "Shellenberger",
-      "Axios",
-      "TheChiefNerd",
-      "CNN",
-      "BBCWorld",
-      "Reuters",
-      "NYTimes",
-      "MarioNawfal",
-      "CollinRugg",
-      "spectatorindex",
-      "NPR",
-      "TheEconomist",
-      "AP_Politics",
-      "Noahpinion",
-      "TheOmniLiberal",
-      "EricRWeinstein",
-      "NateSilver538",
-      "jarvis_best",
-      "AlexThomp",
-      "elonmusk",
-      "micsolana",
-      "pmarca",
-      "ScottJenningsKY",
-      "mattyglesias",
-      "Tyler_A_Harper",
-      "DKThomp",
-      "samstein",
-      "greg_price11",
-      "teddyschleifer",
-      "realDonaldTrump",
-      "Geiger_Capital",
-      "DavidSacks",
-      "asymmetricinfo",
-    ],
-    Geopolitics: [
-      "Faytuks",
-      "EndgameWWIII",
-      "sentdefender",
-      "Global_Mil_Info",
-      "RealestMercury",
-    ],
-    Finance: [
-      "financialjuice",
-      "ForexLive",
-      "DeItaone",
-      "SullyCNBC",
-      "JoeSquawk",
-      "CorneliaLake",
-      "SpecialSitsNews",
-      "TheTranscript_",
-      "BNONews",
-      "Geiger_Capital",
-      "DanielSLoeb1",
-      "LongShortTrader",
-      "WSJ",
-    ],
-    AI: [
-      "pmddomingos",
-      "AndrewYNg",
-      "tegmark",
-      "ylecun",
-      "GaryMarcus",
-      "hardmaru",
-      "fchollet",
-      "DrJimFan",
-      "goodfellow_ian",
-      "ylecun",
-      "mmitchell_ai",
-      "schmidhuberai",
-      "feather",
-      "tegmark",
-      "gdb",
-      "lexfridman",
-      "OpenAI",
-      "deepmind",
-      "anthropicai",
-      "neiltyson",
-      "tegmark",
-      "elonmusk",
-      "micsolana",
-      "pmarca",
-      "sama",
-      "ESYudkowsky",
-    ],
-    Tech: [
-      "paulgraham",
-      "ycombinator",
-      "jason",
-      "sriramk",
-      "shl",
-      "garrytan",
-      "naval",
-      "a16z",
-      "felicis",
-      "eladgil",
-      "reidhoffman",
-      "levie",
-      "joshk",
-      "jesslivingston",
-      "svangel",
-      "eriktorenberg",
-      "semil",
-      "davemorin",
-      "austen",
-      "jason",
-      "elonmusk",
-      "micsolana",
-      "pmarca",
-      "amasad",
-      "nikitabier",
-      "PalmerLuckey",
-      "JTLonsdale",
-      "loganbartlett",
-      "DavidSacks",
-    ],
+    Politics: ["Politico", "Shellenberger", "Axios", "TheChiefNerd"],
+    Geopolitics: ["Faytuks", "EndgameWWIII", "sentdefender"],
+    Finance: ["financialjuice", "ForexLive", "DeItaone"],
+    AI: ["pmddomingos", "AndrewYNg", "tegmark"],
+    Tech: ["paulgraham", "ycombinator", "jason"],
   };
 
   for (const category of categories) {
@@ -207,8 +85,7 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
           }
         );
 
-        // Process tweets: Sort by likes and get the top 10
-        // Filter tweets to include only those from the last 24 hours
+        // Process tweets: Sort by likes and get the top 15
         const now = moment();
         const past24Hours = now.subtract(24, "hours");
 
@@ -224,11 +101,13 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
         });
 
         const topTweets = recentTweets
-          .sort((a: any, b: any) => b.favorite_count - a.favorite_count)
-          .slice(0, 10)
+          .sort((a: any, b: any) => b.favorites - a.favorites)
+          .slice(0, 15)
           .map((tweet: any) => ({
             text: tweet.text,
-            likes: tweet.favorite_count,
+            likes: tweet.favorites, // Accessing the 'favorites' field for likes
+            tweet_id: tweet.tweet_id,
+            screenName: screenName,
           }));
 
         // Store the tweets in MongoDB
@@ -246,8 +125,7 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
           `❌ [Error]: Error fetching tweets for ${screenName}:`,
           err.message
         );
-        // Skip to the next screen name without crashing
-        continue;
+        continue; // Skip to the next screen name without crashing
       }
     }
   }
@@ -259,18 +137,17 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
   );
 }
 
-
-// Generate newsletter using Gemini AI
 export async function generateNewsletter(
   tweetsByCategory: {
     category: string;
     tweetsByUser: { screenName: string; tweets: string[] }[];
   }[],
-  top5Tweets: {
+  top15Tweets: {
     screenName: string;
     category: string;
     tweet: string;
     likes: number;
+    tweet_id: string;
   }[]
 ): Promise<string | undefined> {
   const geminiOptions = {
@@ -287,17 +164,21 @@ export async function generateNewsletter(
           parts: [
             {
               text:
-                `Create a detailed, engaging, and catchy newsletter based on the tweets below, following these strict rules:
+                `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. Follow these rules strictly:
 
-1. **Include emojis liberally** throughout the newsletter to make it engaging. Make sure every paragraph or section includes at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
-2. **Follow the themes of each category**, ensuring the content feels cohesive to the category.
-3. **NO SUBJECT or FOOTER should be provided**—I only need the newsletter content.
-4. **Do NOT include links** or any references to external sources. But you can mention persons/organization name.
-5. **Do NOT cite the sources**.
-6. Make it **entertaining** and **creative** with a casual tone, using short, punchy sentences where possible. Think of this like writing a Twitter thread with style and personality.
-7. IMPORTANT: Use **emojis** often to add emphasis, excitement, and style to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for new ideas, etc.
-8. Make sure you actually consider all tweets of all categories before generating newsletter.
-:\n\n` +
+1. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
+2. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
+3. **Follow the themes of each category**, ensuring the content feels cohesive and relevant to the category. Each category should feel distinct.
+4. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
+5. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
+6. **Do NOT cite sources**—just summarize the tweets without citations.
+7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
+8. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
+9. **Format the newsletter as bullet points** for each category. Each bullet point should summarize a key piece of information from the tweets, just as if you were a news reporter covering these topics. Write succinctly and clearly.
+10. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
+11. Ensure the **bullet points are separated by category** and well-structured.
+
+Here is the tweet data you are summarizing:\n\n` +
                 tweetsByCategory
                   .map(({ category, tweetsByUser }) => {
                     return (
@@ -323,19 +204,29 @@ export async function generateNewsletter(
   try {
     const response = await axios.request(geminiOptions);
     let result = response.data.candidates[0].content.parts[0].text;
-    console.log(result);
+    console.log("Generated Content from Gemini AI: ", result);
 
-    // Manually append the top 5 tweets to the end of the newsletter
-    const topTweetsText = top5Tweets
+    // Manually append the top 15 tweets to the end of the newsletter
+    const topTweetsText = top15Tweets
       .map(
-        (tweet, index) => `${index + 1}. ${tweet.tweet} - @${tweet.screenName}`
+        (tweet, index) =>
+          `${index + 1}. ${tweet.tweet.replace(
+            /\n/g,
+            ""
+          )} - @${tweet.screenName} 👉 <a href="https://x.com/${tweet.screenName}/status/${
+            tweet.tweet_id
+          }"> Tweet </a>`
       )
       .join("\n\n");
 
-    // 2. Manually append the top 5 tweets to the Gemini-generated newsletter
-    const finalNewsletterContent = `${result}\n\n**TOP 5 TWEETS OF TODAY:**\n${topTweetsText}`;
 
-    // 3. Convert the newsletter to HTML using `marked`
+      console.log("Top 15 Tweets to be included: ", topTweetsText);
+    // Append the top 15 tweets to the Gemini-generated newsletter
+    const finalNewsletterContent = `${result}\n\n**TOP 15 TWEETS OF TODAY:**\n${topTweetsText}`;
+
+
+    console.log("Final Newsletter Content: ", finalNewsletterContent);
+    // Convert the newsletter to HTML using `marked`
     const newsletterHTML = marked(finalNewsletterContent);
 
     return newsletterHTML;
@@ -346,10 +237,11 @@ export async function generateNewsletter(
 }
 
 
-// Function to calculate top 5 tweets from different users
+
+// Function to calculate top 15 tweets from different users, ensuring diversity
 export async function fetchTweetsForCategories(
   categories: string[]
-): Promise<{ tweetsByCategory: any[]; top5Tweets: any[] }> {
+): Promise<{ tweetsByCategory: any[]; top15Tweets: any[] }> {
   const tweetsByCategory: {
     category: string;
     tweetsByUser: { screenName: string; tweets: string[] }[];
@@ -359,8 +251,10 @@ export async function fetchTweetsForCategories(
     category: string;
     tweet: string;
     likes: number;
+    tweet_id: string;
   }[] = [];
 
+  // Fetch stored tweets from the database by category
   for (const category of categories) {
     const storedTweets = await StoredTweets.find({ category }).exec();
 
@@ -371,60 +265,87 @@ export async function fetchTweetsForCategories(
       }));
       tweetsByCategory.push({ category, tweetsByUser });
 
-      // Store tweets with likes for Top 5 calculation
+      // Store tweets with likes for the Top 15 calculation
       storedTweets.forEach((tweetRecord) => {
         tweetRecord.tweets.forEach((tweet) => {
           allTweetsWithLikes.push({
-            screenName: tweetRecord.screenName,  // Ensure screenName is included
+            screenName: tweetRecord.screenName,
             category: tweetRecord.category,
             tweet: tweet.text,
             likes: tweet.likes,
+            tweet_id: tweet.tweet_id, // Ensure tweet_id is included
           });
         });
       });
     }
   }
 
-  // Group tweets by user to ensure diversity
-  const groupedByUser: { [screenName: string]: { screenName: string; category: string; tweet: string; likes: number }[] } = {};
-  allTweetsWithLikes.forEach(tweetData => {
+  // Sort all tweets by likes, and then group them by users to ensure diversity
+  const groupedByUser: {
+    [screenName: string]: {
+      screenName: string;
+      category: string;
+      tweet: string;
+      likes: number;
+      tweet_id: string;
+    }[];
+  } = {};
+
+  // Group tweets by user to ensure no one user dominates the top tweets
+  allTweetsWithLikes.forEach((tweetData) => {
     if (!groupedByUser[tweetData.screenName]) {
       groupedByUser[tweetData.screenName] = [];
     }
     groupedByUser[tweetData.screenName].push(tweetData);
   });
 
-  // Now select the top tweet from 5 different users
-  const uniqueTop5Tweets: {
+  // Now prioritize getting top tweet from different users and categories
+  const uniqueTop15Tweets: {
     screenName: string;
     category: string;
     tweet: string;
     likes: number;
+    tweet_id: string;
   }[] = [];
 
-  // Prioritize selecting from different categories and users
+  // Gather one top tweet from each user and category, ensuring diversity
   Object.keys(groupedByUser).forEach((screenName) => {
     const userTweets = groupedByUser[screenName];
     if (userTweets.length) {
       // Sort the user's tweets by likes
       const topTweet = userTweets.sort((a, b) => b.likes - a.likes)[0];
-      if (uniqueTop5Tweets.length < 5) {
-        uniqueTop5Tweets.push({
-          screenName: topTweet.screenName,  // Explicitly include screenName here
+      if (uniqueTop15Tweets.length < 15) {
+        uniqueTop15Tweets.push({
+          screenName: topTweet.screenName,
           category: topTweet.category,
           tweet: topTweet.tweet,
           likes: topTweet.likes,
+          tweet_id: topTweet.tweet_id,
         });
       }
     }
   });
 
-  // Sort by likes again if necessary to maintain the "top tweets" feel
-  const top5Tweets = uniqueTop5Tweets
-    .sort((a, b) => b.likes - a.likes)
-    .slice(0, 5);
+  // If we still have less than 15 tweets, we fill the remaining spots with the most liked tweets overall
+  if (uniqueTop15Tweets.length < 15) {
+    const remainingTweets = allTweetsWithLikes
+      .sort((a, b) => b.likes - a.likes) // Sort by likes descending
+      .filter(
+        (tweet) =>
+          !uniqueTop15Tweets.some(
+            (topTweet) => topTweet.screenName === tweet.screenName
+          )
+      ) // Filter out any tweets from users we've already picked from
+      .slice(0, 15 - uniqueTop15Tweets.length);
 
-  return { tweetsByCategory, top5Tweets };
+    uniqueTop15Tweets.push(...remainingTweets);
+  }
+
+  // Final logging to verify selection of tweets
+  console.log(`🔄 [Top 15 Tweets]: Collected ${uniqueTop15Tweets.length} tweets`);
+  console.log(uniqueTop15Tweets);
+
+  return { tweetsByCategory, top15Tweets: uniqueTop15Tweets };
 }
 
 
@@ -480,7 +401,7 @@ cron.schedule(
 
 // Second cron job: Send newsletters to users based on their time preferences
 cron.schedule(
-  "0 * * * *",
+  "0 * * * *", // This cron job runs every hour
   async () => {
     console.log(
       "⏰ [Newsletter Cron]: Running scheduled cron job for newsletters..."
@@ -490,30 +411,51 @@ cron.schedule(
     const currentTime = moment().utc();
 
     for (const user of users) {
-      const userLocalTime = currentTime.clone().tz(user.timezone);
-      const currentHour = userLocalTime.hour();
-      const timeSlot =
-        currentHour === 9
-          ? "Morning"
-          : currentHour === 15
-          ? "Afternoon"
-          : currentHour === 20
-          ? "Night"
-          : null;
+      // Check if this is the specific user you want to send a newsletter every hour
+      if (user.email == "jeremy.shoykhet+1@gmail.com") {
+        console.log(`📧 Sending hourly newsletter for ${user.email}`);
 
-      if (timeSlot && user.time.includes(timeSlot)) {
-        console.log(`📧 Generating newsletter for ${user.email} (${timeSlot})`);
+        // Fetch the tweets for this user's categories
+        const { tweetsByCategory, top15Tweets } =
+          await fetchTweetsForCategories(user.categories);
 
-        const { tweetsByCategory, top5Tweets } = await fetchTweetsForCategories(
-          user.categories
-        );
+        // Generate the newsletter
         const newsletter = await generateNewsletter(
           tweetsByCategory,
-          top5Tweets
+          top15Tweets
         );
 
         if (newsletter) {
           await sendNewsletterEmail(user, newsletter);
+        }
+      } else {
+        // Process newsletters for users with their time-based preferences (Morning, Afternoon, Night)
+        const userLocalTime = currentTime.clone().tz(user.timezone);
+        const currentHour = userLocalTime.hour();
+        const timeSlot =
+          currentHour === 9
+            ? "Morning"
+            : currentHour === 15
+            ? "Afternoon"
+            : currentHour === 20
+            ? "Night"
+            : null;
+
+        if (timeSlot && user.time.includes(timeSlot)) {
+          console.log(
+            `📧 Generating newsletter for ${user.email} (${timeSlot})`
+          );
+
+          const { tweetsByCategory, top15Tweets } =
+            await fetchTweetsForCategories(user.categories);
+          const newsletter = await generateNewsletter(
+            tweetsByCategory,
+            top15Tweets
+          );
+
+          if (newsletter) {
+            await sendNewsletterEmail(user, newsletter);
+          }
         }
       }
     }
@@ -524,43 +466,50 @@ cron.schedule(
   }
 );
 
-// //Temporary test function to manually trigger tweet fetching and newsletter sending
-// async function testNewsletterProcessManually() {
-//   console.log(
-//     "🔄 [Manual Test]: Starting the manual tweet fetching and newsletter generation process..."
-//   );
 
-  
-//   // Fetch a sample user for testing (make sure the user exists in your database)
-//   const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec(); // Replace with a valid email
-//   if (!user) {
-//     console.log("❌ [Manual Test]: No user found for testing.");
-//     return;
-//   }
+//Temporary test function to manually trigger tweet fetching and newsletter sending
+async function testNewsletterProcessManually() {
+  console.log(
+    "🔄 [Manual Test]: Starting the manual tweet fetching and newsletter generation process..."
+  );
 
-//   // Fetch the tweets for this user's categories
-//   const { tweetsByCategory, top5Tweets } = await fetchTweetsForCategories(
-//     user.categories
-//   );
+  // await fetchAndStoreTweets([
+  //   "Politics",
+  //   "Geopolitics",
+  //   "Finance",
+  //   "AI",
+  //   "Tech",
+  // ]);
+  // Fetch a sample user for testing (make sure the user exists in your database)
+  const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec(); // Replace with a valid email
+  if (!user) {
+    console.log("❌ [Manual Test]: No user found for testing.");
+    return;
+  }
 
-//   // Generate the newsletter
-//   const newsletter = await generateNewsletter(tweetsByCategory, top5Tweets);
+  // Fetch the tweets for this user's categories
+  const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
+    user.categories
+  );
 
-//   if (newsletter) {
-//     // Send the email (or store the newsletter in user model)
-//     await sendNewsletterEmail(user, newsletter);
-//     console.log(
-//       "✅ [Manual Test]: Newsletter generated and sent successfully."
-//     );
-//   } else {
-//     console.log("❌ [Manual Test]: Error in generating the newsletter.");
-//   }
+  // Generate the newsletter
+  const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
 
-//   console.log(
-//     "✅ [Manual Test Completed]: Check your logs and email for the results."
-//   );
-// }
+  if (newsletter) {
+    // Send the email (or store the newsletter in user model)
+    await sendNewsletterEmail(user, newsletter);
+    console.log(
+      "✅ [Manual Test]: Newsletter generated and sent successfully."
+    );
+  } else {
+    console.log("❌ [Manual Test]: Error in generating the newsletter.");
+  }
 
-// // Call the test function to trigger the process manually
-// testNewsletterProcessManually();
+  console.log(
+    "✅ [Manual Test Completed]: Check your logs and email for the results."
+  );
+}
+
+// Call the test function to trigger the process manually
+testNewsletterProcessManually();
 

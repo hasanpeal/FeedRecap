@@ -1,0 +1,36 @@
+.announcement-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #facc15; /* Bright yellow */
+  padding: 10px 20px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.announce-bar p {
+  display: inline-block;
+}
+
+.animate-marquee {
+  display: inline-block;
+  animation: marquee linear infinite;
+  white-space: nowrap;
+  padding-left: 100%; /* Ensure the text starts off-screen */
+}
+body {
+  margin-top: 40px; /* Adjust this value if the announcement bar height changes */
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(-10%); /* Start partially visible */
+  }
+  100% {
+    transform: translateX(-100%); /* Scroll to the left */
+  }
+}

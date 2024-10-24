@@ -217,9 +217,9 @@ const Signup: React.FC = () => {
   }
 
   return (
-    <div className="mainStart bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+    <div className="mainStart bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-300">
       <Navbar2 />
-      <div className="mainContainer2 pb-40 mt-40">
+      <div className="mainContainer2 pb-40 mt-28">
         <div className="card bg-base-100 w-96 shadow-xl cardDiv">
           <article className="text-center text-xl text-bold mt-4">
             {" "}

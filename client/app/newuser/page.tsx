@@ -68,7 +68,7 @@ export default function SelectCategories() {
         }
       );
       if (response.data.code == 0) {
-        toast.success("Preference Saved");
+        toast.success("You have successfully signed up for FeedRecap, your first summary should be in your inbox shortly");
         router.push("/dashboard");
       } else toast.error("Server error");
     } catch (err) {
@@ -80,14 +80,14 @@ export default function SelectCategories() {
   };
 
   return (
-    <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 mainStart4">
+    <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-300 mainStart4">
       <Navbar2 />
       <Toaster />
-      <div className="mainContainer3 pb-40 mt-40 ">
-        <div className="card bg-base-100 w-96 shadow-xl cardDiv2">
+      <div className="mainContainer3 pb-40 mt-28 ">
+        <div className="card bg-base-100 w-120 shadow-xl cardDiv2">
           {/* Categories Section */}
           <div className="mt-2">
-            <p className="text-lg tts">Select Categories</p>
+            <p className="text-lg tts">Select Categories You Want to Subscribe</p>
             <div className="flex flex-wrap gap-2 mb-4">
               {availableCategories.map((category) => (
                 <button
@@ -105,7 +105,7 @@ export default function SelectCategories() {
 
           {/* Time Section */}
           <div className="mt-2">
-            <p className="text-lg tts">Select Preferred Times</p>
+            <p className="text-lg tts">Select Times of the Day You Want to Receive a Summary</p>
             <div className="flex flex-wrap gap-2">
               {availableTimes.map((time) => (
                 <button
