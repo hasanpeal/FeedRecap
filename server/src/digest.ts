@@ -392,7 +392,7 @@ cron.schedule(
       "AI",
       "Tech",
       "Crypto",
-      "Meme"
+      "Meme",
     ]);
 
     console.log("✅ [Tweet Fetching Cron]: Tweets have been updated.");
@@ -482,7 +482,7 @@ const sendDigest = async () => {
   const msg = {
     to: "jeremy.shoykhet+1@gmail.com",
     from: process.env.FROM_EMAIL || "",
-    subject: `FeedRecap's total user count update`,
+    subject: `Automated FeedRecap's total user count update`,
     text: digestMessage
   };
 
@@ -496,7 +496,7 @@ const sendDigest = async () => {
   const msg2 = {
     to: "pealh0320@gmail.com",
     from: process.env.FROM_EMAIL || "",
-    subject: `FeedRecap's total user count update`,
+    subject: `Automated FeedRecap's total user count update`,
     text: digestMessage,
   };
 
@@ -522,15 +522,7 @@ cron.schedule('0 */4 * * *', () => {
 //     "🔄 [Manual Test]: Starting the manual tweet fetching and newsletter generation process..."
 //   );
 
-//   await fetchAndStoreTweets([
-//     "Politics",
-//     "Geopolitics",
-//     "Finance",
-//     "AI",
-//     "Tech",
-//     "Crypto",
-//     "Meme"
-//   ]);
+//   sendDigest();
 //   // Fetch a sample user for testing (make sure the user exists in your database)
 //   const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec(); // Replace with a valid email
 //   if (!user) {
