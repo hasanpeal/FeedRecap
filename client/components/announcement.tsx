@@ -4,7 +4,7 @@ import "./announcement.css";
 
 export default function AnnouncementBar() {
   const [isVisible, setIsVisible] = useState(true);
-  const announcementText = `📣 Call to Action: As Election Day nears, stay informed and engaged by following the political pulse on social media. Use this newsletter as a guide to the latest developments, but remember to verify information from multiple sources and critically evaluate the perspectives you encounter online. Your voice and your vote matter, so make your voice heard on November 5`;
+  const announcementText = `📣 Call to Action: As Election Day nears, stay informed and engaged by following the political pulse on social media. Use this newsletter as a guide to the latest developments, but remember to verify information from multiple sources and critically evaluate the perspectives you encounter online. Your voice and your vote matter, so make your voice heard on November 5  `;
 
   const [duration, setDuration] = useState(10); // Default animation duration
 
