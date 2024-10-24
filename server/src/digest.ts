@@ -412,7 +412,10 @@ cron.schedule(
 
     for (const user of users) {
       // Check if this is the specific user you want to send a newsletter every hour
-      if (user.email == "jeremy.shoykhet+1@gmail.com") {
+      if (
+        user.email == "jeremy.shoykhet+1@gmail.com" ||
+        user.email == "pealh0320@gmail.com"
+      ) {
         console.log(`📧 Sending hourly newsletter for ${user.email}`);
 
         // Fetch the tweets for this user's categories

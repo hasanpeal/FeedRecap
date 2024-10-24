@@ -5,13 +5,11 @@ import "@/app/home.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import CookieConsent from "@/components/cookies";
-import AnnouncementBar from "@/components/announcement";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-100 homeMain">
       {/* Navbar */}
-      {/* <AnnouncementBar /> */}
       <Navbar />
 
       {/* Hero Section */}
@@ -21,7 +19,7 @@ export default function Home() {
         </h1>
         <p className="text-xl mb-8 ml-8 mr-8">
           FeedRecap gives you daily curated tweets and summaries of current
-          events accross politics, finance, tech, AI, and many more
+          events accross politics, finance, tech, AI, and more
         </p>
         <div className="flex space-x-4">
           <Link href="/signin">
