@@ -57,11 +57,13 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
     "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
   );
   const categoryAccounts: { [key: string]: string[] } = {
-    Politics: ["Politico", "Shellenberger", "Axios", "TheChiefNerd"],
-    Geopolitics: ["Faytuks", "EndgameWWIII", "sentdefender"],
-    Finance: ["financialjuice", "ForexLive", "DeItaone"],
-    AI: ["pmddomingos", "AndrewYNg", "tegmark"],
-    Tech: ["paulgraham", "ycombinator", "jason"],
+    Politics: ["Politico", "Shellenberger", "Axios", "TheChiefNerd", "CNN"],
+    Geopolitics: ["Faytuks", "EndgameWWIII", "sentdefender", "Global_Mil_Info"],
+    Finance: ["financialjuice", "ForexLive", "DeItaone", "WSJ", "SullyCNBC"],
+    AI: ["pmddomingos", "AndrewYNg", "tegmark", "deepmind", "OpenAI"],
+    Tech: ["paulgraham", "ycombinator", "jason", "elonmusk", "shl"],
+    Crypto: ["VitalikButerin", "pierre_crypt0", "APompliano", "aantonop", "ErikVoorhees"],
+    Meme: ["stoolpresidente", "litcapital", "trustfundterry", "TheoVon"] 
   };
 
   for (const category of categories) {
@@ -389,6 +391,8 @@ cron.schedule(
       "Finance",
       "AI",
       "Tech",
+      "Crypto",
+      "Meme"
     ]);
 
     console.log("✅ [Tweet Fetching Cron]: Tweets have been updated.");

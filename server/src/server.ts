@@ -305,7 +305,7 @@ app.post("/resetPassword", async (req, res) => {
     await user.save();
     res.status(200).json({ code: 0, message: "Password updated successfully" });
   } catch (err) {
-    res.status(500).json({ code: 1, message: "Error updating password" });
+    res.status(200).json({ code: 1, message: "Error updating password" });
   }
 });
 
@@ -705,6 +705,97 @@ app.get("/getIsNewUser", async (req, res) => {
       .json({ code: 2, message: "Error fetching isNewUser" });
   }
 });
+
+// Logout route that removes cookies
+app.post("/logout", (req, res) => {
+  console.log("Directed to POST Route -> /logout");
+  req.logout((err) => {
+    if (err) {
+      return res.status(200).json({ code: 1, message: "Error logging out" });
+    }
+    
+    // Clear the session cookie
+    res.clearCookie("connect.sid", {
+      path: "/",
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    });
+    
+    // Destroy session
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(200).json({ code: 1, message: "Error destroying session" });
+      }
+      console.log("Signout successful and cookies cleared");
+      res.status(200).json({ code: 0, message: "Logout successful, cookies cleared" });
+    });
+  });
+});
+
+// Route to access firstName, lastName, and password
+app.get("/getUserDetails", async (req, res) => {
+  const email: string = req.query.email as string;
+
+  try {
+    const user = await User.findOne({ email }, "firstName lastName password"); // Fetch firstName, lastName, and password
+    if (user) {
+      return res.status(200).json({
+        code: 0,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      });
+    } else {
+      return res.status(200).json({ code: 1, message: "User not found" });
+    }
+  } catch (err) {
+    console.log("Error fetching user details:", err);
+    return res.status(200).json({ code: 2, message: "Error fetching user details" });
+  }
+});
+
+
+// Route to update account details
+app.post("/updateAccount", async (req, res) => {
+  const { email, newFirstName, newLastName, newEmail} = req.body;
+  console.log(email, newFirstName, newLastName, newEmail);
+
+  try {
+    // Find the user by current email
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(200).json({ code: 1, message: "User not found" });
+    }
+
+    // Update the fields only if they are not blank
+    if (newFirstName && newFirstName.trim()) {
+      user.firstName = newFirstName;
+    }
+
+    if (newLastName && newLastName.trim()) {
+      user.lastName = newLastName;
+    }
+
+    if (newEmail && newEmail.trim()) {
+      const existingUser = await User.findOne({ email: newEmail });
+      if (existingUser) {
+        return res.status(200).json({ code: 1, message: "Account already exist with new email" });
+      }
+      user.email = newEmail;
+    }
+
+    // Save the updated user
+    await user.save();
+    return res.status(200).json({ code: 0, message: "Account updated successfully" });
+  } catch (err) {
+    console.log("Error updating account:", err);
+    return res.status(200).json({ code: 2, message: "Error updating account" });
+  }
+});
+
+
+
 
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);

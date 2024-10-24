@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import Navbar2 from "@/components/navbar2";
+import Navbar3 from "@/components/navbar3";
 import Footer2 from "@/components/footer2";
 import axios from "axios";
 import { useEmail } from "@/context/UserContext";
@@ -8,7 +8,7 @@ import { Toaster, toast } from "react-hot-toast";
 import "@/app/dashboard/dashboard.css";
 
 export default function Dashboard() {
-  const { emailContext } = useEmail();
+  const { emailContext, setEmailContext } = useEmail();
   const [categories, setCategories] = useState<string[]>([]);
   const [time, setTime] = useState<string[]>([]);
   const [timezone, setTimezone] = useState<string | null>(null);
@@ -23,13 +23,25 @@ export default function Dashboard() {
     "Finance",
     "AI",
     "Tech",
+    "Crypto",
+    "Meme"
   ];
   const availableTimes = ["Morning", "Afternoon", "Night"];
 
+  // On component mount, check if email is in localStorage
   useEffect(() => {
-    if (emailContext) {
-      fetchData();
+    const savedEmail = localStorage.getItem("email");
+    if (savedEmail) {
+      setEmailContext(savedEmail);
     }
+  }, []);
+
+  useEffect(() => {
+    console.log("email is", emailContext);
+    if (emailContext) {
+      localStorage.setItem("email", emailContext);
+      fetchData();
+    } else localStorage.removeItem("email");
   }, [emailContext]);
 
   useEffect(() => {
@@ -37,7 +49,6 @@ export default function Dashboard() {
     setTimezone(detectedTimezone); // Store the detected timezone in state
     console.log("Detected Timezone:", detectedTimezone); // Debugging
   }, []);
-
 
   const fetchData = async () => {
     try {
@@ -78,7 +89,14 @@ export default function Dashboard() {
       setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
       setLatestNewsletter(newsletterRes.data.newsletter);
       setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-      console.log(categories, time, dbTimezone, totalNewsletters, latestNewsletter, timezone);
+      console.log(
+        categories,
+        time,
+        dbTimezone,
+        totalNewsletters,
+        latestNewsletter,
+        timezone
+      );
     } catch (err) {
       toast.error("Error fetching user data.");
       console.log("ERROR:", err);
@@ -96,8 +114,8 @@ export default function Dashboard() {
         }
       );
       setLoading(false);
-      if(response.data.code == 0) toast.success("Categories Updated");
-      else toast.error("Server Error")
+      if (response.data.code == 0) toast.success("Categories Updated");
+      else toast.error("Server Error");
     } catch (err) {
       toast.error("Server Error");
     }
@@ -112,7 +130,7 @@ export default function Dashboard() {
       );
       setLoading(false);
       if (response.data.code == 0) toast.success("Times Updated");
-      else toast.error("Server Error")
+      else toast.error("Server Error");
     } catch (err) {
       toast.error("Server Error");
     }
@@ -135,7 +153,7 @@ export default function Dashboard() {
 
   return (
     <div className="bg-gradient-to-r from-blue-900 via-blue-700 to-black min-h-screen mainCont">
-      <Navbar2 />
+      <Navbar3 />
       <div className="container mx-auto px-6 py-12">
         <Toaster />
         <h1 className="text-center text-3xl font-bold text-white mb-8">

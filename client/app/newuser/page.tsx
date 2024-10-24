@@ -10,7 +10,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { useEmail } from "@/context/UserContext";
 
 export default function SelectCategories() {
-  const { emailContext } = useEmail();
+  const { emailContext, setEmailContext } = useEmail();
   console.log("Email is", emailContext);
   const [categories, setCategories] = useState<string[]>([]);
   const [times, setTimes] = useState<string[]>([]);
@@ -24,6 +24,8 @@ export default function SelectCategories() {
     "Finance",
     "AI",
     "Tech",
+    "Crypto",
+    "Meme"
   ];
   const availableTimes = ["Morning", "Afternoon", "Night"];
 
@@ -41,6 +43,23 @@ export default function SelectCategories() {
     }
   };
 
+  // On component mount, check if email is in localStorage
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("email");
+    if (savedEmail) {
+      setEmailContext(savedEmail);
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log("email is", emailContext);
+    if (emailContext) {
+      localStorage.setItem("email", emailContext);
+    } else localStorage.removeItem("email");
+  }, [emailContext]);
+
+
+
   const handleTimeChange = (time: string) => {
     if (times.includes(time)) {
       setTimes(times.filter((t) => t !== time));
@@ -57,26 +76,26 @@ export default function SelectCategories() {
     } else {
       setLoading(true);
 
-    try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/updateUserPreferences`,
-        {
-          email: emailContext,
-          timezone,
-          categories,
-          time: times,
-        }
-      );
-      if (response.data.code == 0) {
-        toast.success("You have successfully signed up for FeedRecap, your first summary should be in your inbox shortly");
-        router.push("/dashboard");
-      } else toast.error("Server error");
-    } catch (err) {
-      toast.error("Server error");
+      try {
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_SERVER}/updateUserPreferences`,
+          {
+            email: emailContext,
+            timezone,
+            categories,
+            time: times,
+          }
+        );
+        if (response.data.code == 0) {
+          toast.success(
+            "You have successfully signed up for FeedRecap, your first summary should be in your inbox shortly"
+          );
+          router.push("/dashboard");
+        } else toast.error("Server error");
+      } catch (err) {
+        toast.error("Server error");
+      }
     }
-    }
-    
-
   };
 
   return (
