@@ -13,7 +13,7 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section */}
-      <main className="flex flex-col items-center justify-center text-center py-20 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-300 text-white">
+      <main className="flex flex-col items-center justify-center text-center py-20 bg-gradient-to-r from-blue-900 via-blue-700 to-black text-white">
         <h1 className="text-5xl font-bold mb-4 ml-4 mr-4">
           Stay Informed and Save Time
         </h1>

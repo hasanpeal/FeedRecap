@@ -217,7 +217,7 @@ const Signup: React.FC = () => {
   }
 
   return (
-    <div className="mainStart bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-300">
+    <div className="mainStart bg-gradient-to-r from-blue-900 via-blue-700 to-black">
       <Navbar2 />
       <div className="mainContainer2 pb-40 mt-28">
         <div className="card bg-base-100 w-96 shadow-xl cardDiv">
@@ -389,8 +389,8 @@ const Signup: React.FC = () => {
           )}
         </div>
       </div>
-      <Footer2/>
-      <CookieConsent/>
+      <Footer2 />
+      <CookieConsent />
     </div>
   );
 };

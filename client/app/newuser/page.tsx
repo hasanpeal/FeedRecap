@@ -80,14 +80,16 @@ export default function SelectCategories() {
   };
 
   return (
-    <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-300 mainStart4">
+    <div className="bg-gradient-to-r from-blue-900 via-blue-700 to-black mainStart4">
       <Navbar2 />
       <Toaster />
       <div className="mainContainer3 pb-40 mt-28 ">
         <div className="card bg-base-100 w-120 shadow-xl cardDiv2">
           {/* Categories Section */}
           <div className="mt-2">
-            <p className="text-lg tts">Select Categories You Want to Subscribe</p>
+            <p className="text-lg tts">
+              Select Categories You Want to Subscribe
+            </p>
             <div className="flex flex-wrap gap-2 mb-4">
               {availableCategories.map((category) => (
                 <button
@@ -105,7 +107,9 @@ export default function SelectCategories() {
 
           {/* Time Section */}
           <div className="mt-2">
-            <p className="text-lg tts">Select Times of the Day You Want to Receive a Summary</p>
+            <p className="text-lg tts">
+              Select Times of the Day You Want to Receive a Summary
+            </p>
             <div className="flex flex-wrap gap-2">
               {availableTimes.map((time) => (
                 <button

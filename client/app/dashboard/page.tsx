@@ -134,7 +134,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-300 min-h-screen mainCont">
+    <div className="bg-gradient-to-r from-blue-900 via-blue-700 to-black min-h-screen mainCont">
       <Navbar2 />
       <div className="container mx-auto px-6 py-12">
         <Toaster />

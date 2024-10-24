@@ -212,7 +212,7 @@ Here is the tweet data you are summarizing:\n\n` +
         (tweet, index) =>
           `${index + 1}. ${tweet.tweet.replace(
             /\n/g,
-            ""
+            " "
           )} - @${tweet.screenName} 👉 <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
           }"> Tweet </a>`
