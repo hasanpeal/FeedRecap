@@ -5,7 +5,7 @@ import React from "react";
 export default function Navbar() {
   return (
     <header className="bg-white shadow-md">
-      <div className=" py-4 px-6 flex">
+      <div className="py-4 px-6 flex">
         <Link href="/" className="text-xl font-bold text-gray-800 flex-grow">
           FeedRecap
         </Link>
@@ -15,14 +15,17 @@ export default function Navbar() {
               Sample Newsletter
             </button>
           </Link>
-          <Link href="/signin">
-            <button className="text-gray-800 font-semibold sButton">
-              Sign In
-            </button>
-          </Link>
-          <Link href="/signup">
-            <button className="text-gray-800 font-semibold">Sign Up</button>
-          </Link>
+          {/* Show these buttons only on screens larger than "sm" */}
+          <div className="hidden sm:inline">
+            <Link href="/signin">
+              <button className="text-gray-800 font-semibold sButton">
+                Sign In
+              </button>
+            </Link>
+            <Link href="/signup">
+              <button className="text-gray-800 font-semibold ml-4">Sign Up</button>
+            </Link>
+          </div>
         </nav>
       </div>
     </header>

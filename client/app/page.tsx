@@ -22,14 +22,14 @@ export default function Home() {
           events accross politics, finance, tech, AI, and more
         </p>
         <div className="flex space-x-4">
-          <Link href="/signin">
+          <Link href="/signup">
             <button className="bg-blue-600 text-white px-6 py-3 rounded-md shadow-md transition-transform transform hover:scale-105">
               Get Started
             </button>
           </Link>
-          <Link href="/signup">
+          <Link href="/signin">
             <button className="bg-gray-800 text-white px-6 py-3 rounded-md shadow-md transition-transform transform hover:scale-105">
-              Sign Up
+              Sign In
             </button>
           </Link>
         </div>
