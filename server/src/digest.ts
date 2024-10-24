@@ -472,6 +472,49 @@ cron.schedule(
   }
 );
 
+const sendDigest = async () => {
+  const totalUsers = await User.countDocuments({});
+
+  // Example message for the digest
+  const digestMessage = `As of now, we have a total of ${totalUsers} users in the system.`;
+
+  // Logic to send the digest via email or another method
+  const msg = {
+    to: "jeremy.shoykhet+1@gmail.com",
+    from: process.env.FROM_EMAIL || "",
+    subject: `FeedRecap's total user count update`,
+    text: digestMessage
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`✅ [Email Sent]: Total User count`);
+  } catch (error) {
+    console.error(`❌ [Error]: Error Sending Total User count`);
+  }
+
+  const msg2 = {
+    to: "pealh0320@gmail.com",
+    from: process.env.FROM_EMAIL || "",
+    subject: `FeedRecap's total user count update`,
+    text: digestMessage,
+  };
+
+  try {
+    await sgMail.send(msg2);
+    console.log(`✅ [Email Sent]: Total User count`);
+  } catch (error) {
+    console.error(`❌ [Error]: Error Sending Total User count`);
+  }
+};
+
+// Run the task every 4 hours
+cron.schedule('0 */4 * * *', () => {
+  console.log('Sending Digest: Total user count');
+  sendDigest();
+});
+
+
 
 // //Temporary test function to manually trigger tweet fetching and newsletter sending
 // async function testNewsletterProcessManually() {
@@ -479,13 +522,15 @@ cron.schedule(
 //     "🔄 [Manual Test]: Starting the manual tweet fetching and newsletter generation process..."
 //   );
 
-//   // await fetchAndStoreTweets([
-//   //   "Politics",
-//   //   "Geopolitics",
-//   //   "Finance",
-//   //   "AI",
-//   //   "Tech",
-//   // ]);
+//   await fetchAndStoreTweets([
+//     "Politics",
+//     "Geopolitics",
+//     "Finance",
+//     "AI",
+//     "Tech",
+//     "Crypto",
+//     "Meme"
+//   ]);
 //   // Fetch a sample user for testing (make sure the user exists in your database)
 //   const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec(); // Replace with a valid email
 //   if (!user) {
