@@ -234,9 +234,9 @@ Here is the tweet data you are summarizing:\n\n` +
       .join("\n\n");
 
 
-      console.log("Top 15 Tweets to be included: ", topTweetsText);
+      console.log("Top Tweets to be included: ", topTweetsText);
     // Append the top 15 tweets to the Gemini-generated newsletter
-    const finalNewsletterContent = `${result}\n\n**TOP 15 TWEETS OF TODAY:**\n${topTweetsText}`;
+    const finalNewsletterContent = `${result}\n\n**TOP TWEETS OF TODAY:**\n${topTweetsText}`;
 
 
     console.log("Final Newsletter Content: ", finalNewsletterContent);
@@ -370,7 +370,10 @@ export async function sendNewsletterEmail(
 ): Promise<void> {
   const msg = {
     to: user.email,
-    from: process.env.FROM_EMAIL || "",
+    from: {
+      email: process.env.FROM_EMAIL || "",
+      name: "FeedRecap"
+    },
     subject: `Your personalized newsletter from FeedRecap 👋`,
     html: newsletter,
   };
@@ -527,52 +530,4 @@ cron.schedule('0 */4 * * *', () => {
 });
 
 
-
-// //Temporary test function to manually trigger tweet fetching and newsletter sending
-// async function testNewsletterProcessManually() {
-//   console.log(
-//     "🔄 [Manual Test]: Starting the manual tweet fetching and newsletter generation process..."
-//   );
-
-//   await fetchAndStoreTweets([
-//     "Politics",
-//     "Geopolitics",
-//     "Finance",
-//     "AI",
-//     "Tech",
-//     "Crypto",
-//     "Meme",
-//   ]);
-//   // Fetch a sample user for testing (make sure the user exists in your database)
-//   const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec(); // Replace with a valid email
-//   if (!user) {
-//     console.log("❌ [Manual Test]: No user found for testing.");
-//     return;
-//   }
-
-//   // Fetch the tweets for this user's categories
-//   const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
-//     user.categories
-//   );
-
-//   // Generate the newsletter
-//   const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
-
-//   if (newsletter) {
-//     // Send the email (or store the newsletter in user model)
-//     await sendNewsletterEmail(user, newsletter);
-//     console.log(
-//       "✅ [Manual Test]: Newsletter generated and sent successfully."
-//     );
-//   } else {
-//     console.log("❌ [Manual Test]: Error in generating the newsletter.");
-//   }
-
-//   console.log(
-//     "✅ [Manual Test Completed]: Check your logs and email for the results."
-//   );
-// }
-
-// // Call the test function to trigger the process manually
-// testNewsletterProcessManually();
 
