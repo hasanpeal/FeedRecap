@@ -9,7 +9,7 @@ export default function Navbar() {
         <Link href="/" className="text-xl font-bold text-gray-800 flex-grow">
           FeedRecap
         </Link>
-        <nav className="space-x-5 buttonss">
+        <nav className="space-x-4 buttonss">
           <Link href="/samplenewsletter">
             <button className="text-gray-800 font-semibold">
               Sample Newsletter
