@@ -125,30 +125,17 @@ export default function Navbar2() {
           >
             Logout
           </button>
-
-          {/* Contact Us button (unchanged) */}
-          <button
-            onClick={() => {
-              const modal = document.getElementById(
-                "contact_modal"
-              ) as HTMLDialogElement;
-              if (modal) {
-                modal.showModal();
-              }
-            }}
-            className="text-gray-800 font-semibold"
-          >
-            Contact Us
-          </button>
         </nav>
       </div>
 
       {/* Account Modal */}
       <dialog id="account_modal" className="bg-white p-6 rounded-lg max-w-lg">
-        <h2 className="text-xl font-bold mb-4">Update Account</h2>
+        <h2 className="text-xl font-bold mb-4">&nbsp;Update Account</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium">First Name</label>
+            <label className="block text-sm font-medium mb-2">
+              &nbsp;First Name
+            </label>
             <input
               type="text"
               value={firstName}
@@ -158,7 +145,9 @@ export default function Navbar2() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Last Name</label>
+            <label className="block text-sm font-medium mb-2">
+              &nbsp;Last Name
+            </label>
             <input
               type="text"
               value={lastName}
@@ -168,7 +157,9 @@ export default function Navbar2() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Email</label>
+            <label className="block text-sm font-medium mb-2">
+              &nbsp;Email
+            </label>
             <input
               type="email"
               value={email}
@@ -199,25 +190,6 @@ export default function Navbar2() {
             Close
           </button>
         </div>
-      </dialog>
-
-      {/* Contact Modal (unchanged) */}
-      <dialog id="contact_modal" className="bg-white p-6 rounded-lg max-w-lg">
-        <h2 className="text-xl font-bold mb-4">Contact Us</h2>
-        <p>For any queries, please contact us at: support@feedrecap.com</p>
-        <button
-          className="bg-gray-400 text-white px-4 py-2 rounded mt-4"
-          onClick={() => {
-            const modal = document.getElementById(
-              "contact_modal"
-            ) as HTMLDialogElement;
-            if (modal) {
-              modal.close();
-            }
-          }}
-        >
-          Close
-        </button>
       </dialog>
     </header>
   );
