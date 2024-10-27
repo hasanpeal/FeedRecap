@@ -76,6 +76,8 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
       "ErikVoorhees",
     ],
     Meme: ["stoolpresidente", "litcapital", "trustfundterry", "TheoVon"],
+    Sports: ["SportsCenter", "WojESPN", "BleacherReport", "TheAthletic"],
+    Entertainment: ["IMDb", "Netflix", "TheAVClub", "LightsCameraPod"]
   };
 
   for (const category of categories) {
@@ -178,21 +180,23 @@ export async function generateNewsletter(
           parts: [
             {
               text:
-                `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 11 OF THESE RULES!! (Take as long as you want to process):
+                `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 12 OF THESE RULES!! (Take as long as you want to process):
 
-1. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
-2. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
-3. **Follow the themes of each category**, ensuring the content feels cohesive and relevant to the category. Each category should feel distinct.
-4. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
-5. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
-6. **Do NOT cite sources**—just summarize the tweets without citations.
-7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
-8. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
-9. **Format the newsletter as bullet points** for each category. Each bullet point should summarize a key piece of information from the tweets, just as if you were a news reporter covering these topics. Write succinctly and clearly.
-10. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
-11. Ensure the **bullet points are separated by category** and well-structured.
+1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all categories. Title this section "Summary".
+2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
+3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
+4. **Follow the themes of each category**, ensuring the content feels cohesive and relevant to the category. Each category should feel distinct.
+5. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
+6. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
+7. **Do NOT cite sources**—just summarize the tweets without citations.
+8. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
+9. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
+10. **Format the newsletter as bullet points** for each category. Each bullet point should summarize a key piece of information from the tweets, just as if you were a news reporter covering these topics. Write succinctly and clearly.
+11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
+12. Ensure the **bullet points are separated by category** and well-structured.
 
-Here is the tweet data you are summarizing:\n\n` +
+Here is the tweet data you are summarizing:
+\n\n` +
                 tweetsByCategory
                   .map(({ category, tweetsByUser }) => {
                     return (
@@ -408,6 +412,8 @@ cron.schedule(
       "Tech",
       "Crypto",
       "Meme",
+      "Sports",
+      "Entertainment",
     ]);
 
     console.log("✅ [Tweet Fetching Cron]: Tweets have been updated.");
@@ -524,10 +530,63 @@ const sendDigest = async () => {
 };
 
 // Run the task every 4 hours
-cron.schedule('0 */4 * * *', () => {
+cron.schedule('0 */6 * * *', () => {
   console.log('Sending Digest: Total user count');
   sendDigest();
 });
 
 
 
+
+
+
+//Temporary test function to manually trigger tweet fetching and newsletter sending
+async function testNewsletterProcessManually() {
+  console.log(
+    "🔄 [Manual Test]: Starting the manual tweet fetching and newsletter generation process..."
+  );
+
+  await fetchAndStoreTweets([
+    "Politics",
+    "Geopolitics",
+    "Finance",
+    "AI",
+    "Tech",
+    "Crypto",
+    "Meme",
+    "Sports",
+    "Entertainment",
+  ]
+);
+  // Fetch a sample user for testing (make sure the user exists in your database)
+  const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec(); // Replace with a valid email
+  if (!user) {
+    console.log("❌ [Manual Test]: No user found for testing.");
+    return;
+  }
+
+  // Fetch the tweets for this user's categories
+  const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
+    user.categories
+  );
+
+  // Generate the newsletter
+  const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+
+  if (newsletter) {
+    // Send the email (or store the newsletter in user model)
+    await sendNewsletterEmail(user, newsletter);
+    console.log(
+      "✅ [Manual Test]: Newsletter generated and sent successfully."
+    );
+  } else {
+    console.log("❌ [Manual Test]: Error in generating the newsletter.");
+  }
+
+  console.log(
+    "✅ [Manual Test Completed]: Check your logs and email for the results."
+  );
+}
+
+// Call the test function to trigger the process manually
+testNewsletterProcessManually();

@@ -24,7 +24,9 @@ export default function Dashboard() {
     "AI",
     "Tech",
     "Crypto",
-    "Meme"
+    "Meme",
+    "Sports",
+    "Entertainment",
   ];
   const availableTimes = ["Morning", "Afternoon", "Night"];
 

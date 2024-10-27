@@ -25,7 +25,9 @@ export default function SelectCategories() {
     "AI",
     "Tech",
     "Crypto",
-    "Meme"
+    "Meme",
+    "Sports",
+    "Entertainment",
   ];
   const availableTimes = ["Morning", "Afternoon", "Night"];
 
