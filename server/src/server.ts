@@ -16,7 +16,8 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import mongoose from "mongoose";
 import { User } from "./userModel";
 import "./digest";
-import { fetchTweetsForCategories, generateNewsletter, sendNewsletterEmail } from "./digest";
+import dbTweet from "./dbTweet";
+import { fetchTweetsForCategories, generateNewsletter, sendNewsletterEmail, ITweet, tweetSchema, StoredTweets } from "./digest";
 
 env.config();
 const app = express();
@@ -24,10 +25,6 @@ const port = 3001;
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
-// const mailjet = new Mailjet({
-//   apiKey: process.env.MAIL,
-//   apiSecret: process.env.MAIL_PRIVATE,
-// });
 // Redis client setup
 const redisClient = createClient({
   url: process.env.REDIS || "",
@@ -131,6 +128,50 @@ function isAuthenticated(
   }
   res.status(401).send({ code: 1, message: "Unauthorized" });
 }
+
+
+// Route to get posts by user-selected categories
+app.get("/api/posts", async (req, res) => {
+  console.log("Posts routes");
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email query parameter is required", code: 1 });
+  }
+
+  try {
+    // Fetch the user by email to get their selected categories
+    const user = await User.findOne({ email }).select("categories");
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found", code: 1 });
+    }
+
+    const selectedCategories = user.categories;
+
+    // Fetch posts from StoredTweets based on user's selected categories
+    const posts = await StoredTweets.find({ category: { $in: selectedCategories } })
+      .select("screenName createdAt tweets category");
+
+    // Format the data to return an array of tweets with necessary fields
+    const formattedPosts = posts.flatMap(post => {
+      return post.tweets.map(tweet => ({
+        username: post.screenName,
+        time: post.createdAt,
+        likes: tweet.likes,
+        category: post.category,
+        text: tweet.text,
+        tweet_id: tweet.tweet_id,
+      }));
+    });
+
+    // Respond with the formatted data, adding code: 0 to indicate success
+    res.status(200).json({ data: formattedPosts, code: 0 });
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    res.status(500).json({ error: "An error occurred while fetching posts", code: 1 });
+  }
+});
 
 // Login route
 app.post("/login", (req, res, next) => {

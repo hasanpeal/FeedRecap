@@ -14,7 +14,7 @@ import { htmlToText } from "html-to-text";
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
 // MongoDB Tweet Document Interface
-interface ITweet extends Document {
+export interface ITweet extends Document {
   category: string;
   screenName: string;
   tweets: { text: string; likes: number; tweet_id: string }[];
@@ -22,7 +22,7 @@ interface ITweet extends Document {
 }
 
 // Tweet Schema
-const tweetSchema: Schema = new mongoose.Schema({
+export const tweetSchema: Schema = new mongoose.Schema({
   category: { type: String, required: true },
   screenName: { type: String, required: true },
   tweets: [{ text: String, likes: Number, tweet_id: String }],
@@ -30,7 +30,7 @@ const tweetSchema: Schema = new mongoose.Schema({
 });
 
 // Models
-const StoredTweets = dbTweet.model<ITweet>("StoredTweets", tweetSchema);
+export const StoredTweets = dbTweet.model<ITweet>("StoredTweets", tweetSchema);
 
 // Ensure both databases are connected before running any logic
 async function ensureDatabaseConnections() {
