@@ -185,6 +185,10 @@
     color: #888;
 }
 
+.newsfeed-content {
+    margin-top: -50px;
+}
+
 .post-card p {
     font-size: 1rem;
     color: #333;
