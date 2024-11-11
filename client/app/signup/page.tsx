@@ -36,6 +36,28 @@ const Signup: React.FC = () => {
   const router = useRouter();
   const { setEmailContext } = useEmail();
 
+     React.useEffect(() => {
+       const storage = async () => {
+         const savedEmail = localStorage.getItem("email");
+         if (savedEmail) {
+           setEmailContext(savedEmail);
+           const response = await axios.get(
+             `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
+             {
+               params: { email: savedEmail },
+             }
+           );
+
+           if (response.data.code == 0 && response.data.isNewUser)
+             router.push("/newuser");
+           else if (response.data.code == 0 && !response.data.isNewUser)
+             router.push("/dashboard");
+           else toast.error("Server Error");
+         }
+       };
+       storage();
+     }, []);
+
   const handleOtpChange = (index: number, value: string) => {
     if (/^[0-9]$/.test(value)) {
       const newOtp = [...otp];

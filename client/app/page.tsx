@@ -5,8 +5,35 @@ import "@/app/home.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import CookieConsent from "@/components/cookies";
+import { useEmail } from "@/context/UserContext"; 
+import React from "react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const { setEmailContext } = useEmail();
+  const router = useRouter();
+  React.useEffect(() => {
+    const storage = async () => {
+      const savedEmail = localStorage.getItem("email");
+      if (savedEmail) {
+        setEmailContext(savedEmail);
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
+          {
+            params: { email: savedEmail },
+          }
+        );
+
+        if (response.data.code == 0 && response.data.isNewUser)
+          router.push("/newuser");
+        else if (response.data.code == 0 && !response.data.isNewUser)
+          router.push("/dashboard");
+      }
+    };
+    storage();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-100 homeMain">
       {/* Navbar */}
