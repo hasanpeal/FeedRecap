@@ -1,7 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;700&display=swap");
 @import url("https://fonts.googleapis.com/css?family=Open+Sans:300,400,700");
+
 .mainCont {
-    /* font-family: "Raleway", sans-serif; */
     font-family: "Open Sans", sans-serif;
 }
 
@@ -21,13 +21,14 @@
 }
 
 .post-card p {
-    font-size: 1rem;
+    font-size: 1.5rem;
     color: #333;
     margin: 10px 0;
     font-family: "Open Sans", sans-serif;
 }
 
-.categories-box, .category-filter {
+.categories-box,
+.category-filter {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -46,6 +47,9 @@
     font-size: 0.9rem;
 }
 
+
+
+/* Category button styles for posts page */
 .category1-button {
     padding: 8px 12px;
     border: 2px solid #4a00ff;
@@ -57,9 +61,38 @@
     font-size: 1.1rem;
 }
 
+
+
+/* Active/selected state */
+.category1-button.active {
+    background-color: #4a00ff;
+    color: white;
+}
+
+
+.show-more-button {
+    padding: 8px 12px;
+    border: 2px solid #4a00ff;
+    border-radius: 8px;
+    background-color: white;
+    color: #4a00ff;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1.1rem;
+}
+
+.show-more-button:hover {
+    background-color: #4a00ff;
+    color: white;
+}
+
 .category-button.active {
     background-color: #4a00ff;
     color: white;
+}
+
+.category1-button:not(.active):hover {
+    background-color: #f0f0f0;
 }
 
 .category-button:not(.active):hover {
@@ -153,15 +186,20 @@
     padding-top: 20px;
 }
 
+.post-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+}
+
 .post-card {
     background-color: #f5f5f5;
     border-radius: 8px;
     padding: 20px;
-    margin-bottom: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    max-width: 700px;
-    margin-left: auto;
-    margin-right: auto;
+    flex: 1 1 22%; /* This will allow 4 columns if space allows */
+    margin: 0;
     font-family: "Open Sans", sans-serif;
 }
 
@@ -178,6 +216,7 @@
     font-weight: bold;
     color: #333;
     margin: 0;
+    font-size: 1.4rem;
 }
 
 .post-header span {
@@ -190,7 +229,7 @@
 }
 
 .post-card p {
-    font-size: 1rem;
+    font-size: 1.8rem;
     color: #333;
     margin-bottom: 5px;
     line-height: 1.5;
@@ -206,9 +245,29 @@
 
 .post-footer {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     font-size: 0.9rem;
+}
+
+.view-post {
+    color: #4a00ff;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+    display: flex;
+    justify-content:end;
+}
+
+.view-post:hover {
+    color: #3700b3;
+}
+
+/* Show more/less button */
+.show-more-button {
+    display: block;
+    width: fit-content;
+    margin: 20px auto 40px auto;
 }
 
 .likes {
@@ -222,13 +281,13 @@
     margin-right: 5px;
 }
 
-.view-post {
+.categoryTextC {
     color: #4a00ff;
-    text-decoration: none;
-    font-weight: bold;
-    transition: color 0.3s;
+    
 }
 
-.view-post:hover {
-    color: #3700b3;
+.categoryTextP {
+    font-size: 1rem;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
 }

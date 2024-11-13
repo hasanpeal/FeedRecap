@@ -8,6 +8,7 @@ import { Toaster, toast } from "react-hot-toast";
 import Image from "next/image";
 import { FaHeart } from "react-icons/fa";
 import "@/app/dashboard/dashboard.css";
+import { LinkPreview } from "@dhaiwat10/react-link-preview";
 
 interface Post {
   username: string;
@@ -31,6 +32,8 @@ export default function Dashboard() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedTab, setSelectedTab] = useState("newsfeed");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [visiblePosts, setVisiblePosts] = useState(10);
+  const [showAllPosts, setShowAllPosts] = useState(false);
 
   const availableCategories = [
     "Politics",
@@ -143,8 +146,7 @@ export default function Dashboard() {
         toast.success("Categories Updated");
         await fetchData(); // Fetch updated data after category update
         await fetchPosts(); // Fetch updated posts after category update
-      }
-      else toast.error("Server Error");
+      } else toast.error("Server Error");
     } catch (err) {
       toast.error("Server Error");
     }
@@ -162,12 +164,26 @@ export default function Dashboard() {
         toast.success("Times Updated");
         await fetchData(); // Fetch updated data after category update
         await fetchPosts(); // Fetch updated posts after category update
-      }
-      else toast.error("Server Error");
+      } else toast.error("Server Error");
     } catch (err) {
       toast.error("Server Error");
     }
   };
+
+  // Function to toggle showing more or fewer posts
+  const toggleShowMore = () => {
+    if (showAllPosts) {
+      setVisiblePosts(10);
+    } else {
+      setVisiblePosts(posts.length);
+    }
+    setShowAllPosts(!showAllPosts);
+  };
+
+  // Filtered posts based on category
+  const filteredPosts = selectedCategory
+    ? posts.filter((post) => post.category === selectedCategory)
+    : posts;
 
   const handleTimezoneUpdate = async () => {
     setLoading(true);
@@ -184,11 +200,6 @@ export default function Dashboard() {
     }
   };
 
-  const extractLink = (text: string) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const match = text.match(urlRegex);
-    return match ? match[0] : null;
-  };
 
   const fetchThumbnail = async (url: string) => {
     try {
@@ -200,15 +211,36 @@ export default function Dashboard() {
       return undefined;
     }
   };
+  function timeAgo(date: string | number | Date) {
+    const seconds = Math.floor(
+      (new Date().getTime() - new Date(date).getTime()) / 1000
+    );
+    let interval = Math.floor(seconds / 31536000);
 
-  const filteredPosts = selectedCategory
-    ? posts.filter((post) => post.category === selectedCategory)
-    : posts;
+    if (interval >= 1)
+      return interval + " year" + (interval > 1 ? "s" : "") + " ago";
+    if ((interval = Math.floor(seconds / 2592000)) >= 1)
+      return interval + " month" + (interval > 1 ? "s" : "") + " ago";
+    if ((interval = Math.floor(seconds / 86400)) >= 1)
+      return interval + " day" + (interval > 1 ? "s" : "") + " ago";
+    if ((interval = Math.floor(seconds / 3600)) >= 1)
+      return interval + " hour" + (interval > 1 ? "s" : "") + " ago";
+    if ((interval = Math.floor(seconds / 60)) >= 1)
+      return interval + " minute" + (interval > 1 ? "s" : "") + " ago";
+    return Math.floor(seconds) + " seconds ago";
+  }
+
+  const extractLink = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const match = text.match(urlRegex);
+    return match ? match[0] : null;
+  };
+
 
   return (
     <div className="bg-gradient-to-r from-blue-900 via-blue-700 to-black min-h-screen mainCont">
       <Navbar3 />
-      <div className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-2 py-12">
         <Toaster />
 
         {selectedTab === "newsfeed" && (
@@ -230,26 +262,19 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
-            {filteredPosts.map((post) => (
-              <div key={post.tweet_id} className="post-card">
-                <div className="post-header">
-                  <h3>@{post.username}</h3>
-                  <span>{new Date(post.time).toLocaleString()}</span>
-                </div>
-                <p>{post.text}</p>
-                {post.thumbnailUrl && (
-                  <Image
-                    src={post.thumbnailUrl}
-                    alt="Post Thumbnail"
-                    width={500}
-                    height={300}
-                    className="thumbnail"
-                  />
-                )}
-                <div className="post-footer">
-                  <div className="likes">
-                    <FaHeart className="like-icon" /> {post.likes}
+            <div className="post-grid">
+              {filteredPosts.slice(0, visiblePosts).map((post) => (
+                
+                <div key={post.tweet_id} className="post-card">
+                  <div className="post-header">
+                    <h3>@{post.username}</h3>
+                    <span>{timeAgo(post.time)}</span>
                   </div>
+                  <h3 className="categoryTextP">
+                    <span className="categoryTextC">Category: </span>
+                    {post.category}
+                  </h3>
+                  <p>{post.text}</p>
                   <a
                     href={`https://twitter.com/i/web/status/${post.tweet_id}`}
                     target="_blank"
@@ -259,14 +284,19 @@ export default function Dashboard() {
                     View Post
                   </a>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <button
+              className="category1-button show-more-button"
+              onClick={toggleShowMore}
+            >
+              {showAllPosts ? "Show Less" : "Show More"}
+            </button>
           </div>
         )}
 
         {selectedTab === "newsletter" && (
           <div className="dashboard-card">
-            <h2 className="section-title">Newsletter Information</h2>
             <div className="stats-box">
               <div className="stat-card">
                 <h3 className="stat-title">Total Newsletters Received</h3>
