@@ -106,6 +106,41 @@ export default function Dashboard() {
     }
   };
 
+  const sortPostsByCategoryLikes = (posts: Post[]): Post[] => {
+    // Define the type for category groups
+    const categoryGroups: { [key: string]: Post[] } = {};
+
+    // Group posts by category
+    posts.forEach((post) => {
+      if (!categoryGroups[post.category]) {
+        categoryGroups[post.category] = [];
+      }
+      categoryGroups[post.category].push(post);
+    });
+
+    // Sort each category's posts by likes in descending order
+    Object.keys(categoryGroups).forEach((category) => {
+      categoryGroups[category].sort((a, b) => b.likes - a.likes);
+    });
+
+    // Pick top posts from each category in a round-robin fashion
+    const sortedPosts: Post[] = [];
+    const maxPostsPerCategory = Math.max(
+      ...Object.values(categoryGroups).map((group) => group.length)
+    );
+
+    for (let i = 0; i < maxPostsPerCategory; i++) {
+      for (const category in categoryGroups) {
+        if (categoryGroups[category][i]) {
+          sortedPosts.push(categoryGroups[category][i]);
+        }
+      }
+    }
+
+    return sortedPosts;
+  };
+
+
   const fetchPosts = async () => {
     try {
       const response = await axios.get(
@@ -116,13 +151,16 @@ export default function Dashboard() {
       );
       if (response.data.code === 0) {
         const postsWithThumbnails = await Promise.all(
-          response.data.data.map(async (post: Post) => {
+          response.data.data.map(async (post: { text: string; }) => {
             const link = extractLink(post.text);
             const thumbnailUrl = link ? await fetchThumbnail(link) : undefined;
             return { ...post, thumbnailUrl };
           })
         );
-        setPosts(postsWithThumbnails);
+
+        // Sort posts using the new function
+        const sortedPosts = sortPostsByCategoryLikes(postsWithThumbnails);
+        setPosts(sortedPosts);
       } else {
         toast.error("Error loading posts.");
       }
@@ -200,7 +238,6 @@ export default function Dashboard() {
     }
   };
 
-
   const fetchThumbnail = async (url: string) => {
     try {
       const response = await axios.get(
@@ -236,9 +273,8 @@ export default function Dashboard() {
     return match ? match[0] : null;
   };
 
-
   return (
-    <div className="bg-gradient-to-r from-blue-900 via-blue-700 to-black min-h-screen mainCont">
+    <div className="bg-gradient-to-r from-indigo-900 via-purple-800 to-blue-600 min-h-screen mainCont">
       <Navbar3 />
       <div className="container mx-auto px-2 py-12">
         <Toaster />
@@ -264,7 +300,6 @@ export default function Dashboard() {
             </div>
             <div className="post-grid">
               {filteredPosts.slice(0, visiblePosts).map((post) => (
-                
                 <div key={post.tweet_id} className="post-card">
                   <div className="post-header">
                     <h3>@{post.username}</h3>

@@ -201,6 +201,7 @@
     flex: 1 1 22%; /* This will allow 4 columns if space allows */
     margin: 0;
     font-family: "Open Sans", sans-serif;
+    transition: transform 0.3s ease;
 }
 
 .post-header {
@@ -290,4 +291,8 @@
     font-size: 1rem;
     font-family: "Open Sans", sans-serif;
     font-weight: bold;
+}
+
+.post-card:hover {
+    transform: scale(1.02);
 }
