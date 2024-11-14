@@ -274,14 +274,14 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="bg-gradient-to-r from-indigo-900 via-purple-800 to-blue-600 min-h-screen mainCont">
+    <div className="bg-gradient-to-r from-indigo-900 via-purple-800 to-blue-600 mainCont">
       <Navbar3 />
-      <div className="container mx-auto px-2 py-12">
+      <div className="container mx-auto px-1 py-12">
         <Toaster />
 
         {selectedTab === "newsfeed" && (
           <div className="newsfeed-content">
-            <div className="category-filter">
+            <div className="category-filter mt-2">
               {categories.map((category) => (
                 <button
                   key={category}

@@ -33,7 +33,7 @@
     flex-wrap: wrap;
     gap: 10px;
     justify-content: center;
-    margin-bottom: 15px;
+    margin-bottom: 27px;
 }
 
 .category-button {
@@ -189,14 +189,18 @@
 .post-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 30px;
     justify-content: center;
 }
 
 .post-card {
     background-color: #f5f5f5;
     border-radius: 8px;
-    padding: 20px;
+    padding-left: 50px;
+    padding-right: 50px;
+    padding-bottom: 30px;
+    padding-top: 30px;
+
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     flex: 1 1 22%; /* This will allow 4 columns if space allows */
     margin: 0;
