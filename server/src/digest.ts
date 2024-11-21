@@ -436,26 +436,6 @@ cron.schedule(
     const currentTime = moment().utc();
 
     for (const user of users) {
-      // Check if this is the specific user you want to send a newsletter every hour
-      if (
-        user.email == "jeremy.shoykhet+1@gmail.com"
-      ) {
-        console.log(`📧 Sending hourly newsletter for ${user.email}`);
-
-        // Fetch the tweets for this user's categories
-        const { tweetsByCategory, top15Tweets } =
-          await fetchTweetsForCategories(user.categories);
-
-        // Generate the newsletter
-        const newsletter = await generateNewsletter(
-          tweetsByCategory,
-          top15Tweets
-        );
-
-        if (newsletter) {
-          await sendNewsletterEmail(user, newsletter);
-        }
-      } else {
         // Process newsletters for users with their time-based preferences (Morning, Afternoon, Night)
         const userLocalTime = currentTime.clone().tz(user.timezone);
         const currentHour = userLocalTime.hour();
@@ -484,7 +464,6 @@ cron.schedule(
             await sendNewsletterEmail(user, newsletter);
           }
         }
-      }
     }
   },
   {
