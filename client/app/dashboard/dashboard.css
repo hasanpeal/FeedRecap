@@ -300,3 +300,140 @@
 .post-card:hover {
     transform: scale(1.02);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* New styles for profile tags and input fields in customProfiles */
+.profileTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  background-color: #4a00ff;
+  color: white;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin: 5px;
+}
+
+.removeProfileButton {
+  background: none;
+  border: none;
+  color: white;
+  margin-left: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: color 0.3s;
+}
+
+.removeProfileButton:hover {
+  color: #f0f0f0;
+}
+
+/* Input field for adding profiles */
+.profileInput {
+  padding: 8px;
+  border: 2px solid #4a00ff;
+  border-radius: 8px;
+  width: 250px;
+  font-size: 1rem;
+  margin-top: 5px;
+}
+
+.profileInput:focus {
+  outline: none;
+  border-color: #3700b3;
+}
+
+/* Additional spacing for profile-related sections */
+.profile-section {
+  margin-top: 20px;
+}
+
+.action-button.mt-4 {
+  margin-top: 20px; /* Adjust top margin for buttons inside sections */
+}
+
+/* Responsive tweaks to maintain a clean layout */
+@media (max-width: 768px) {
+  .categories-box,
+  .category-filter {
+    gap: 8px;
+    justify-content: space-between;
+  }
+
+  .profileInput {
+    width: 100%; /* Make the input field responsive */
+  }
+
+  .profileTag {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+  }
+
+  .removeProfileButton {
+    font-size: 0.8rem;
+  }
+}
+
+.feed-type-button-container {
+  margin-top: 15px; /* Add spacing between the button and the options above */
+}
+
+.feed-type-button {
+  display: block;
+  width: 100%; /* Make the button take the full width */
+  padding: 10px;
+  background-color: #4a00ff;
+  color: white;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  border: none; /* No border */
+}
+
+.feed-type-button:hover {
+  background-color: #3700b3;
+}
+
+.feed-type-button:disabled {
+  background-color: #cccccc;
+  color: #666;
+  cursor: not-allowed;
+}
+.blurred-section {
+  pointer-events: none;
+  opacity: 0.5;
+  background-color: rgba(255, 255, 255, 0.1); /* Optional: Add a slight background tint */
+  padding: 16px;
+  border-radius: 8px;
+  border: 2px dashed #ccc; /* Dashed border to indicate it's disabled */
+}
+
+.blurred-message {
+  font-style: italic;
+  font-size: 0.9rem;
+  color: #aaa;
+  text-align: center;
+}
+

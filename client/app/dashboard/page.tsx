@@ -34,7 +34,12 @@ export default function Dashboard() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [visiblePosts, setVisiblePosts] = useState(10);
   const [showAllPosts, setShowAllPosts] = useState(false);
-
+  const [profiles, setProfiles] = useState<string[]>([]);
+  const [newProfile, setNewProfile] = useState("");
+  const [feedType, setFeedType] = useState<"categorywise" | "customProfiles">(
+    "categorywise"
+  );
+  const [wise, setWise] = useState<string | null>(null); // To handle feed type selection
   const availableCategories = [
     "Politics",
     "Geopolitics",
@@ -70,41 +75,112 @@ export default function Dashboard() {
     setTimezone(detectedTimezone);
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const [
-        categoriesRes,
-        timesRes,
-        timezoneRes,
-        totalNewslettersRes,
-        newsletterRes,
-      ] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getCategories`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimes`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimezone`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTotalNewsletters`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`, {
-          params: { email: emailContext },
-        }),
-      ]);
+const fetchData = async () => {
+  try {
+    // Debugging variables
+    let categoriesRes,
+      timesRes,
+      timezoneRes,
+      totalNewslettersRes,
+      newsletterRes,
+      profilesRes,
+      wiseRes;
 
+    try {
+      categoriesRes = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/getCategories`,
+        {
+          params: { email: emailContext },
+        }
+      );
       setCategories(categoriesRes.data.categories);
-      setTime(timesRes.data.time);
-      setDbTimezone(timezoneRes.data.timezone);
-      setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
-      setLatestNewsletter(newsletterRes.data.newsletter);
     } catch (err) {
-      toast.error("Error fetching user data.");
+      console.error("Error fetching categories:", err);
+      throw new Error("Error fetching categories");
     }
-  };
+
+    try {
+      timesRes = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimes`, {
+        params: { email: emailContext },
+      });
+      setTime(timesRes.data.time);
+    } catch (err) {
+      console.error("Error fetching times:", err);
+      throw new Error("Error fetching times");
+    }
+
+    try {
+      timezoneRes = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/getTimezone`,
+        {
+          params: { email: emailContext },
+        }
+      );
+      setDbTimezone(timezoneRes.data.timezone);
+    } catch (err) {
+      console.error("Error fetching timezone:", err);
+      throw new Error("Error fetching timezone");
+    }
+
+    try {
+      totalNewslettersRes = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/getTotalNewsletters`,
+        {
+          params: { email: emailContext },
+        }
+      );
+      setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
+      console.log(totalNewsletters);
+    } catch (err) {
+      console.error("Error fetching total newsletters:", err);
+      throw new Error("Error fetching total newsletters");
+    }
+
+    try {
+      newsletterRes = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`,
+        {
+          params: { email: emailContext },
+        }
+      );
+      setLatestNewsletter(newsletterRes.data.newsletter);
+      console.log(latestNewsletter);
+    } catch (err) {
+      console.error("Error fetching newsletter:", err);
+      throw new Error("Error fetching newsletter");
+    }
+
+    try {
+      profilesRes = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/getProfiles`,
+        {
+          params: { email: emailContext },
+        }
+      );
+      setProfiles(profilesRes.data.profiles);
+    } catch (err) {
+      console.error("Error fetching profiles:", err);
+      throw new Error("Error fetching profiles");
+    }
+
+    try {
+      wiseRes = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
+        params: { email: emailContext },
+      });
+      setWise(wiseRes.data.wise);
+    } catch (err) {
+      console.error("Error fetching wise setting:", err);
+      throw new Error("Error fetching wise setting");
+    }
+
+    console.log("fetchData completed successfully");
+  } catch (err) {
+    // Global error handling
+    console.error("fetchData failed:", err);
+    toast.error("Error fetching user data.");
+  }
+};
+
 
   const sortPostsByCategoryLikes = (posts: Post[]): Post[] => {
     // Define the type for category groups
@@ -143,23 +219,23 @@ export default function Dashboard() {
 
   const fetchPosts = async () => {
     try {
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_SERVER}/api/posts`,
-        {
-          params: { email: emailContext },
-        }
-      );
-      if (response.data.code === 0) {
-        const postsWithThumbnails = await Promise.all(
-          response.data.data.map(async (post: { text: string; }) => {
-            const link = extractLink(post.text);
-            const thumbnailUrl = link ? await fetchThumbnail(link) : undefined;
-            return { ...post, thumbnailUrl };
-          })
-        );
+      const response =
+        wise === "categorywise"
+          ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
+              params: { email: emailContext },
+            })
+          : await axios.get(
+              `${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`,
+              {
+                params: { email: emailContext },
+              }
+            );
 
-        // Sort posts using the new function
-        const sortedPosts = sortPostsByCategoryLikes(postsWithThumbnails);
+      if (response.data.code === 0) {
+        const sortedPosts = response.data.data.sort(
+          (a: Post, b: Post) =>
+            new Date(b.time).getTime() - new Date(a.time).getTime()
+        ); // Sort custom profile posts latest to oldest
         setPosts(sortedPosts);
       } else {
         toast.error("Error loading posts.");
@@ -168,6 +244,31 @@ export default function Dashboard() {
       toast.error("Error fetching posts.");
     }
   };
+
+
+  const handleProfileUpdate = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`,
+        {
+          email: emailContext,
+          profiles,
+        }
+      );
+      if (response.data.code === 0) {
+        toast.success("Profiles updated successfully!");
+        fetchData(); // Re-fetch data to update state
+      } else {
+        toast.error("Error updating profiles.");
+      }
+    } catch (err) {
+      toast.error("Error updating profiles.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleCategoryUpdate = async () => {
     setLoading(true);
@@ -238,6 +339,31 @@ export default function Dashboard() {
     }
   };
 
+  const handleFeedTypeUpdate = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/updateFeedType`,
+        {
+          email: emailContext,
+          wise, // Use the current `wise` state to set the feed type
+        }
+      );
+      if (response.data.code === 0) {
+        toast.success("Feed type updated successfully!");
+        await fetchData(); // Refresh data to reflect the new feed type
+      } else {
+        toast.error("Error updating feed type.");
+      }
+    } catch (err) {
+      console.error("Error updating feed type:", err);
+      toast.error("Error updating feed type.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   const fetchThumbnail = async (url: string) => {
     try {
       const response = await axios.get(
@@ -281,23 +407,6 @@ export default function Dashboard() {
 
         {selectedTab === "newsfeed" && (
           <div className="newsfeed-content">
-            <div className="category-filter mt-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  className={`category1-button ${
-                    selectedCategory === category ? "active" : ""
-                  }`}
-                  onClick={() =>
-                    setSelectedCategory((prev) =>
-                      prev === category ? null : category
-                    )
-                  }
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
             <div className="post-grid">
               {filteredPosts.slice(0, visiblePosts).map((post) => (
                 <div key={post.tweet_id} className="post-card">
@@ -305,10 +414,12 @@ export default function Dashboard() {
                     <h3>@{post.username}</h3>
                     <span>{timeAgo(post.time)}</span>
                   </div>
-                  <h3 className="categoryTextP">
-                    <span className="categoryTextC">Category: </span>
-                    {post.category}
-                  </h3>
+                  {wise === "categorywise" && (
+                    <h3 className="categoryTextP">
+                      <span className="categoryTextC">Category: </span>
+                      {post.category}
+                    </h3>
+                  )}
                   <p>{post.text}</p>
                   <a
                     href={`https://twitter.com/i/web/status/${post.tweet_id}`}
@@ -353,36 +464,145 @@ export default function Dashboard() {
 
         {selectedTab === "settings" && (
           <div className="dashboard-card">
+            {/* Feed Type Selection */}
             <section>
-              <h2 className="section-title">Update Categories</h2>
+              <h2 className="section-title">Feed Type</h2>
               <div className="categories-box">
-                {availableCategories.map((category) => (
-                  <button
-                    key={category}
-                    className={`category-button ${
-                      categories.includes(category) ? "active" : ""
-                    }`}
-                    onClick={() =>
-                      setCategories((prev) =>
-                        prev.includes(category)
-                          ? prev.filter((c) => c !== category)
-                          : [...prev, category]
-                      )
-                    }
-                  >
-                    {category}
-                  </button>
-                ))}
+                <button
+                  className={`category-button ${
+                    wise === "categorywise" ? "active" : ""
+                  }`}
+                  onClick={() => setWise("categorywise")}
+                >
+                  Category-wise
+                </button>
+                <button
+                  className={`category-button ${
+                    wise === "customProfiles" ? "active" : ""
+                  }`}
+                  onClick={() => setWise("customProfiles")}
+                >
+                  Custom Profiles
+                </button>
               </div>
-              <button
-                className="action-button"
-                onClick={handleCategoryUpdate}
-                disabled={loading}
-              >
-                {loading ? "Updating..." : "Update Categories"}
-              </button>
+              <div className="feed-type-button-container">
+                <button
+                  className="feed-type-button"
+                  onClick={handleFeedTypeUpdate}
+                  disabled={loading}
+                >
+                  {loading ? "Updating..." : "Update Feed Type"}
+                </button>
+              </div>
             </section>
 
+            {/* Update Categories Section */}
+            <section
+              className={`mt-8 ${
+                wise === "customProfiles" ? "blurred-section" : ""
+              }`}
+            >
+              <h2 className="section-title">Update Categories</h2>
+              {wise === "customProfiles" && (
+                <p className="blurred-message">
+                  Switch to <strong>Category-wise feed</strong> to update
+                  categories.
+                </p>
+              )}
+              <div className="categories-box">
+                {wise === "categorywise" &&
+                  availableCategories.map((category) => (
+                    <button
+                      key={category}
+                      className={`category-button ${
+                        categories.includes(category) ? "active" : ""
+                      }`}
+                      onClick={() =>
+                        setCategories((prev) =>
+                          prev.includes(category)
+                            ? prev.filter((c) => c !== category)
+                            : [...prev, category]
+                        )
+                      }
+                      disabled={loading}
+                    >
+                      {category}
+                    </button>
+                  ))}
+              </div>
+              {wise === "categorywise" && (
+                <button
+                  className="action-button"
+                  onClick={handleCategoryUpdate}
+                  disabled={loading}
+                >
+                  {loading ? "Updating..." : "Update Categories"}
+                </button>
+              )}
+            </section>
+
+            {/* Manage Followed Profiles Section */}
+            <section
+              className={`mt-8 ${
+                wise === "categorywise" ? "blurred-section" : ""
+              }`}
+            >
+              <h2 className="section-title">Manage Followed Profiles</h2>
+              {wise === "categorywise" && (
+                <p className="blurred-message">
+                  Switch to <strong>Custom Profiles</strong> to manage followed
+                  profiles.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {wise === "customProfiles" &&
+                  profiles.map((profile) => (
+                    <div key={profile} className="profileTag">
+                      @{profile}
+                      <button
+                        className="removeProfileButton"
+                        onClick={() =>
+                          setProfiles((prev) =>
+                            prev.filter((p) => p !== profile)
+                          )
+                        }
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+              </div>
+              {wise === "customProfiles" && (
+                <div className="flex items-center gap-2 mt-4">
+                  <input
+                    type="text"
+                    value={newProfile}
+                    onChange={(e) => setNewProfile(e.target.value)}
+                    placeholder="@username"
+                    className="profileInput"
+                    disabled={loading}
+                  />
+                  <button
+                    className="action-button"
+                    onClick={handleProfileUpdate}
+                    disabled={loading}
+                  >
+                    Add Profile
+                  </button>
+                </div>
+              )}
+              {wise === "customProfiles" && (
+                <button
+                  className="action-button mt-4"
+                  onClick={handleProfileUpdate}
+                  disabled={loading}
+                >
+                  {loading ? "Updating..." : "Update Profiles"}
+                </button>
+              )}
+            </section>
+
+            {/* Update Time Section */}
             <section className="mt-8">
               <h2 className="section-title">Update Preferred Time</h2>
               <div className="categories-box">
@@ -399,6 +619,7 @@ export default function Dashboard() {
                           : [...prev, timeOption]
                       )
                     }
+                    disabled={loading}
                   >
                     {timeOption}
                   </button>
@@ -413,6 +634,7 @@ export default function Dashboard() {
               </button>
             </section>
 
+            {/* Update Timezone Section */}
             <section className="mt-8">
               <h2 className="section-title">Timezone</h2>
               <p>Current Detected Timezone: {timezone}</p>

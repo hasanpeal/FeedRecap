@@ -17,7 +17,12 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 export interface ITweet extends Document {
   category: string;
   screenName: string;
-  tweets: { text: string; likes: number; tweet_id: string }[];
+  tweets: {
+    text: string;
+    likes: number;
+    tweet_id: string;
+    createdAt: Date; // Add `createdAt` to each tweet
+  }[];
   createdAt: Date;
 }
 
@@ -25,12 +30,50 @@ export interface ITweet extends Document {
 export const tweetSchema: Schema = new mongoose.Schema({
   category: { type: String, required: true },
   screenName: { type: String, required: true },
-  tweets: [{ text: String, likes: Number, tweet_id: String }],
+  tweets: [
+    {
+      text: { type: String, required: true },
+      likes: { type: Number, required: true },
+      tweet_id: { type: String, required: true },
+      createdAt: { type: Date, required: true }, // Store the tweet's creation time
+    },
+  ],
   createdAt: { type: Date, default: Date.now },
 });
 
 // Models
 export const StoredTweets = dbTweet.model<ITweet>("StoredTweets", tweetSchema);
+
+export interface ICustomProfilePost extends Document {
+  screenName: string; // Twitter profile's screen name
+  tweets: [
+    {
+      text: { type: String, required: true },
+      likes: { type: Number, required: true },
+      tweet_id: { type: String, required: true },
+      createdAt: { type: Date, required: true }, // Add `createdAt` for each tweet
+    },
+  ],
+  createdAt: Date; // When the posts were fetched
+}
+
+const CustomProfilePostSchema: Schema = new Schema({
+  screenName: { type: String, required: true },
+  tweets: [
+    {
+      text: { type: String, required: true },
+      likes: { type: Number, required: true },
+      tweet_id: { type: String, required: true },
+      createdAt: { type: Date, required: true }, // Add `createdAt` for each tweet
+    },
+  ],
+  createdAt: { type: Date, default: Date.now },
+});
+
+export const CustomProfilePosts = db.model<ICustomProfilePost>(
+  "CustomProfilePosts",
+  CustomProfilePostSchema
+);
 
 // Ensure both databases are connected before running any logic
 async function ensureDatabaseConnections() {
@@ -123,6 +166,10 @@ async function fetchAndStoreTweets(categories: string[]): Promise<void> {
             text: tweet.text,
             likes: tweet.favorites, // Accessing the 'favorites' field for likes
             tweet_id: tweet.tweet_id,
+            createdAt: moment(
+              tweet.created_at,
+              "ddd MMM DD HH:mm:ss Z YYYY"
+            ).toDate(), // Use tweet creation time
             screenName: screenName,
           }));
 
@@ -425,6 +472,53 @@ cron.schedule(
 );
 
 // Second cron job: Send newsletters to users based on their time preferences
+// cron.schedule(
+//   "0 * * * *", // This cron job runs every hour
+//   async () => {
+//     console.log(
+//       "⏰ [Newsletter Cron]: Running scheduled cron job for newsletters..."
+//     );
+
+//     const users = await User.find({}).exec();
+//     const currentTime = moment().utc();
+
+//     for (const user of users) {
+//         // Process newsletters for users with their time-based preferences (Morning, Afternoon, Night)
+//         const userLocalTime = currentTime.clone().tz(user.timezone);
+//         const currentHour = userLocalTime.hour();
+//         const timeSlot =
+//           currentHour === 9
+//             ? "Morning"
+//             : currentHour === 15
+//             ? "Afternoon"
+//             : currentHour === 20
+//             ? "Night"
+//             : null;
+
+//         if (timeSlot && user.time.includes(timeSlot)) {
+//           console.log(
+//             `📧 Generating newsletter for ${user.email} (${timeSlot})`
+//           );
+
+//           const { tweetsByCategory, top15Tweets } =
+//             await fetchTweetsForCategories(user.categories);
+//           const newsletter = await generateNewsletter(
+//             tweetsByCategory,
+//             top15Tweets
+//           );
+
+//           if (newsletter) {
+//             await sendNewsletterEmail(user, newsletter);
+//           }
+//         }
+//     }
+//   },
+//   {
+//     scheduled: true,
+//     timezone: "UTC",
+//   }
+// );
+
 cron.schedule(
   "0 * * * *", // This cron job runs every hour
   async () => {
@@ -436,23 +530,22 @@ cron.schedule(
     const currentTime = moment().utc();
 
     for (const user of users) {
-        // Process newsletters for users with their time-based preferences (Morning, Afternoon, Night)
-        const userLocalTime = currentTime.clone().tz(user.timezone);
-        const currentHour = userLocalTime.hour();
-        const timeSlot =
-          currentHour === 9
-            ? "Morning"
-            : currentHour === 15
-            ? "Afternoon"
-            : currentHour === 20
-            ? "Night"
-            : null;
+      const userLocalTime = currentTime.clone().tz(user.timezone);
+      const currentHour = userLocalTime.hour();
+      const timeSlot =
+        currentHour === 9
+          ? "Morning"
+          : currentHour === 15
+          ? "Afternoon"
+          : currentHour === 20
+          ? "Night"
+          : null;
 
-        if (timeSlot && user.time.includes(timeSlot)) {
-          console.log(
-            `📧 Generating newsletter for ${user.email} (${timeSlot})`
-          );
+      if (timeSlot && user.time.includes(timeSlot)) {
+        console.log(`📧 Generating newsletter for ${user.email} (${timeSlot})`);
 
+        if (user.wise === "categorywise") {
+          // Existing categorywise functionality
           const { tweetsByCategory, top15Tweets } =
             await fetchTweetsForCategories(user.categories);
           const newsletter = await generateNewsletter(
@@ -463,7 +556,27 @@ cron.schedule(
           if (newsletter) {
             await sendNewsletterEmail(user, newsletter);
           }
+        } else if (user.wise === "customProfiles") {
+          // New customProfiles functionality
+          console.log(
+            `🛠️ [Custom Profiles]: Generating newsletter for custom profiles for ${user.email}`
+          );
+
+          const { tweetsByProfiles, top15Tweets } =
+            await fetchTweetsForProfiles(
+              user.profiles,
+              user._id as mongoose.Types.ObjectId
+            ); // Pass user._id here
+          const newsletter = await generateCustomProfileNewsletter(
+            tweetsByProfiles,
+            top15Tweets
+          );
+
+          if (newsletter) {
+            await sendNewsletterEmail(user, newsletter);
+          }
         }
+      }
     }
   },
   {
@@ -471,6 +584,7 @@ cron.schedule(
     timezone: "UTC",
   }
 );
+
 
 const sendDigest = async () => {
   const totalUsers = await User.countDocuments({});
@@ -513,3 +627,345 @@ cron.schedule('0 */6 * * *', () => {
   console.log('Sending Digest: Total user count');
   sendDigest();
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export async function fetchTweetsForProfiles(
+  profiles: string[],
+  userId: mongoose.Types.ObjectId
+): Promise<{
+  tweetsByProfiles: { profile: string; tweets: string[] }[];
+  top15Tweets: {
+    screenName: string;
+    text: string; // Use `text` as the key for tweet content
+    likes: number;
+    tweet_id: string;
+  }[];
+}> {
+  const tweetsByProfiles: { profile: string; tweets: string[] }[] = [];
+  const allTweetsWithLikes: {
+    screenName: string;
+    text: string;
+    likes: number;
+    tweet_id: string;
+  }[] = [];
+
+  for (const profile of profiles) {
+    try {
+      console.log(`🔄 [Debug]: Fetching tweets for profile: ${profile}`);
+
+      const response = await axios.get(
+        "https://twitter-api45.p.rapidapi.com/timeline.php",
+        {
+          params: { screenname: profile },
+          headers: {
+            "x-rapidapi-key": process.env.RAPID_API_KEY || "",
+            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+          },
+        }
+      );
+
+      console.log(
+        `✅ [Debug]: API response for ${profile}:`,
+        JSON.stringify(response.data, null, 2)
+      );
+
+      const tweets = response.data.timeline;
+
+      // Filter and process tweets
+      const now = moment();
+      const past24Hours = now.subtract(24, "hours");
+
+      const recentTweets = tweets.filter((tweet: any) => {
+        const tweetTime = moment(
+          tweet.created_at,
+          "ddd MMM DD HH:mm:ss Z YYYY"
+        );
+        return tweetTime.isAfter(past24Hours);
+      });
+
+      const topTweets = recentTweets
+        .sort((a: any, b: any) => b.favorites - a.favorites)
+        .slice(0, 10)
+        .map(
+          (tweet: {
+            text: string;
+            favorites: number;
+            tweet_id: string;
+            created_at: string;
+          }) => ({
+            text: tweet.text,
+            likes: tweet.favorites,
+            tweet_id: tweet.tweet_id,
+            createdAt: moment(
+              tweet.created_at,
+              "ddd MMM DD HH:mm:ss Z YYYY"
+            ).toDate(),
+            screenName: profile,
+          })
+        );
+
+      console.log(
+        `✅ [Debug]: Top 10 tweets for ${profile}:`,
+        JSON.stringify(topTweets, null, 2)
+      );
+
+      // Save tweets to the database
+      const post = await CustomProfilePosts.findOneAndUpdate(
+        { screenName: profile },
+        { tweets: topTweets },
+        { upsert: true, new: true }
+      ).exec();
+
+      if (post) {
+        const user = await User.findById(userId).exec();
+        if (user) {
+          if (!user.posts.includes(post._id as mongoose.Types.ObjectId)) {
+            user.posts.push(post._id as mongoose.Types.ObjectId);
+            await user.save();
+            console.log(
+              `✅ [Updated User]: Added post reference for @${profile} to user ${user.email}`
+            );
+          }
+        }
+      }
+
+      tweetsByProfiles.push({
+        profile,
+        tweets: topTweets.map((tweet: { text: string }) => tweet.text),
+      });
+
+      allTweetsWithLikes.push(...topTweets);
+    } catch (err: any) {
+      if (err.response) {
+        console.error(
+          `❌ [Error]: API Error for ${profile}:`,
+          JSON.stringify(err.response.data, null, 2)
+        );
+      } else {
+        console.error(
+          `❌ [Error]: Request failed for ${profile}:`,
+          err.message
+        );
+      }
+      continue; // Skip to the next profile
+    }
+  }
+
+  const top15Tweets = allTweetsWithLikes
+    .sort((a, b) => b.likes - a.likes)
+    .slice(0, 15);
+
+  console.log(
+    `✅ [Debug]: Top 15 tweets across all profiles:`,
+    JSON.stringify(top15Tweets, null, 2)
+  );
+
+  return { tweetsByProfiles, top15Tweets };
+}
+
+
+
+
+
+
+export async function generateCustomProfileNewsletter(
+  tweetsByProfiles: {
+    profile: string;
+    tweets: string[];
+  }[],
+  top15Tweets: {
+    screenName: string;
+    text: string; // Correct property name
+    likes: number;
+    tweet_id: string;
+  }[]
+): Promise<string | undefined> {
+  const geminiOptions = {
+    method: "POST",
+    url: "https://gemini-pro-ai.p.rapidapi.com/",
+    headers: {
+      "x-rapidapi-key": process.env.RAPID_API_KEY || "",
+      "x-rapidapi-host": "gemini-pro-ai.p.rapidapi.com",
+      "Content-Type": "application/json",
+    },
+    data: {
+      contents: [
+        {
+          parts: [
+            {
+              text:
+                `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 9 OF THESE RULES!! (Take as long as you want to process):
+
+1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all tweets. Title this section "Summary".
+2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
+3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
+4. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
+5. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
+6. **Do NOT cite sources**—just summarize the tweets without citations.
+7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
+8. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
+9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
+Here is the tweet data you are summarizing:\n\n` +
+                tweetsByProfiles
+                  .map(
+                    ({ profile, tweets }) =>
+                      `Tweets by @${profile}:\n${tweets.join("\n")}\n\n`
+                  )
+                  .join(""),
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  try {
+    // Debug `top15Tweets` array
+    console.log("✅ [Debug]: Validating top15Tweets:", top15Tweets);
+
+    // Validate `top15Tweets` to ensure all objects have a valid `text`
+    const validTopTweets = top15Tweets.filter(
+      (tweet) => tweet.text && typeof tweet.text === "string"
+    );
+
+    console.log(
+      "✅ [Debug]: Valid top tweets (after filtering invalid ones):",
+      validTopTweets
+    );
+
+    const response = await axios.request(geminiOptions);
+    let result = response.data.candidates[0].content.parts[0].text;
+    console.log("Generated Content from Gemini AI: ", result);
+
+    // Append the valid top 15 tweets to the newsletter
+    const topTweetsText = validTopTweets
+      .map(
+        (tweet, index) =>
+          `${index + 1}. ${tweet.text.replace(/\n/g, " ")} - @${
+            tweet.screenName
+          } 👉 <a href="https://x.com/${tweet.screenName}/status/${
+            tweet.tweet_id
+          }"> Tweet </a>`
+      )
+      .join("\n\n");
+
+    console.log("Top Tweets to be included: ", topTweetsText);
+
+    // Combine Gemini-generated content with the valid top 15 tweets
+    const finalNewsletterContent = `${result}\n\n**TOP TWEETS OF TODAY:**\n${topTweetsText}`;
+
+    console.log("Final Newsletter Content: ", finalNewsletterContent);
+
+    // Convert the newsletter to HTML using `marked`
+    const newsletterHTML = marked(finalNewsletterContent);
+
+    return newsletterHTML;
+  } catch (error) {
+    console.error(
+      "❌ [Error]: Error generating custom profile newsletter:",
+      error
+    );
+    return undefined;
+  }
+}
+
+
+
+
+
+// async function testProfileswiseByEmail(userEmail: string) {
+//   try {
+//     // Step 1: Fetch the user by email
+//     const user = await User.findOne({ email: userEmail }).exec();
+//     if (!user) {
+//       console.error(`❌ [Test]: User with email ${userEmail} not found.`);
+//       return;
+//     }
+
+//     console.log("✅ [Test]: User fetched:", user.email);
+
+//     // Step 2: Check if the user is using "customProfiles"
+//     if (user.wise !== "customProfiles") {
+//       console.error(
+//         `❌ [Test]: User ${user.email} is not using customProfiles. Current mode: ${user.wise}`
+//       );
+//       return;
+//     }
+
+//     if (!user.profiles || user.profiles.length === 0) {
+//       console.error(
+//         `❌ [Test]: User ${user.email} has no profiles configured.`
+//       );
+//       return;
+//     }
+
+//     console.log(
+//       `✅ [Test]: User ${user.email} has profiles configured:`,
+//       user.profiles
+//     );
+
+//     // Step 3: Fetch tweets for the profiles
+//     const { tweetsByProfiles, top15Tweets } = await fetchTweetsForProfiles(
+//       user.profiles,
+//       user._id as mongoose.Types.ObjectId
+//     );
+
+//     console.log(`✅ [Test]: Fetched tweets for profiles:`, tweetsByProfiles);
+//     console.log(`✅ [Test]: Top 15 tweets:`, top15Tweets);
+
+//     // Step 4: Generate the newsletter
+//     const newsletter = await generateCustomProfileNewsletter(
+//       tweetsByProfiles,
+//       top15Tweets
+//     );
+
+//     if (!newsletter) {
+//       console.error(`❌ [Test]: Failed to generate the newsletter.`);
+//       return;
+//     }
+
+//     console.log(`✅ [Test]: Newsletter generated successfully.`);
+
+    
+
+//     console.log(
+//       `✅ [Test]: Newsletter saved for user ${user.email}.`
+//     );
+//   } catch (error) {
+//     console.error("❌ [Test]: An error occurred during the test:", error);
+//   }
+// }
+
+// // Call the function with a test user email
+// testProfileswiseByEmail("pealh0320@gmail.com");

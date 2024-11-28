@@ -17,7 +17,17 @@ import mongoose from "mongoose";
 import { User } from "./userModel";
 import "./digest";
 import dbTweet from "./dbTweet";
-import { fetchTweetsForCategories, generateNewsletter, sendNewsletterEmail, ITweet, tweetSchema, StoredTweets } from "./digest";
+import {
+  fetchTweetsForCategories,
+  generateNewsletter,
+  sendNewsletterEmail,
+  ITweet,
+  tweetSchema,
+  StoredTweets,
+  fetchTweetsForProfiles,
+  generateCustomProfileNewsletter,
+  CustomProfilePosts,
+} from "./digest";
 
 env.config();
 const app = express();
@@ -173,6 +183,178 @@ app.get("/api/posts", async (req, res) => {
   }
 });
 
+app.post("/updateProfiles", async (req, res) => {
+  const { email, profiles } = req.body;
+
+  try {
+    const updatedUser = await User.findOneAndUpdate(
+      { email },
+      { profiles },
+      { new: true }
+    );
+
+    if (updatedUser) {
+      return res
+        .status(200)
+        .json({ code: 0, message: "Profiles updated successfully" });
+    } else {
+      return res.status(200).json({ code: 1, message: "User not found" });
+    }
+  } catch (err) {
+    console.error("Error updating profiles:", err);
+    return res
+      .status(500)
+      .json({ code: 1, message: "Error updating profiles" });
+  }
+});
+
+app.get("/getProfiles", async (req, res) => {
+  const { email } = req.query;
+
+  try {
+    const user = await User.findOne({ email }).select("profiles").exec();
+    if (user) {
+      return res.status(200).json({
+        code: 0,
+        profiles: user.profiles || [],
+      });
+    } else {
+      return res.status(200).json({
+        code: 1,
+        message: "User not found",
+      });
+    }
+  } catch (err) {
+    console.error("Error fetching profiles:", err);
+    return res.status(200).json({
+      code: 1,
+      message: "Error fetching profiles",
+    });
+  }
+});
+
+// Route to update feed type for a user
+app.post("/updateFeedType", async (req, res) => {
+  const { email, wise } = req.body;
+
+  if (!email || !wise) {
+    return res
+      .status(400)
+      .json({ error: "Email and feed type (wise) are required", code: 1 });
+  }
+
+  try {
+    // Update the user's feed type
+    const updatedUser = await User.findOneAndUpdate(
+      { email },
+      { wise },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found", code: 1 });
+    }
+
+    res.status(200).json({ message: "Feed type updated successfully", code: 0 });
+  } catch (error) {
+    console.error("Error updating feed type:", error);
+    res.status(500).json({ error: "An error occurred while updating feed type", code: 1 });
+  }
+});
+
+
+app.get("/getWise", async (req, res) => {
+  const { email } = req.query;
+
+  try {
+    const user = await User.findOne({ email }).select("wise").exec();
+    if (user) {
+      return res.status(200).json({
+        code: 0,
+        wise: user.wise || "categorywise", // Default to "categorywise"
+      });
+    } else {
+      return res.status(200).json({
+        code: 1,
+        message: "User not found",
+      });
+    }
+  } catch (err) {
+    console.error("Error fetching feed type (wise):", err);
+    return res.status(200).json({
+      code: 1,
+      message: "Error fetching feed type (wise)",
+    });
+  }
+});
+
+
+
+
+
+// Route to get posts by user-selected custom profiles
+app.get("/api/customPosts", async (req, res) => {
+  console.log("Custom Posts route");
+  const { email } = req.query;
+
+  if (!email) {
+    return res
+      .status(400)
+      .json({ error: "Email query parameter is required", code: 1 });
+  }
+
+  try {
+    // Fetch the user by email to get their selected profiles
+    const user = await User.findOne({ email }).select("profiles");
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ error: "User not found", code: 1 });
+    }
+
+    const selectedProfiles = user.profiles;
+
+    if (!selectedProfiles || selectedProfiles.length === 0) {
+      return res
+        .status(200)
+        .json({ data: [], message: "No custom profiles selected", code: 0 });
+    }
+
+    // Fetch posts from CustomProfilePosts based on user's selected custom profiles
+    const posts = await CustomProfilePosts.find({
+      screenName: { $in: selectedProfiles },
+    }).select("screenName tweets");
+
+    // Format the data to return an array of tweets with necessary fields
+    const formattedPosts = posts.flatMap((post) =>
+      post.tweets.map((tweet) => ({
+        username: post.screenName,
+        time: tweet.createdAt, // Use the `createdAt` from the tweet object
+        likes: tweet.likes,
+        text: tweet.text,
+        tweet_id: tweet.tweet_id,
+      }))
+    );
+
+   
+
+    // Respond with the formatted data, adding code: 0 to indicate success
+    res.status(200).json({ data: formattedPosts, code: 0 });
+  } catch (error) {
+    console.error("Error fetching custom posts:", error);
+    res
+      .status(500)
+      .json({
+        error: "An error occurred while fetching custom posts",
+        code: 1,
+      });
+  }
+});
+
+
+
+
 // Login route
 app.post("/login", (req, res, next) => {
   console.log("Directed to POST Route -> /login");
@@ -248,54 +430,171 @@ app.get("/isNewUser", async (req, res) => {
   }
 });
 
+// app.post("/updateUserPreferences", async (req, res) => {
+//   const { email, categories, time, timezone } = req.body;
+
+//   try {
+//     console.log(email, categories, time, timezone);
+//     // Find the user by email and update their categories, times, and timezone
+//     const updatedUser = await User.findOneAndUpdate(
+//       { email },
+//       {
+//         categories,
+//         time, // Assuming 'time' refers to the array of times
+//         timezone,
+//         isNewUser: false,
+//       },
+//       { new: true } // Return the updated document
+//     );
+
+//     console.log(updatedUser);
+//     if (updatedUser) {
+//       // Asynchronous operation to generate and send the newsletter
+//       (async () => {
+//         try {
+//           // Fetch the latest tweets based on the newly updated preferences
+//           const { tweetsByCategory, top15Tweets } =
+//             await fetchTweetsForCategories(categories);
+
+//           // Generate the newsletter
+//           const newsletter = await generateNewsletter(
+//             tweetsByCategory,
+//             top15Tweets
+//           );
+
+//           if (newsletter) {
+//             // Send the generated newsletter to the updated user
+//             await sendNewsletterEmail(updatedUser, newsletter);
+//             console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
+//           } else {
+//             console.error(
+//               `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
+//             );
+//           }
+//         } catch (err) {
+//           console.error(
+//             `❌ [Error]: Error generating or sending newsletter for ${email}:`,
+//             err
+//           );
+//         }
+//       })(); // Immediately invoked async function
+
+//       return res
+//         .status(200)
+//         .json({ code: 0, message: "User preferences updated successfully" });
+//     } else {
+//       return res.status(200).json({ code: 1, message: "User not found" });
+//     }
+//   } catch (err) {
+//     console.log("Error updating user preferences:", err);
+//     return res
+//       .status(200)
+//       .json({ code: 1, message: "Error updating user preferences" });
+//   }
+// });
+
 app.post("/updateUserPreferences", async (req, res) => {
-  const { email, categories, time, timezone } = req.body;
+  const { email, categories, time, timezone, wise, profiles } = req.body;
 
   try {
-    console.log(email, categories, time, timezone);
-    // Find the user by email and update their categories, times, and timezone
+    console.log(email, categories, time, timezone, wise, profiles);
+
+    // Define fields to update dynamically
+    const updateFields: any = {
+      time, // Update time preferences
+      timezone, // Update timezone
+      wise, // Update feed type (categorywise or customProfiles)
+      isNewUser: false, // Mark user as no longer new
+    };
+
+    // Handle categorywise and customProfiles cases
+    if (wise === "categorywise") {
+      updateFields.categories = categories || []; // Update categories
+      updateFields.profiles = []; // Clear profiles if switching to categorywise
+    } else if (wise === "customProfiles") {
+      updateFields.profiles = profiles || []; // Update profiles
+      updateFields.categories = []; // Clear categories if switching to customProfiles
+    }
+
+    // Update user preferences in the database
     const updatedUser = await User.findOneAndUpdate(
       { email },
-      {
-        categories,
-        time, // Assuming 'time' refers to the array of times
-        timezone,
-        isNewUser: false,
-      },
+      updateFields,
       { new: true } // Return the updated document
     );
 
     console.log(updatedUser);
+
     if (updatedUser) {
       // Asynchronous operation to generate and send the newsletter
-      (async () => {
-        try {
-          // Fetch the latest tweets based on the newly updated preferences
-          const { tweetsByCategory, top15Tweets } =
-            await fetchTweetsForCategories(categories);
+      if (wise === "categorywise") {
+        (async () => {
+          try {
+            // Fetch the latest tweets based on the updated categories
+            const { tweetsByCategory, top15Tweets } =
+              await fetchTweetsForCategories(categories);
 
-          // Generate the newsletter
-          const newsletter = await generateNewsletter(
-            tweetsByCategory,
-            top15Tweets
-          );
+            // Generate the newsletter
+            const newsletter = await generateNewsletter(
+              tweetsByCategory,
+              top15Tweets
+            );
 
-          if (newsletter) {
-            // Send the generated newsletter to the updated user
-            await sendNewsletterEmail(updatedUser, newsletter);
-            console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
-          } else {
+            if (newsletter) {
+              // Send the generated newsletter to the updated user
+              await sendNewsletterEmail(updatedUser, newsletter);
+              console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
+            } else {
+              console.error(
+                `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
+              );
+            }
+          } catch (err) {
             console.error(
-              `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
+              `❌ [Error]: Error generating or sending newsletter for ${email}:`,
+              err
             );
           }
-        } catch (err) {
-          console.error(
-            `❌ [Error]: Error generating or sending newsletter for ${email}:`,
-            err
-          );
-        }
-      })(); // Immediately invoked async function
+        })(); // Immediately invoked async function
+      }
+
+      // Leave customProfiles implementation to you
+      if (wise === "customProfiles") {
+        (async () => {
+          try {
+            // Fetch the latest tweets for the selected profiles
+            const { tweetsByProfiles, top15Tweets } =
+              await fetchTweetsForProfiles(
+                profiles,
+                updatedUser._id as mongoose.Types.ObjectId
+              );
+
+            // Generate the newsletter for custom profiles
+            const newsletter = await generateCustomProfileNewsletter(
+              tweetsByProfiles,
+              top15Tweets
+            );
+
+            if (newsletter) {
+              // Send the generated newsletter to the updated user
+              await sendNewsletterEmail(updatedUser, newsletter);
+              console.log(
+                `✅ [Newsletter Sent]: Custom profiles newsletter sent to ${email}`
+              );
+            } else {
+              console.error(
+                `❌ [Newsletter Generation Error]: Failed to generate custom profiles newsletter for ${email}`
+              );
+            }
+          } catch (err) {
+            console.error(
+              `❌ [Error]: Error generating or sending custom profiles newsletter for ${email}:`,
+              err
+            );
+          }
+        })(); // Immediately invoked async function
+      }
+
 
       return res
         .status(200)
@@ -304,12 +603,13 @@ app.post("/updateUserPreferences", async (req, res) => {
       return res.status(200).json({ code: 1, message: "User not found" });
     }
   } catch (err) {
-    console.log("Error updating user preferences:", err);
+    console.error("Error updating user preferences:", err);
     return res
-      .status(200)
+      .status(500)
       .json({ code: 1, message: "Error updating user preferences" });
   }
 });
+
 
 // Register route
 app.post("/register", async (req, res) => {

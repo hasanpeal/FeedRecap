@@ -171,7 +171,9 @@ export default function Signin() {
           else if (response.data.code == 0 && !response.data.isNewUser)
             router.push("/dashboard");
           else toast.error("Server Error");
+          console.log(response)
         } else {
+          console.log(result);
           toast.error("Server Error");
         }
       } catch (err) {
