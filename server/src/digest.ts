@@ -95,7 +95,7 @@ async function cleanNewsletterText(text: string) {
 }
 
 // Fetch and store tweets for specified categories
-async function fetchAndStoreTweets(categories: string[]): Promise<void> {
+export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
   console.log(
     "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
   );

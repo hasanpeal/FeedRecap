@@ -437,3 +437,146 @@
   text-align: center;
 }
 
+
+
+
+
+
+
+
+
+
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100vh;
+  background: linear-gradient(to right, #4a00ff, #8000ff);
+  color: white;
+  text-align: center;
+  font-family: "Raleway", sans-serif;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-top: 5px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-message {
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+.spinner-message span {
+  font-size: 1rem;
+  opacity: 0.9;
+  font-style: italic;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Ensure the parent container is positioned relative */
+.input-container {
+  position: relative;
+  width: 100%; /* Ensure the container spans the same width as the input field */
+}
+
+/* Suggestions Dropdown */
+.suggestions-dropdown {
+  position: absolute; /* Absolute positioning within the relative container */
+  top: calc(100% + 5px); /* Positioned right below the input box */
+  left: 0; /* Align with the left edge of the input box */
+  width: 100%; /* Match the width of the input box */
+  background-color: white; /* White background for dropdown */
+  border: 1px solid #ccc; /* Light gray border */
+  border-radius: 8px; /* Smooth rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for elevation */
+  z-index: 10; /* Ensure it appears above other content */
+  max-height: 200px; /* Limit height for long lists */
+  overflow-y: auto; /* Add scrolling if the suggestions overflow */
+  padding: 5px 0; /* Add some padding */
+}
+
+/* Individual suggestion item styling */
+.suggestion-item {
+  padding: 10px;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.suggestion-item:hover {
+  background-color: #f0f0f0;
+  color: #4a00ff;
+}
+
+.loading {
+  padding: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.loading::after {
+  content: " ";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 5px;
+  border: 2px solid #4a00ff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .suggestions-dropdown {
+    max-height: 150px;
+    font-size: 0.8rem;
+  }
+
+  .suggestion-item {
+    padding: 8px;
+  }
+}
+
+.suggestion-item:hover {
+  background: #f0f0f0;
+}

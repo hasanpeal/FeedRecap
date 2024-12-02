@@ -27,6 +27,7 @@ import {
   fetchTweetsForProfiles,
   generateCustomProfileNewsletter,
   CustomProfilePosts,
+  fetchAndStoreTweets,
 } from "./digest";
 
 env.config();
@@ -233,9 +234,8 @@ app.get("/getProfiles", async (req, res) => {
   }
 });
 
-// Route to update feed type for a user
 app.post("/updateFeedType", async (req, res) => {
-  const { email, wise } = req.body;
+  const { email, wise, categories, profiles } = req.body;
 
   if (!email || !wise) {
     return res
@@ -243,11 +243,26 @@ app.post("/updateFeedType", async (req, res) => {
       .json({ error: "Email and feed type (wise) are required", code: 1 });
   }
 
+  // Validate inputs based on `wise` type
+  if (wise === "customProfiles" && (!profiles || profiles.length < 3)) {
+    return res.status(400).json({
+      error: "At least 3 followed profiles are required for Custom Profiles.",
+      code: 1,
+    });
+  }
+
+  if (wise === "categorywise" && (!categories || categories.length === 0)) {
+    return res.status(400).json({
+      error: "At least 1 category is required for Category-wise feed.",
+      code: 1,
+    });
+  }
+
   try {
-    // Update the user's feed type
+    // Update the user's feed type and associated data
     const updatedUser = await User.findOneAndUpdate(
       { email },
-      { wise },
+      { wise, categories, profiles },
       { new: true } // Return the updated document
     );
 
@@ -255,12 +270,27 @@ app.post("/updateFeedType", async (req, res) => {
       return res.status(404).json({ error: "User not found", code: 1 });
     }
 
-    res.status(200).json({ message: "Feed type updated successfully", code: 0 });
+    // Trigger appropriate fetching logic
+    if (wise === "categorywise") {
+      await fetchAndStoreTweets(updatedUser.categories); // Fetch tweets for selected categories
+    } else if (wise === "customProfiles") {
+      await fetchTweetsForProfiles(
+        updatedUser.profiles,
+        updatedUser._id as mongoose.Types.ObjectId
+      ); // Fetch tweets for followed profiles
+    }
+
+    res
+      .status(200)
+      .json({ message: "Feed type updated successfully", code: 0 });
   } catch (error) {
     console.error("Error updating feed type:", error);
-    res.status(500).json({ error: "An error occurred while updating feed type", code: 1 });
+    res
+      .status(500)
+      .json({ error: "An error occurred while updating feed type", code: 1 });
   }
 });
+
 
 
 app.get("/getWise", async (req, res) => {
