@@ -163,7 +163,7 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
           .sort((a: any, b: any) => b.favorites - a.favorites)
           .slice(0, 10)
           .map((tweet: any) => ({
-            text: tweet.text,
+            text: removeLinksFromText(tweet.text),
             likes: tweet.favorites, // Accessing the 'favorites' field for likes
             tweet_id: tweet.tweet_id,
             createdAt: moment(
@@ -301,6 +301,10 @@ Here is the tweet data you are summarizing:
   }
 }
 
+
+function removeLinksFromText(text: string): string {
+  return text.replace(/https?:\/\/\S+/g, "").trim(); // Removes all links starting with http/https
+}
 
 
 // Function to calculate top 15 tweets from different users, ensuring diversity
@@ -520,6 +524,43 @@ cron.schedule(
 // );
 
 cron.schedule(
+  "0 */4 * * *", // Every 4 hours
+  async () => {
+    console.log(
+      "🔄 [Custom Profiles Cron]: Fetching fresh posts for user profiles..."
+    );
+
+    const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
+
+    for (const user of users) {
+      try {
+        console.log(
+          `🛠️ [Custom Profiles]: Fetching tweets for ${user.email}...`
+        );
+
+        // Fetch and save posts for the user's custom profiles
+        const { tweetsByProfiles } = await fetchTweetsForProfiles(
+          user.profiles,
+          user._id as mongoose.Types.ObjectId
+        );
+
+        console.log(`✅ [Custom Profiles]: Fetched posts for ${user.email}.`);
+      } catch (error) {
+        console.error(
+          `❌ [Custom Profiles]: Error fetching posts for ${user.email}:`,
+          error
+        );
+      }
+    }
+  },
+  {
+    scheduled: true,
+    timezone: "UTC",
+  }
+);
+
+
+cron.schedule(
   "0 * * * *", // This cron job runs every hour
   async () => {
     console.log(
@@ -724,7 +765,7 @@ export async function fetchTweetsForProfiles(
             tweet_id: string;
             created_at: string;
           }) => ({
-            text: tweet.text,
+            text: removeLinksFromText(tweet.text),
             likes: tweet.favorites,
             tweet_id: tweet.tweet_id,
             createdAt: moment(

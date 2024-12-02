@@ -558,7 +558,7 @@ const debouncedSearch = useCallback(
         <SpinnerWithMessage message="Updating your feed type and refreshing the dashboard..." />
       ) : (
         <div>
-          <div className="container mx-auto px-1 py-12">
+          <div className="container mx-auto  py-12">
             <Toaster />
             {selectedTab === "newsfeed" && (
               <div className="newsfeed-content">
