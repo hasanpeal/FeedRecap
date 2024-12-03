@@ -518,7 +518,7 @@
   position: absolute; /* Absolute positioning within the relative container */
   top: calc(100% + 5px); /* Positioned right below the input box */
   left: 0; /* Align with the left edge of the input box */
-  width: 100%; /* Match the width of the input box */
+  width: 70%; /* Match the width of the input box */
   background-color: white; /* White background for dropdown */
   border: 1px solid #ccc; /* Light gray border */
   border-radius: 8px; /* Smooth rounded corners */
