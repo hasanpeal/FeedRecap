@@ -13,12 +13,9 @@ export default function Navbar2() {
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>(emailContext || "");
+  const [menuOpen, setMenuOpen] = useState(false); // State for hamburger menu
   const form = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    console.log(form);
-  }, [form]);
-
+  const dropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (emailContext) {
       fetchUserDetails();
@@ -95,7 +92,6 @@ export default function Navbar2() {
     }
   };
 
-
   const sendEmail = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -106,7 +102,6 @@ export default function Navbar2() {
       modal.close();
     }
 
-    console.log(form.current);
     emailjs
       .sendForm(
         process.env.NEXT_PUBLIC_SERVICE_ID || "",
@@ -125,16 +120,66 @@ export default function Navbar2() {
       );
   };
 
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("click", handleOutsideClick);
+    } else {
+      document.removeEventListener("click", handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleOutsideClick);
+    };
+  }, [menuOpen]);
+
   return (
     <header className="shadow-md bg-base-300 rounded-b-xl">
       <Toaster />
-      <div className="py-4 px-6 flex">
-        <Link className="text-xl font-bold text-gray-800 flex-grow" href="/">
+      <div className="py-4 px-6 flex justify-between items-center">
+        <Link className="text-xl font-bold text-gray-800" href="/">
           FeedRecap
         </Link>
-        <nav className="space-x-4 buttonss">
+
+        {/* Show Hamburger Button only if menu is closed */}
+        {menuOpen || (
           <button
-            className="text-gray-800 font-semibold"
+            className="md:hidden text-gray-800"
+            onClick={() => setMenuOpen(true)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 6h16M4 12h16m-7 6h7"
+              />
+            </svg>
+          </button>
+        )}
+
+        <nav
+          ref={dropdownRef}
+          className={`${
+            menuOpen ? "block bg-white" : "hidden"
+          } md:flex md:bg-transparent md:shadow-none flex-col md:flex-row items-center md:space-x-4 space-y-2 md:space-y-0 p-4 md:p-0 rounded md:rounded-none shadow md:shadow-none`}
+        >
+          <button
+            className="text-gray-800 font-semibold w-full md:w-auto text-left md:text-center"
             onClick={() => {
               const modal = document.getElementById(
                 "report_modal"
@@ -147,7 +192,7 @@ export default function Navbar2() {
             Report a Problem
           </button>
           <button
-            className="text-gray-800 font-semibold"
+            className="text-gray-800 font-semibold w-full md:w-auto text-left md:text-center"
             onClick={() => {
               const modal = document.getElementById(
                 "account_modal"
@@ -160,7 +205,7 @@ export default function Navbar2() {
             Account
           </button>
           <button
-            className="text-gray-800 font-semibold"
+            className="text-gray-800 font-semibold w-full md:w-auto text-left md:text-center"
             onClick={handleLogout}
           >
             Logout
@@ -170,12 +215,10 @@ export default function Navbar2() {
 
       {/* Account Modal */}
       <dialog id="account_modal" className="bg-white p-6 rounded-lg max-w-lg">
-        <h2 className="text-xl font-bold mb-4">&nbsp;Update Account</h2>
+        <h2 className="text-xl font-bold mb-4">Update Account</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">
-              &nbsp;First Name
-            </label>
+            <label className="block text-sm font-medium mb-2">First Name</label>
             <input
               type="text"
               value={firstName}
@@ -185,9 +228,7 @@ export default function Navbar2() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">
-              &nbsp;Last Name
-            </label>
+            <label className="block text-sm font-medium mb-2">Last Name</label>
             <input
               type="text"
               value={lastName}
@@ -197,9 +238,7 @@ export default function Navbar2() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">
-              &nbsp;Email
-            </label>
+            <label className="block text-sm font-medium mb-2">Email</label>
             <input
               type="email"
               value={email}
@@ -232,40 +271,50 @@ export default function Navbar2() {
         </div>
       </dialog>
 
-      {/* Report Problem Modal */}
-      <dialog id="report_modal" className="modal">
-        <div className="modal-box">
-          <form method="dialog">
-            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
-              ✕
-            </button>
-          </form>
-          <form ref={form} onSubmit={sendEmail}>
-            <label className="block text-left mb-2">Name</label>
-            <input
-              type="text"
-              name="user_name"
-              className="input input-bordered w-full mb-4"
-              required
-            />
-            <label className="block text-left mb-2">Email</label>
-            <input
-              type="email"
-              name="user_email"
-              className="input input-bordered w-full mb-4"
-              required
-            />
-            <label className="block text-left mb-2">Message</label>
-            <textarea
-              name="message"
-              className="textarea textarea-bordered w-full mb-4"
-              required
-            ></textarea> 
-            <button className="btn btn-primary w-full mt-2" type="submit">
+      {/* Report Modal */}
+      <dialog id="report_modal" className="bg-white p-6 rounded-lg max-w-lg">
+        <h2 className="text-xl font-bold mb-4">Report a Problem</h2>
+        <form ref={form} onSubmit={sendEmail}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Name</label>
+              <input
+                type="text"
+                name="user_name"
+                className="w-full p-2 border rounded"
+                placeholder="Your Name"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <input
+                type="email"
+                name="user_email"
+                className="w-full p-2 border rounded"
+                placeholder="Your Email"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Message</label>
+              <textarea
+                name="message"
+                className="w-full p-2 border rounded"
+                placeholder="Your Message"
+                required
+              ></textarea>
+            </div>
+          </div>
+          <div className="mt-6">
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded w-full"
+            >
               Submit Report
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </dialog>
     </header>
   );
