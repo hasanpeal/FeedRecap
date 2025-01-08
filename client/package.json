@@ -12,6 +12,7 @@
   "dependencies": {
     "@dhaiwat10/react-link-preview": "^1.15.0",
     "@emailjs/browser": "^4.4.1",
+    "@next/third-parties": "^15.1.4",
     "@tensorflow-models/handpose": "^0.1.0",
     "@tensorflow/tfjs": "^4.20.0",
     "axios": "^1.7.2",

@@ -4,6 +4,7 @@ import Head from "next/head";
 import { Inter } from "next/font/google";
 import { EmailProvider } from "@/context/UserContext";
 import Script from "next/script";
+import { GoogleAnalytics } from '@next/third-parties/google'
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,7 +24,7 @@ export default function RootLayout({
         />
 
         {/* Google Analytics Script */}
-        <Script
+        {/* <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GOOGLE_ANALYTIC}`}
           strategy="afterInteractive"
         />
@@ -34,11 +35,12 @@ export default function RootLayout({
             gtag('js', new Date());
             gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_ANALYTIC}');
           `}
-        </Script>
+        </Script> */}
       </head>
       <body className={inter.className}>
         <EmailProvider>{children}</EmailProvider>
       </body>
+      <GoogleAnalytics gaId={`${process.env.NEXT_PUBLIC_GOOGLE_ANALYTIC}`} />
     </html>
   );
 }
