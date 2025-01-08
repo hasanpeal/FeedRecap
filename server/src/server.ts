@@ -143,7 +143,7 @@ function isAuthenticated(
 
 // Route to get posts by user-selected categories
 app.get("/api/posts", async (req, res) => {
-  console.log("Posts routes");
+  console.log("Posts routes called");
   const { email } = req.query;
 
   if (!email) {
@@ -164,6 +164,7 @@ app.get("/api/posts", async (req, res) => {
     const posts = await StoredTweets.find({ category: { $in: selectedCategories } })
       .select("screenName createdAt tweets category");
 
+    console.log("Posts coming from server", posts)
     // Format the data to return an array of tweets with necessary fields
     const formattedPosts = posts.flatMap(post => {
       return post.tweets.map(tweet => ({
@@ -298,10 +299,11 @@ app.get("/getWise", async (req, res) => {
 
   try {
     const user = await User.findOne({ email }).select("wise").exec();
+    console.log("users wise", user?.wise)
     if (user) {
       return res.status(200).json({
         code: 0,
-        wise: user.wise || "categorywise", // Default to "categorywise"
+        wise: user.wise
       });
     } else {
       return res.status(200).json({

@@ -41,8 +41,8 @@ export default function Dashboard() {
   const [feedType, setFeedType] = useState<"categorywise" | "customProfiles">(
     "categorywise"
   );
-  const [wise, setWise] = useState<string | null>(null); // To handle feed type selection
-  const [registeredWise, setRegisteredWise] = useState<string | null>(null); // Registered feed type from backend
+  const [wise, setWise] = useState("") // To handle feed type selection
+  const [registeredWise, setRegisteredWise] = useState("") // Registered feed type from backend
 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
@@ -84,134 +84,235 @@ export default function Dashboard() {
     setTimezone(detectedTimezone);
   }, []);
 
-  useEffect(() => {
-    const fetchRegisteredWise = async () => {
-      try {
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getWise`,
-          { params: { email: emailContext } }
-        );
-        setRegisteredWise(response.data.wise); // Set the saved feed type
-        setWise(response.data.wise); // Default wise to registeredWise
-      } catch (err) {
-        console.error("Error fetching registered wise:", err);
-        toast.error("Error loading feed type settings.");
-      }
-    };
+  // useEffect(() => {
+  //   const fetchRegisteredWise = async () => {
+  //     try {
+  //       const response = await axios.get(
+  //         `${process.env.NEXT_PUBLIC_SERVER}/getWise`,
+  //         { params: { email: emailContext } }
+  //       );
+  //       setRegisteredWise(response.data.wise); // Set the saved feed type
+  //       setWise(response.data.wise); // Default wise to registeredWise
+  //     } catch (err) {
+  //       console.error("Error fetching registered wise:", err);
+  //       toast.error("Error loading feed type settings.");
+  //     }
+  //   };
 
-    if (emailContext) {
-      fetchRegisteredWise();
+  //   if (emailContext) {
+  //     fetchRegisteredWise();
+  //   }
+  // }, [emailContext]);
+
+  // useEffect(() => {
+  //   console.log("Updated wise:", wise); // Log after wise updates
+  // }, [wise]);
+
+  // const fetchData = async () => {
+  //   try {
+  //     // Debugging variables
+  //     let categoriesRes,
+  //       timesRes,
+  //       timezoneRes,
+  //       totalNewslettersRes,
+  //       newsletterRes,
+  //       profilesRes,
+  //       wiseRes;
+
+  //     try {
+  //       categoriesRes = await axios.get(
+  //         `${process.env.NEXT_PUBLIC_SERVER}/getCategories`,
+  //         {
+  //           params: { email: emailContext },
+  //         }
+  //       );
+  //       setCategories(categoriesRes.data.categories);
+  //     } catch (err) {
+  //       console.error("Error fetching categories:", err);
+  //       throw new Error("Error fetching categories");
+  //     }
+
+  //     try {
+  //       timesRes = await axios.get(
+  //         `${process.env.NEXT_PUBLIC_SERVER}/getTimes`,
+  //         {
+  //           params: { email: emailContext },
+  //         }
+  //       );
+  //       setTime(timesRes.data.time);
+  //     } catch (err) {
+  //       console.error("Error fetching times:", err);
+  //       throw new Error("Error fetching times");
+  //     }
+
+  //     try {
+  //       timezoneRes = await axios.get(
+  //         `${process.env.NEXT_PUBLIC_SERVER}/getTimezone`,
+  //         {
+  //           params: { email: emailContext },
+  //         }
+  //       );
+  //       setDbTimezone(timezoneRes.data.timezone);
+  //     } catch (err) {
+  //       console.error("Error fetching timezone:", err);
+  //       throw new Error("Error fetching timezone");
+  //     }
+
+  //     try {
+  //       totalNewslettersRes = await axios.get(
+  //         `${process.env.NEXT_PUBLIC_SERVER}/getTotalNewsletters`,
+  //         {
+  //           params: { email: emailContext },
+  //         }
+  //       );
+  //       setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
+  //       console.log(totalNewsletters);
+  //     } catch (err) {
+  //       console.error("Error fetching total newsletters:", err);
+  //       throw new Error("Error fetching total newsletters");
+  //     }
+
+  //     try {
+  //       newsletterRes = await axios.get(
+  //         `${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`,
+  //         {
+  //           params: { email: emailContext },
+  //         }
+  //       );
+  //       setLatestNewsletter(newsletterRes.data.newsletter);
+  //       console.log(latestNewsletter);
+  //     } catch (err) {
+  //       console.error("Error fetching newsletter:", err);
+  //       throw new Error("Error fetching newsletter");
+  //     }
+
+  //     try {
+  //       profilesRes = await axios.get(
+  //         `${process.env.NEXT_PUBLIC_SERVER}/getProfiles`,
+  //         {
+  //           params: { email: emailContext },
+  //         }
+  //       );
+  //       setProfiles(profilesRes.data.profiles);
+  //     } catch (err) {
+  //       console.error("Error fetching profiles:", err);
+  //       throw new Error("Error fetching profiles");
+  //     }
+
+  //     try {
+  //       wiseRes = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
+  //         params: { email: emailContext },
+  //       });
+  //       setWise(wiseRes.data.wise);
+  //       console.log("Second wise", wiseRes.data)
+  //     } catch (err) {
+  //       console.error("Error fetching wise setting:", err);
+  //       throw new Error("Error fetching wise setting");
+  //     }
+
+  //     console.log("fetchData completed successfully");
+  //   } catch (err) {
+  //     // Global error handling
+  //     console.error("fetchData failed:", err);
+  //     toast.error("Error fetching user data.");
+  //   }
+  // };
+
+const fetchData = async () => {
+  try {
+    const [
+      categoriesRes,
+      timesRes,
+      timezoneRes,
+      totalNewslettersRes,
+      newsletterRes,
+      profilesRes,
+      wiseRes,
+    ] = await Promise.all([
+      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getCategories`, {
+        params: { email: emailContext },
+      }),
+      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimes`, {
+        params: { email: emailContext },
+      }),
+      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimezone`, {
+        params: { email: emailContext },
+      }),
+      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTotalNewsletters`, {
+        params: { email: emailContext },
+      }),
+      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`, {
+        params: { email: emailContext },
+      }),
+      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getProfiles`, {
+        params: { email: emailContext },
+      }),
+      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
+        params: { email: emailContext },
+      }),
+    ]);
+
+    // Update states
+    setCategories(categoriesRes.data.categories);
+    setTime(timesRes.data.time);
+    setDbTimezone(timezoneRes.data.timezone);
+    setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
+    setLatestNewsletter(newsletterRes.data.newsletter);
+    setProfiles(profilesRes.data.profiles);
+
+    // Update wise and registeredWise, then fetchPosts
+    setWise(wiseRes.data.wise);
+    setRegisteredWise(wiseRes.data.wise);
+
+    console.log("All data fetched and states updated.");
+  } catch (err) {
+    console.error("Error fetching initial data:", err);
+    toast.error("Error loading initial data.");
+  }
+};
+
+// Use a separate useEffect to handle fetchPosts after `wise` is updated
+useEffect(() => {
+  if (wise && registeredWise) {
+    console.log("wise and registeredWise are ready, calling fetchPosts...");
+    fetchPosts();
+  }
+}, [wise, registeredWise]);
+
+useEffect(() => {
+  if (emailContext) {
+    fetchData();
+  }
+}, [emailContext]);
+
+const fetchPosts = async () => {
+  console.log("DATAS inside fetchPosts:", wise, registeredWise);
+  try {
+    const response =
+      wise === "categorywise"
+        ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
+            params: { email: emailContext },
+          })
+        : await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`, {
+            params: { email: emailContext },
+          });
+
+    if (response.data.code === 0) {
+      const sortedPosts = response.data.data.sort(
+        (a: Post, b: Post) =>
+          new Date(b.time).getTime() - new Date(a.time).getTime()
+      ); // Sort posts by time
+      setPosts(sortedPosts);
+      console.log("Fetched posts:", sortedPosts);
+    } else {
+      toast.error("Error loading posts.");
     }
-  }, [emailContext]);
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    toast.error("Error fetching posts.");
+  }
+};
 
-  const fetchData = async () => {
-    try {
-      // Debugging variables
-      let categoriesRes,
-        timesRes,
-        timezoneRes,
-        totalNewslettersRes,
-        newsletterRes,
-        profilesRes,
-        wiseRes;
-
-      try {
-        categoriesRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getCategories`,
-          {
-            params: { email: emailContext },
-          }
-        );
-        setCategories(categoriesRes.data.categories);
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-        throw new Error("Error fetching categories");
-      }
-
-      try {
-        timesRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getTimes`,
-          {
-            params: { email: emailContext },
-          }
-        );
-        setTime(timesRes.data.time);
-      } catch (err) {
-        console.error("Error fetching times:", err);
-        throw new Error("Error fetching times");
-      }
-
-      try {
-        timezoneRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getTimezone`,
-          {
-            params: { email: emailContext },
-          }
-        );
-        setDbTimezone(timezoneRes.data.timezone);
-      } catch (err) {
-        console.error("Error fetching timezone:", err);
-        throw new Error("Error fetching timezone");
-      }
-
-      try {
-        totalNewslettersRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getTotalNewsletters`,
-          {
-            params: { email: emailContext },
-          }
-        );
-        setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
-        console.log(totalNewsletters);
-      } catch (err) {
-        console.error("Error fetching total newsletters:", err);
-        throw new Error("Error fetching total newsletters");
-      }
-
-      try {
-        newsletterRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`,
-          {
-            params: { email: emailContext },
-          }
-        );
-        setLatestNewsletter(newsletterRes.data.newsletter);
-        console.log(latestNewsletter);
-      } catch (err) {
-        console.error("Error fetching newsletter:", err);
-        throw new Error("Error fetching newsletter");
-      }
-
-      try {
-        profilesRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getProfiles`,
-          {
-            params: { email: emailContext },
-          }
-        );
-        setProfiles(profilesRes.data.profiles);
-      } catch (err) {
-        console.error("Error fetching profiles:", err);
-        throw new Error("Error fetching profiles");
-      }
-
-      try {
-        wiseRes = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
-          params: { email: emailContext },
-        });
-        setWise(wiseRes.data.wise);
-      } catch (err) {
-        console.error("Error fetching wise setting:", err);
-        throw new Error("Error fetching wise setting");
-      }
-
-      console.log("fetchData completed successfully");
-    } catch (err) {
-      // Global error handling
-      console.error("fetchData failed:", err);
-      toast.error("Error fetching user data.");
-    }
-  };
 
   const sortPostsByCategoryLikes = (posts: Post[]): Post[] => {
     // Define the type for category groups
@@ -247,33 +348,34 @@ export default function Dashboard() {
     return sortedPosts;
   };
 
-  const fetchPosts = async () => {
-    try {
-      const response =
-        wise === "categorywise"
-          ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
-              params: { email: emailContext },
-            })
-          : await axios.get(
-              `${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`,
-              {
-                params: { email: emailContext },
-              }
-            );
+  // const fetchPosts = async () => {
+  //   try {
+  //     const response =
+  //       wise === "categorywise"
+  //         ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
+  //             params: { email: emailContext },
+  //           })
+  //         : await axios.get(
+  //             `${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`,
+  //             {
+  //               params: { email: emailContext },
+  //             }
+  //           );
 
-      if (response.data.code === 0) {
-        const sortedPosts = response.data.data.sort(
-          (a: Post, b: Post) =>
-            new Date(b.time).getTime() - new Date(a.time).getTime()
-        ); // Sort custom profile posts latest to oldest
-        setPosts(sortedPosts);
-      } else {
-        toast.error("Error loading posts.");
-      }
-    } catch (error) {
-      toast.error("Error fetching posts.");
-    }
-  };
+  //     if (response.data.code === 0) {
+  //       const sortedPosts = response.data.data.sort(
+  //         (a: Post, b: Post) =>
+  //           new Date(b.time).getTime() - new Date(a.time).getTime()
+  //       ); // Sort custom profile posts latest to oldest
+  //       setPosts(sortedPosts);
+  //       console.log("Posts are", posts)
+  //     } else {
+  //       toast.error("Error loading posts.");
+  //     }
+  //   } catch (error) {
+  //     toast.error("Error fetching posts.");
+  //   }
+  // };
 
   const handleAddProfile = (suggestion: string) => {
     if (profiles.includes(suggestion)) {
@@ -322,37 +424,35 @@ export default function Dashboard() {
     }
   };
 
-const debouncedSearch = useCallback(
-  _.debounce(async (keyword: string) => {
-    try {
-      // Check if results are cached
-      if (cache[keyword]) {
-        setSuggestions(cache[keyword]);
-      } else {
-        const fetchedSuggestions = await fetchSuggestions(keyword);
-        setSuggestions(fetchedSuggestions);
-        setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
+  const debouncedSearch = useCallback(
+    _.debounce(async (keyword: string) => {
+      try {
+        // Check if results are cached
+        if (cache[keyword]) {
+          setSuggestions(cache[keyword]);
+        } else {
+          const fetchedSuggestions = await fetchSuggestions(keyword);
+          setSuggestions(fetchedSuggestions);
+          setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
+        }
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+        setSuggestions([]); // Clear suggestions on error
+      } finally {
+        // Always hide the spinner after suggestions are ready
+        setLoadingSuggestions(false);
       }
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      setSuggestions([]); // Clear suggestions on error
-    } finally {
-      // Always hide the spinner after suggestions are ready
-      setLoadingSuggestions(false);
-    }
 
-    setShowDropdown(true); // Ensure dropdown stays open
-  }, 100),
-  [cache]
-);
-
-
+      setShowDropdown(true); // Ensure dropdown stays open
+    }, 100),
+    [cache]
+  );
 
   const handleSearchInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.target.value;
     setNewProfile(input);
 
-    setLoadingSuggestions(true); 
+    setLoadingSuggestions(true);
     if (input.trim().length > 0) {
       debouncedSearch(input);
     } else {
@@ -755,9 +855,7 @@ const debouncedSearch = useCallback(
                               </li>
                             ))
                           ) : (
-                            <li className="no-suggestions">
-                              No result found
-                            </li>
+                            <li className="no-suggestions">No result found</li>
                           )}
                         </ul>
                       )}

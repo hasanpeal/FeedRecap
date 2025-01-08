@@ -181,7 +181,7 @@ export default function SelectCategories() {
   const { emailContext, setEmailContext } = useEmail();
   const [categories, setCategories] = useState<string[]>([]);
   const [times, setTimes] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [timezone, setTimezone] = useState<string | null>(null);
   const [feedType, setFeedType] = useState<
@@ -299,16 +299,53 @@ export default function SelectCategories() {
     }
   };
 
+  const runDefault = async () => {
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/updateUserPreferences`,
+        {
+          email: emailContext,
+          timezone:
+            timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+          categories: availableCategories,
+          profiles: [],
+          time: availableTimes,
+          wise: "categorywise",
+        }
+      );
+      if (response.data.code === 0) {
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 30000); // 10000ms = 30 seconds
+      } else {
+        toast.error("Server error.");
+      }
+    } catch (err) {
+      toast.error("Server error.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const executeRunDefault = async () => {
+      await runDefault();
+    };
+
+    executeRunDefault();
+  }, []);
+
+
   return (
     <div className="bg-gradient-to-r from-blue-900 via-blue-700 to-black mainStart4">
       <Navbar2 />
       <Toaster />
-      {loading ? (
+      {/* {loading ? (
       <SpinnerWithMessage />
     ) : (
       <div className="mainContainer3 pb-40 mt-28">
         <div className="card bg-base-100 w-120 shadow-xl cardDiv2">
-          {/* Feed Type Selection */}
+          
           <div className="mt-2">
             <p className="text-lg tts">How do you want to receive your feed?</p>
             <div className="flex flex-wrap gap-4">
@@ -331,10 +368,10 @@ export default function SelectCategories() {
             </div>
           </div>
 
-          {/* Conditional Rendering */}
+          
           {feedType === "categorywise" && (
             <>
-              {/* Categories Section */}
+              
               <div className="mt-2">
                 <p className="text-lg tts">
                   Select Categories You Want to Subscribe
@@ -364,7 +401,7 @@ export default function SelectCategories() {
 
           {feedType === "customProfiles" && (
             <>
-              {/* Profiles Section */}
+              
               <div className="mt-2">
                 <p className="text-lg tts">
                   Add Twitter Profiles You Want to Follow (Max 10)
@@ -401,7 +438,7 @@ export default function SelectCategories() {
             </>
           )}
 
-          {/* Time Section */}
+         
           {feedType && (
             <div className="mt-2">
               <p className="text-lg tts">
@@ -442,7 +479,8 @@ export default function SelectCategories() {
           </button>
         </div>
       </div>
-      )}
+      )} */}
+      <SpinnerWithMessage/>
       <Footer2 />
       <CookieConsent />
     </div>
