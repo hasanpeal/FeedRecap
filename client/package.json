@@ -16,6 +16,7 @@
     "@tensorflow-models/handpose": "^0.1.0",
     "@tensorflow/tfjs": "^4.20.0",
     "@vercel/analytics": "^1.4.1",
+    "@vercel/speed-insights": "^1.1.0",
     "axios": "^1.7.2",
     "gsap": "^3.12.5",
     "lodash": "^4.17.21",

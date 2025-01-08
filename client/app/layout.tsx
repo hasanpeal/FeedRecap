@@ -6,6 +6,7 @@ import { EmailProvider } from "@/context/UserContext";
 import Script from "next/script";
 import { GoogleAnalytics } from '@next/third-parties/google'
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -41,6 +42,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <EmailProvider>{children}</EmailProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
       <GoogleAnalytics gaId={`${process.env.NEXT_PUBLIC_GOOGLE_ANALYTIC}`} />
     </html>
