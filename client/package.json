@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postbuild": "next-sitemap"
   },
   "dependencies": {
     "@dhaiwat10/react-link-preview": "^1.15.0",
@@ -21,6 +22,7 @@
     "gsap": "^3.12.5",
     "lodash": "^4.17.21",
     "next": "^14.2.5",
+    "next-sitemap": "^4.2.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
