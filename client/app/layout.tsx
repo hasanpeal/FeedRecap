@@ -4,7 +4,7 @@ import Head from "next/head";
 import { Inter } from "next/font/google";
 import { EmailProvider } from "@/context/UserContext";
 import Script from "next/script";
-import { GoogleAnalytics } from '@next/third-parties/google'
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -22,22 +22,28 @@ export default function RootLayout({
         <title>FeedRecap</title>
         <meta
           name="description"
-          content="FeedRecap is an AI-powered app that curates top tweets from X formerly known as Twitter, based on your selected categories and preferred delivery times. Stay informed with personalized newsletters on topics like Politics, Financial Markets, Sports, Tech, and more, delivered directly to your inbox. Customize your news consumption effortlessly and track engagement through a user-friendly dashboard. Join FeedRecap and never miss the latest updates without the endless scrolling"
+          content="FeedRecap is the ultimate AI-powered platform for discovering curated top tweets and insights from Twitter. Effortlessly stay informed with personalized newsletters covering trending topics like Politics, Financial Markets, Sports, Technology, and more. Designed for professionals, enthusiasts, and news seekers, FeedRecap transforms your Twitter experience by delivering meaningful updates directly to your inbox at your preferred time. Explore trending tweets, track engagement with a user-friendly dashboard, and enjoy curated content without endless scrolling. Perfect for busy individuals seeking accurate, timely, and organized social media insights. Join FeedRecap today to redefine the way you consume news and social trends."
         />
-
-        {/* Google Analytics Script */}
-        {/* <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GOOGLE_ANALYTIC}`}
-          strategy="afterInteractive"
+        <meta
+          name="keywords"
+          content="FeedRecap, AI-powered Twitter app, Twitter curator, personalized newsletters, Politics news, Financial Markets updates, Sports highlights, Tech trends, curated tweets, Twitter insights, social media curation, AI news delivery, Twitter newsletter app, daily news updates, trending tweets, AI-powered curation, business news, tech enthusiasts, political updates, sports fans, financial analytics, tweet analysis, newsletter for Twitter, trending hashtags, AI tweet aggregator, social media trends, curated content, daily tech trends, top tweets newsletter, curated social feeds, professional curation tools, news dashboard, curated news experience, news app for Twitter, AI newsletters, trending social updates, effortless news delivery, social news analysis, FeedRecap newsletter, latest tweet roundup, breaking news from Twitter, personalized tweet curation, trending finance news, customized news curation, tweet tracking tools, AI-driven social insights"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_ANALYTIC}');
-          `}
-        </Script> */}
+        <meta name="author" content="FeedRecap" />
+        <meta name="robots" content="index, follow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          property="og:title"
+          content="FeedRecap: AI-Powered Twitter Curator | Personalized Newsletters"
+        />
+        <meta
+          property="og:description"
+          content="FeedRecap curates top tweets from Twitter into personalized newsletters on topics like Politics, Tech, Sports, Finance, and more. Effortless, tailored, and AI-driven."
+        />
+        <meta property="og:url" content="https://www.feedrecap.com" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/icons8-feed-50.png" />
+        <link rel="canonical" href="https://www.feedrecap.com" />
+        <link rel="icon" type="image/png" href="/icons8-feed-50.png" />
       </head>
       <body className={inter.className}>
         <EmailProvider>{children}</EmailProvider>
