@@ -2,7 +2,7 @@
 
 ![FeedRecap Logo](https://www.feedrecap.com/icons8-feed-50.png)
 
-**FeedRecap** is an AI-powered newsletter platform that curates top tweets from Twitter, delivering them directly to your inbox. Whether you're interested in categories like politics, tech, sports, or entertainment, or you prefer following custom Twitter profiles, FeedRecap makes staying informed effortless and personalized.
+**FeedRecap** is a cutting-edge AI-powered newsletter platform that curates top tweets from Twitter, delivering them directly to your inbox. Whether you're following trending categories like politics, tech, finance, or entertainment, or customizing your feed with specific Twitter profiles, FeedRecap ensures you stay informed effortlessly and efficiently.
 
 ---
 
@@ -10,14 +10,14 @@
 
 🌐 **Website**: [FeedRecap](https://www.feedrecap.com)
 
-🔗 **Repository**: [GitHub - FeedRecap](https://github.com/hasanpeal/FeedRecap.git)
+🔗 **Repository**: [GitHub](https://github.com/hasanpeal/FeedRecap.git)
 
 ---
 
 ## ✨ Features
 
 ### 📰 **Category Mode**
-- Choose from predefined categories: 
+- Choose from predefined categories:
   - **Politics**
   - **Geopolitics**
   - **Finance**
@@ -28,12 +28,12 @@
   - **Sports**
   - **Entertainment**
 - Set your preferred newsletter delivery times (Morning, Afternoon, Night).
-- Receive AI-curated newsletters with the top 15 tweets from your selected categories and share feature for easy sharing with your friends.
+- Receive AI-curated newsletters with the top 15 tweets from your selected categories and share them easily with friends via WhatsApp, Telegram, or Email.
 
 ### 🔧 **Custom Profile Mode**
 - Add Twitter profiles via an auto-suggestion feature.
 - Follow as many Twitter profiles as you like.
-- Get personalized newsletters based on your custom profile feed.
+- Get personalized newsletters based on your custom profile feed, curated by AI.
 
 ### 📊 **Dashboard**
 - Access your personalized dashboard with these tabs:
@@ -42,7 +42,7 @@
   3. **Settings**: Update your categories, custom profiles, timezone, and delivery time.
 
 ### 📩 **Newsletter Features**
-- **Newsletter**: AI-powered newsletter content.
+- **Newsletter**: AI-powered newsletter content delivered straight to your inbox.
 - **Top Tweets**: Curated top tweets of the day.
 - **Share Easily**: Share tweets or newsletters to:
   - **WhatsApp**
@@ -65,9 +65,10 @@
 - **Authentication**: Google OAuth, Email-based login with two-step verification
 - **Database**: MongoDB
 - **Session Management**: Redis store, Express session
-- **API**: SendGrid, Gemini AI
+- **API**: SendGrid, Gemini AI, Axios
 - **Language**: TypeScript
-- **Dev Tool**: Nodemon, Mongodb Atlas, Postman
+- **Dev Tool**: Nodemon, MongoDB Atlas, Postman, Node.js
+- **Automation**: Node Cron for scheduling tasks
 - **Generative AI**: Gemini
 
 ---
@@ -149,6 +150,13 @@ FeedRecap/
 - **Personalized**: Choose your favorite categories or custom Twitter profiles.
 - **Engaging Content**: Access newsletters with trending tweets and easily share them with friends.
 - **Seamless Dashboard**: Stay updated with a user-friendly dashboard.
+- **Effortless Automation**: Newsletters and updates are automated with Node Cron.
+
+---
+
+## 🔑 Keywords
+
+AI-powered-newsletter personalized-newsletters Twitter-curation top-tweets trending-news AI-curated-content category-based-news custom-twitter-profiles AI-news-delivery tech-newsletters sports-newsletters finance-newsletters politics-newsletters Next.js React Express.js MongoDB TypeScript Google-OAuth Vercel SendGrid Redis newsletter-app social-media-curation open-source news-dashboard feedrecap curated-tweets trending-topics Axios Node-Cron Gemini-AI automation session-management personalized-content AI-newsletter-platform generative-AI-tech time-based-newsletters tweet-curation-tools Twitter-news-integration news-sharing-platform newsletter-dashboard curated-news-updates Twitter-profile-suggestions category-based-curation breaking-news-aggregator AI-newsletter-software Redis-session-management custom-profile-news delivery-time-preferences trending-tweet-insights automation-with-cron MongoDB-database-newsletter AI-driven-social-curation tailored-newsletters Google-OAuth-authentication React-front-end social-media-newsletters Gemini-AI-integration analytics-for-newsletters SendGrid-email-integration efficient-newsletter-system curated-social-updates open-source-newsletter-platform
 
 ---
 
