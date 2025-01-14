@@ -17,6 +17,7 @@ import mongoose from "mongoose";
 import { User } from "./userModel";
 import "./digest";
 import dbTweet from "./dbTweet";
+import { Newsletter } from "./newsletterModel";
 import {
   fetchTweetsForCategories,
   generateNewsletter,
@@ -182,6 +183,20 @@ app.get("/api/posts", async (req, res) => {
   } catch (error) {
     console.error("Error fetching posts:", error);
     res.status(500).json({ error: "An error occurred while fetching posts", code: 1 });
+  }
+});
+
+app.get("/newsletter/:id", async (req, res) => {
+  try {
+    const newsletter = await Newsletter.findById(req.params.id);
+    if (!newsletter) return res.status(404).send("Newsletter not found");
+
+    return res
+      .status(200)
+      .json({ code: 0, newsletter: newsletter.content });
+  } catch (error) {
+    console.error("Error fetching newsletter:", error);
+    res.status(500).send("Internal Server Error");
   }
 });
 

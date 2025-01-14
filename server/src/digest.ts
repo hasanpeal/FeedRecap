@@ -9,6 +9,7 @@ import db from "./db";
 import dbTweet from "./dbTweet";
 import { marked } from "marked";
 import { htmlToText } from "html-to-text";
+import { Newsletter } from "./newsletterModel";
 
 // Set up SendGrid API
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
@@ -275,12 +276,11 @@ Here is the tweet data you are summarizing:
     const topTweetsText = top15Tweets
       .map(
         (tweet, index) =>
-          `${index + 1}. ${tweet.tweet.replace(
-            /\n/g,
-            " "
-          )} - @${tweet.screenName} 👉 <a href="https://x.com/${tweet.screenName}/status/${
+          `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} - @${
+            tweet.screenName
+          } <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
-          }"> Tweet </a>`
+          }"> <em>Tweet</em> </a>`
       )
       .join("\n\n");
 
@@ -418,26 +418,68 @@ export async function fetchTweetsForCategories(
 }
 
 
-// Send email using SendGrid
+// Helper function to convert HTML to plain text
+function convertHtmlToPlainText(html: string): string {
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
+  return tempDiv.textContent || tempDiv.innerText || "";
+}
+
 export async function sendNewsletterEmail(
   user: IUser,
   newsletter: string
 ): Promise<void> {
+  // Save the newsletter
+  const newNewsletter = new Newsletter({
+    user: user._id,
+    content: newsletter,
+  });
+  const savedNewsletter = await newNewsletter.save();
+
+  // Short link for the newsletter
+  const shortLink = `${process.env.ORIGIN}/readnewsletter?newsletter=${savedNewsletter._id}`;
+
+  // Encode the newsletter content for sharing via email
+  const encodedNewsletterContent = encodeURIComponent(newsletter);
+
+  // Share buttons with individual lines and additional spacing
+  const shareButtons = `
+    <div style="text-align: center; margin-top: 20px;">
+      <h3>Share this Newsletter:</h3>
+      <div style="margin-bottom: 10px;">
+        <a href="https://wa.me/?text=${encodeURIComponent(
+          `Check out this newsletter: ${shortLink}`
+        )}" style="padding: 10px 20px; background-color: #25D366; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 10px;">Share on WhatsApp</a>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <a href="https://t.me/share/url?url=${shortLink}&text=${encodeURIComponent(
+    "Check out this newsletter!"
+  )}" style="padding: 10px 20px; background-color: #0088cc; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 10px;">Share on Telegram</a>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <a href="mailto:?subject=FeedRecap Newsletter&body=${encodedNewsletterContent}" style="padding: 10px 20px; background-color: #D44638; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 10px;">Share via Email</a>
+      </div>
+    </div>
+    <div style="text-align: center; margin-top: 20px;">
+      <p>Read the newsletter online: <a href="${shortLink}"><em>${shortLink}</em></a></p>
+    </div>
+  `;
+
   const msg = {
     to: user.email,
     from: {
       email: process.env.FROM_EMAIL || "",
-      name: "FeedRecap"
+      name: "FeedRecap",
     },
-    subject: `Your personalized newsletter from FeedRecap 👋`,
-    html: newsletter,
+    subject: "Your personalized newsletter from FeedRecap 👋",
+    html: `${newsletter} ${shareButtons}`,
   };
 
   try {
     await sgMail.send(msg);
     console.log(`✅ [Email Sent]: Newsletter sent to ${user.email}`);
     // Save the generated newsletter in the user's document
-    user.newsletter = newsletter;
+    user.newsletter = newsletter; // Save the updated newsletter
     user.totalnewsletter = (user.totalnewsletter || 0) + 1;
     await user.save();
     console.log(`✅ [Database Updated]: Newsletter saved for ${user.email}`);
@@ -445,6 +487,7 @@ export async function sendNewsletterEmail(
     console.error(`❌ [Error]: Error sending email to ${user.email}:`, error);
   }
 }
+
 
 // First cron job: Fetch new tweets every 4 hours
 cron.schedule(
@@ -1010,3 +1053,40 @@ Here is the tweet data you are summarizing:\n\n` +
 
 // // Call the function with a test user email
 // testProfileswiseByEmail("pealh0320@gmail.com");
+
+
+async function testNewsletter() {
+  try {
+    // Fetch the user
+    const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
+    if (!user) {
+      console.error("❌ User not found with email: pealh0320@gmail.com");
+      return;
+    }
+
+    // Define categories for the test (based on user preferences)
+    const categories = ["Politics", "Geopolitics", "Finance", "AI"];
+
+    // Fetch tweets for the categories
+    const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
+      categories
+    );
+
+    // Generate the newsletter
+    const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+
+    if (!newsletter) {
+      console.error("❌ Failed to generate newsletter.");
+      return;
+    }
+
+    // Send the newsletter
+    await sendNewsletterEmail(user, newsletter);
+
+    console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
+  } catch (error) {
+    console.error("❌ Error during test:", error);
+  }
+}
+
+testNewsletter();
