@@ -383,10 +383,10 @@ const fetchPosts = async () => {
       return;
     }
 
-    if (profiles.length >= 10) {
-      toast.error("You can only add up to 10 profiles.");
-      return;
-    }
+    // if (profiles.length >= 10) {
+    //   toast.error("You can only add up to 10 profiles.");
+    //   return;
+    // }
 
     // Add the suggestion to the profiles
     setProfiles((prev) => [...prev, suggestion]);
