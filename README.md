@@ -1,171 +1,189 @@
-# Signez - Interactive ASL Alphabet Learning powered by Real-Time Hand Sign Recognition
+# FeedRecap
 
-[![Live Site](https://img.shields.io/badge/Signez-Live_Site-brightgreen)](https://signez.vercel.app/)
+![FeedRecap Logo](https://www.feedrecap.com/icons8-feed-50.png)
 
-![Signez Banner](SignLangModel/signezCover.png)
+**FeedRecap** is an AI-powered newsletter platform that curates top tweets from Twitter, delivering them directly to your inbox. Whether you're interested in categories like politics, tech, sports, or entertainment, or you prefer following custom Twitter profiles, FeedRecap makes staying informed effortless and personalized.
 
-Welcome to Signez, an innovative application designed for interactive ASL alphabet learning with real-time hand sign recognition. Signez integrates a sophisticated machine learning model with a full-stack web application to provide percentage match, predicted word, scores, and a dashboard for tracking progress. This README provides a detailed overview of the project, including its machine learning model and full-stack integration.
+---
 
-## Table of Contents
+## 🚀 Live Demo
 
-1. [Machine Learning Model](#machine-learning-model)
-   - [Dataset](#dataset)
-   - [Data Refinement](#data-refinement)
-   - [Model Training](#model-training)
-   - [Model Evaluation](#model-evaluation)
-   - [Running the Model](#running-the-model)
-2. [Full-Stack Integration](#full-stack-integration)
-   - [Backend](#backend)
-   - [Frontend](#frontend)
-   - [Deployment](#deployment)
-3. [How to Run the Project](#how-to-run-the-project)
-4. [Acknowledgements](#acknowledgements)
+🌐 **Website**: [FeedRecap](https://www.feedrecap.com)
 
-## Machine Learning Model
+🔗 **Repository**: [GitHub - FeedRecap](https://github.com/hasanpeal/FeedRecap.git)
 
-### Dataset
+---
 
-The dataset used for this project consists of 87,000 images of American Sign Language (ASL) alphabets. The dataset includes 29 classes, representing the letters A-Z and three special classes: SPACE, DELETE, and NOTHING. The dataset was sourced from Kaggle and can be downloaded using the following command:
+## ✨ Features
 
-```bash
-kaggle datasets download -d grassknoted/asl-alphabet
+### 📰 **Category Mode**
+- Choose from predefined categories: 
+  - **Politics**
+  - **Geopolitics**
+  - **Finance**
+  - **AI**
+  - **Tech**
+  - **Crypto**
+  - **Meme**
+  - **Sports**
+  - **Entertainment**
+- Set your preferred newsletter delivery times (Morning, Afternoon, Night).
+- Receive AI-curated newsletters with the top 15 tweets from your selected categories and share feature for easy sharing with your friends.
+
+### 🔧 **Custom Profile Mode**
+- Add Twitter profiles via an auto-suggestion feature.
+- Follow as many Twitter profiles as you like.
+- Get personalized newsletters based on your custom profile feed.
+
+### 📊 **Dashboard**
+- Access your personalized dashboard with these tabs:
+  1. **Newsfeed**: View top tweets based on your selected categories or custom profiles.
+  2. **Latest Newsletter**: Access the most recent newsletters.
+  3. **Settings**: Update your categories, custom profiles, timezone, and delivery time.
+
+### 📩 **Newsletter Features**
+- **Newsletter**: AI-powered newsletter content.
+- **Top Tweets**: Curated top tweets of the day.
+- **Share Easily**: Share tweets or newsletters to:
+  - **WhatsApp**
+  - **Telegram**
+  - **Email**
+- **Web Link**: Access your newsletter via a web link for easy sharing with friends.
+
+---
+
+## 🛠️ Tech Stack
+
+### **Frontend**
+- **Framework**: Next.js, React
+- **Language**: TypeScript
+- **Analytics**: Google Analytics, Vercel Analytics
+- **Deployed On**: [Vercel](https://vercel.com)
+
+### **Backend**
+- **Framework**: Express.js
+- **Authentication**: Google OAuth, Email-based login with two-step verification
+- **Database**: MongoDB
+- **Session Management**: Redis store, Express session
+- **API**: SendGrid, Gemini AI
+- **Language**: TypeScript
+- **Dev Tool**: Nodemon, Mongodb Atlas, Postman
+- **Generative AI**: Gemini
+
+---
+
+## 🗂️ Project Structure
+
+```plaintext
+FeedRecap/
+├── client/   # Frontend (Next.js)
+├── server/   # Backend (Express.js)
 ```
 
-### Data Refinement
+---
 
-To ensure accurate hand pattern recognition, the dataset images were processed using the Mediapipe library to extract hand landmarks. The key steps involved in data refinement are:
+## 🧑‍💻 Getting Started
 
-1. **Image Processing**: Each image was converted to RGB format using OpenCV.
-2. **Hand Landmarks Extraction**: Mediapipe was used to extract 21 key hand landmarks from each image.
-3. **Feature Engineering**: The extracted landmarks were normalized and concatenated to form a feature vector of length 84 (42 x 2).
-4. **Padding**: The feature vectors were padded to a fixed length to maintain consistency across the dataset.
+### **Frontend**
+1. Navigate to the `client` folder:
+   ```bash
+   cd client
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-### Model Training
+### **Backend**
+1. Navigate to the `server` folder:
+   ```bash
+   cd server
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the backend server:
+   ```bash
+   npm run start
+   ```
 
-The refined dataset was used to train a Random Forest Classifier, which is a part of the scikit-learn library. The model was trained on 80% of the dataset and tested on the remaining 20%.
+---
 
-```python
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+## 🔒 Authentication
 
-# Split the dataset
-x_train, x_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, shuffle=True, stratify=labels)
+### **Sign Up**
+- Users can sign up with their email.
+- Two-step email verification is required for account creation.
 
-# Train the model
-model = RandomForestClassifier()
-model.fit(x_train, y_train)
+### **Sign In**
+- **Options**:
+  1. Sign in with email.
+  2. Sign in with Google.
 
-# Evaluate the model
-y_predict = model.predict(x_test)
-accuracy = accuracy_score(y_test, y_predict)
-print(f'Accuracy: {accuracy * 100:.2f}%')
-```
+---
 
-### Model Evaluation
+## 📚 Routes
 
-The model achieved an impressive accuracy of **98.98%** on the test dataset. Below are the evaluation metrics:
+| Route                | Description                                |
+|----------------------|--------------------------------------------|
+| `/signin`            | User sign-in page                         |
+| `/signup`            | User sign-up page                         |
+| `/`                  | Homepage                                  |
+| `/samplenewsletter`  | Preview a sample newsletter               |
+| `/aboutus`           | Learn more about FeedRecap                |
+| `/dashboard`         | User dashboard with 3 tabs:               |
+|                      | - **Newsfeed**: View top tweets           |
+|                      | - **Latest Newsletter**: Access recent    |
+|                      | - **Settings**: Manage preferences        |
 
-- **Confusion Matrix**: ![Confusion Matrix](SignLangModel/confusion_matrix.png)
-- **Classification Report**: ![Classification Report](SignLangModel/classification_report.png)
+---
 
-### Running the Model
+## 🌟 Why Use FeedRecap?
 
-To run the trained model and test it with new data, navigate to the `SignLanguageModel` directory and run the `test.py` script:
+- **AI-Driven**: Save time by getting top tweets curated with AI.
+- **Personalized**: Choose your favorite categories or custom Twitter profiles.
+- **Engaging Content**: Access newsletters with trending tweets and easily share them with friends.
+- **Seamless Dashboard**: Stay updated with a user-friendly dashboard.
 
-```bash
-cd SignLanguageModel
-python test.py
-```
+---
 
-## Full-Stack Integration
+## 🛡️ License
 
-### Backend
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-The backend is built using Node.js and Express.js, providing RESTful API endpoints for authentication, user management, and sign language prediction. Key technologies used include:
+---
 
-- **Express.js**: For creating RESTful APIs.
-- **Passport.js**: For authentication (local and Google OAuth).
-- **Redis**: For session management.
-- **PostgreSQL**: For database management.
-- **Mailjet**: For sending OTP emails.
+## 🌟 How to Contribute
 
-### Frontend
+1. Fork the repository.
+2. Create a new branch:
+   ```bash
+   git checkout -b feature/YourFeatureName
+   ```
+3. Commit your changes:
+   ```bash
+   git commit -m 'Add some feature'
+   ```
+4. Push to the branch:
+   ```bash
+   git push origin feature/YourFeatureName
+   ```
+5. Open a pull request.
 
-The frontend is developed using Next.js and Tailwind CSS, providing a responsive and interactive user interface. Key features include:
+---
 
-- **User Authentication**: Sign up, login, and password reset functionalities.
-- **Sign Language Detection**: Real-time sign language detection using a webcam.
-- **Progress Tracking**: Users can track their progress in learning the ASL alphabet.
-- **Carousel**: An image carousel to practice and recognize sign language.
+## ⭐ Support the Project
+If you like this project, please consider **starring** 🌟 the repository on GitHub to support its growth and visibility!
 
-### Deployment
+---
 
-The project is deployed on Vercel for the frontend and a cloud provider for the backend. The live project can be accessed [here](https://signez.vercel.app/).
+## 📧 Contact
 
-## How to Run the Project
-
-1. **Clone the Repository**:
-
-```bash
-git clone https://github.com/hasanpeal/Signez.git
-cd Signez
-```
-
-2. **Set Up Environment Variables**:
-
-Create a `.env` file in the root directory with the following variables:
-
-```env
-PORT=3001
-REDIS_URL=your_redis_url
-PG=your_postgresql_connection_string
-SESSION_SECRET=your_session_secret
-MAIL=your_mailjet_api_key
-MAIL_PRIVATE=your_mailjet_api_secret
-SEND_MAIL=your_mailjet_sender_email
-SEND_NAME=your_mailjet_sender_name
-CLIENT_URL=your_client_url
-SERVER=your_server_url
-CLIENT_ID=your_google_client_id
-CLIENT_SECRET=your_google_client_secret
-```
-
-3. **Install Dependencies**:
-
-```bash
-npm install
-cd client
-npm install
-cd ..
-```
-
-4. **Run the Backend**:
-
-```bash
-npm run dev
-```
-
-5. **Run the Frontend**:
-
-```bash
-cd client
-npm run dev
-```
-
-6. **Run the Flask Server**:
-
-Navigate to the `flask-server` directory and run the server:
-
-```bash
-cd flask-server
-python app.py
-```
-
-## Acknowledgements
-
-- **Kaggle**: For providing the ASL dataset.
-- **Mediapipe**: For hand landmark detection.
-- **scikit-learn**: For machine learning model training and evaluation.
-
-For more information and detailed instructions, please refer to the [GitHub repository](https://github.com/hasanpeal/Signez) and the [live site](https://signez.vercel.app/).
+For questions or suggestions, feel free to reach out:
+- **Author**: [Peal Hasan](https://www.linkedin.com/in/hasanpeal/)
+- **Email**: [contact@feedrecap.com](mailto:contact@feedrecap.com)
