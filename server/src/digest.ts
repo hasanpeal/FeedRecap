@@ -457,7 +457,7 @@ export async function sendNewsletterEmail(
   )}" style="padding: 10px 20px; background-color: #0088cc; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 10px;">Share on Telegram</a>
       </div>
       <div style="margin-bottom: 10px;">
-        <a href="mailto:?subject=FeedRecap Newsletter&body=${encodedNewsletterContent}" style="padding: 10px 20px; background-color: #D44638; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 10px;">Share via Email</a>
+        <a href="mailto:?subject=FeedRecap Newsletter&body=${shortLink}" style="padding: 10px 20px; background-color: #D44638; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 10px;">Share via Email</a>
       </div>
     </div>
     <div style="text-align: center; margin-top: 20px;">
