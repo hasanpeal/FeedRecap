@@ -144,7 +144,7 @@ function isAuthenticated(
 
 // Route to get posts by user-selected categories
 app.get("/api/posts", async (req, res) => {
-  console.log("Posts routes called");
+  // console.log("Posts routes called");
   const { email } = req.query;
 
   if (!email) {
@@ -165,7 +165,7 @@ app.get("/api/posts", async (req, res) => {
     const posts = await StoredTweets.find({ category: { $in: selectedCategories } })
       .select("screenName createdAt tweets category");
 
-    console.log("Posts coming from server", posts)
+    // console.log("Posts coming from server", posts)
     // Format the data to return an array of tweets with necessary fields
     const formattedPosts = posts.flatMap(post => {
       return post.tweets.map(tweet => ({
@@ -314,7 +314,7 @@ app.get("/getWise", async (req, res) => {
 
   try {
     const user = await User.findOne({ email }).select("wise").exec();
-    console.log("users wise", user?.wise)
+    // console.log("users wise", user?.wise)
     if (user) {
       return res.status(200).json({
         code: 0,
@@ -341,7 +341,7 @@ app.get("/getWise", async (req, res) => {
 
 // Route to get posts by user-selected custom profiles
 app.get("/api/customPosts", async (req, res) => {
-  console.log("Custom Posts route");
+  // console.log("Custom Posts route");
   const { email } = req.query;
 
   if (!email) {
@@ -404,13 +404,13 @@ app.get("/api/customPosts", async (req, res) => {
 
 // Login route
 app.post("/login", (req, res, next) => {
-  console.log("Directed to POST Route -> /login");
+  // console.log("Directed to POST Route -> /login");
   passport.authenticate("local", (err: any, user: any, info: any) => {
     if (err) return next(err);
     if (!user) return res.status(200).json({ code: 1, message: info.message });
     req.logIn(user, (err) => {
       if (err) return next(err);
-      console.log("Login success");
+      // console.log("Login success");
       return res.status(200).json({ code: 0, message: "Login successful" });
     });
   })(req, res, next);
@@ -418,7 +418,7 @@ app.post("/login", (req, res, next) => {
 
 // Logout route
 app.post("/logout", (req, res) => {
-  console.log("Directed to POST Route -> /logout");
+  // console.log("Directed to POST Route -> /logout");
   req.logout((err) => {
     if (err) {
       return res.status(200).json({ code: 1, message: "Error logging out" });
@@ -429,7 +429,7 @@ app.post("/logout", (req, res) => {
           .status(200)
           .json({ code: 1, message: "Error destroying session" });
       }
-      console.log("Signout successful");
+      // console.log("Signout successful");
       res.status(200).json({ code: 0, message: "Logout successful" });
     });
   });
@@ -472,7 +472,7 @@ app.get("/isNewUser", async (req, res) => {
     }
   } catch (err) {
     // Handle any unexpected errors
-    console.log("Error checking isNewUser:", err);
+    // console.log("Error checking isNewUser:", err);
     return res.status(200).json({ code: 2, message: "Error occurred" });
   }
 });
@@ -544,7 +544,7 @@ app.post("/updateUserPreferences", async (req, res) => {
   const { email, categories, time, timezone, wise, profiles } = req.body;
 
   try {
-    console.log(email, categories, time, timezone, wise, profiles);
+    // console.log(email, categories, time, timezone, wise, profiles);
 
     // Define fields to update dynamically
     const updateFields: any = {
@@ -570,7 +570,7 @@ app.post("/updateUserPreferences", async (req, res) => {
       { new: true } // Return the updated document
     );
 
-    console.log(updatedUser);
+    // console.log(updatedUser);
 
     if (updatedUser) {
       // Asynchronous operation to generate and send the newsletter
@@ -590,7 +590,7 @@ app.post("/updateUserPreferences", async (req, res) => {
             if (newsletter) {
               // Send the generated newsletter to the updated user
               await sendNewsletterEmail(updatedUser, newsletter);
-              console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
+              // console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
             } else {
               console.error(
                 `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
@@ -625,9 +625,9 @@ app.post("/updateUserPreferences", async (req, res) => {
             if (newsletter) {
               // Send the generated newsletter to the updated user
               await sendNewsletterEmail(updatedUser, newsletter);
-              console.log(
-                `✅ [Newsletter Sent]: Custom profiles newsletter sent to ${email}`
-              );
+              // console.log(
+              //   `✅ [Newsletter Sent]: Custom profiles newsletter sent to ${email}`
+              // );
             } else {
               console.error(
                 `❌ [Newsletter Generation Error]: Failed to generate custom profiles newsletter for ${email}`
@@ -699,7 +699,7 @@ app.post("/resetPassword", async (req, res) => {
 
 // POST Route for sending OTP
 app.post("/sentOTP", async (req, res) => {
-  console.log("Directed to POST Route -> /sentOTP");
+  // console.log("Directed to POST Route -> /sentOTP");
   const email = req.body.email;
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -713,7 +713,7 @@ app.post("/sentOTP", async (req, res) => {
   await sgMail
     .send(msg)
     .then(async () => {
-      console.log("OTP successfully sent");
+      // console.log("OTP successfully sent");
       res.status(200).send({ code: 0, otp: otp });
     })
     .catch((err: any) => {
@@ -847,7 +847,7 @@ app.get("/auth/google/signup", (req, res, next) => {
 
 //Redirect to Google for sign-in
 app.get("/auth/google/signin", (req, res, next) => {
-  console.log("Sign in google route hits");
+  // console.log("Sign in google route hits");
   req.query.signup = "false";
   passport.authenticate("google", { scope: ["profile", "email"] })(
     req,
@@ -872,7 +872,7 @@ app.get("/getCookieConsent", (req, res) => {
 
 // Route to update cookie consent
 app.post("/updateCookieConsent", (req, res) => {
-  console.log("Directed to POST Route -> /updateCookieConsent");
+  // console.log("Directed to POST Route -> /updateCookieConsent");
   const { consent } = req.body;
 
   // Store consent in session
@@ -885,19 +885,19 @@ app.post("/updateCookieConsent", (req, res) => {
 app.get("/check-session", (req, res) => {
   console.log("Directed to get route to check session");
   if (req.isAuthenticated()) {
-    console.log("User is authenticated");
+    // console.log("User is authenticated");
     const user = req.user as { email: string };
     const email = user.email;
     res.status(200).json({ isAuthenticated: true, email });
   } else {
-    console.log("User is not authenticated");
+    // console.log("User is not authenticated");
     res.status(200).json({ isAuthenticated: false });
   }
 });
 
 // Get Total Newsletters
 app.get("/getTotalNewsletters", async (req, res) => {
-  console.log("/getTotalNewsletters");
+  // console.log("/getTotalNewsletters");
   const email: string = req.query.email as string;
 
   try {
@@ -919,7 +919,7 @@ app.get("/getTotalNewsletters", async (req, res) => {
 
 // Get Categories array
 app.get("/getCategories", async (req, res) => {
-  console.log("/getCategories");
+  // console.log("/getCategories");
   const email: string = req.query.email as string;
 
   try {
@@ -939,7 +939,7 @@ app.get("/getCategories", async (req, res) => {
 
 // Get Times array
 app.get("/getTimes", async (req, res) => {
-  console.log("/getTimes");
+  // console.log("/getTimes");
   const email: string = req.query.email as string;
 
   try {
@@ -957,7 +957,7 @@ app.get("/getTimes", async (req, res) => {
 
 // Get Timezone
 app.get("/getTimezone", async (req, res) => {
-  console.log("/getTimezone");
+  // console.log("/getTimezone");
   const email: string = req.query.email as string;
 
   try {
@@ -977,7 +977,7 @@ app.get("/getTimezone", async (req, res) => {
 
 // Get Newsletter
 app.get("/getNewsletter", async (req, res) => {
-  console.log("/getNewsletter");
+  // console.log("/getNewsletter");
   const email: string = req.query.email as string;
 
   try {
@@ -997,7 +997,7 @@ app.get("/getNewsletter", async (req, res) => {
 
 // Route to update Categories
 app.post("/updateCategories", async (req, res) => {
-  console.log("/updateCategories");
+  // console.log("/updateCategories");
   const { email, categories } = req.body;
 
   try {
@@ -1024,7 +1024,7 @@ app.post("/updateCategories", async (req, res) => {
 
 // Route to update Times
 app.post("/updateTimes", async (req, res) => {
-  console.log("/updateTimes");
+  // console.log("/updateTimes");
   const { email, time } = req.body;
 
   try {
@@ -1049,7 +1049,7 @@ app.post("/updateTimes", async (req, res) => {
 
 // Route to update Timezone
 app.post("/updateTimezone", async (req, res) => {
-  console.log("/updateTimezone");
+  // console.log("/updateTimezone");
   const { email, timezone } = req.body;
 
   try {
@@ -1076,7 +1076,7 @@ app.post("/updateTimezone", async (req, res) => {
 
 // Get isNewUser
 app.get("/getIsNewUser", async (req, res) => {
-  console.log("/getIsNewUser");
+  // console.log("/getIsNewUser");
   const email: string = req.query.email as string;
 
   try {
@@ -1096,7 +1096,7 @@ app.get("/getIsNewUser", async (req, res) => {
 
 // Logout route that removes cookies
 app.post("/logout", (req, res) => {
-  console.log("Directed to POST Route -> /logout");
+  // console.log("Directed to POST Route -> /logout");
   req.logout((err) => {
     if (err) {
       return res.status(200).json({ code: 1, message: "Error logging out" });
@@ -1115,7 +1115,7 @@ app.post("/logout", (req, res) => {
       if (err) {
         return res.status(200).json({ code: 1, message: "Error destroying session" });
       }
-      console.log("Signout successful and cookies cleared");
+      // console.log("Signout successful and cookies cleared");
       res.status(200).json({ code: 0, message: "Logout successful, cookies cleared" });
     });
   });
@@ -1146,7 +1146,7 @@ app.get("/getUserDetails", async (req, res) => {
 // Route to update account details
 app.post("/updateAccount", async (req, res) => {
   const { email, newFirstName, newLastName, newEmail} = req.body;
-  console.log(email, newFirstName, newLastName, newEmail);
+  // console.log(email, newFirstName, newLastName, newEmail);
 
   try {
     // Find the user by current email
