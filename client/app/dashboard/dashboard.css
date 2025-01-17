@@ -448,7 +448,7 @@
   justify-content: center;
   gap: 16px;
   height: 100vh;
-  background: linear-gradient(to right, #4a00ff, #8000ff);
+  /* background: linear-gradient(to right, #4a00ff, #8000ff); */
   color: white;
   text-align: center;
   font-family: "Raleway", sans-serif;

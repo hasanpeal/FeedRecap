@@ -48,7 +48,7 @@ export default function Dashboard() {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState<boolean>(false);
   const [cache, setCache] = useState<{ [key: string]: string[] }>({});
-  const [postsLoading, setPostsLoading] = useState(false);
+  // const [postsLoading, setPostsLoading] = useState(false);
   const availableCategories = [
     "Politics",
     "Geopolitics",
@@ -278,7 +278,9 @@ export default function Dashboard() {
       fetchPosts();
     }
     if (posts) {
-      setPageLoading(false);
+      setTimeout(()=>{
+        setPageLoading(false);
+      }, 1000)
     }
   }, [wise, registeredWise]);
 
@@ -289,7 +291,6 @@ export default function Dashboard() {
   }, [emailContext]);
 
   const fetchPosts = async () => {
-    setPostsLoading(true); // Start loading
     // console.log("DATAS inside fetchPosts:", wise, registeredWise);
     try {
       const response =
@@ -318,8 +319,6 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error fetching posts:", error);
       toast.error("Error fetching posts.");
-    } finally {
-      setPostsLoading(false); // End loading
     }
   };
 
@@ -565,11 +564,10 @@ export default function Dashboard() {
 
   const SpinnerWithMessage = ({ message }: { message: string }) => {
     return (
-      <div className="spinner-container">
+      <div className="spinner-container bg-[conic-gradient(at_bottom_right,_var(--tw-gradient-stops))] from-[#1d4ed8] via-[#1e40af] to-[#111827]">
         <div className="spinner"></div>
         <p className="spinner-message">
           {message} <br />
-          <span>Estimated wait time: 30 seconds</span>
         </p>
       </div>
     );
@@ -682,16 +680,6 @@ export default function Dashboard() {
             <Toaster />
             {selectedTab === "newsfeed" && (
               <div className="newsfeed-content">
-                {postsLoading ? (
-                  <div>Loading posts...</div> // Optional loading indicator
-                ) : posts.length === 0 ? (
-                  // Display message if no posts are available
-                  <div className="no-posts-message">
-                    Not enough posts to show ‼️ Consider adding more categories
-                    or profiles 😊
-                  </div>
-                ) : (
-                  <>
                     <div className="post-grid">
                       {filteredPosts.slice(0, visiblePosts).map((post) => (
                         <div key={post.tweet_id} className="post-card">
@@ -718,7 +706,7 @@ export default function Dashboard() {
                       ))}
                     </div>
 
-                    {!postsLoading && posts.length > 10 && (
+                    {posts.length > 10 && (
                       <button
                         className="category1-button show-more-button"
                         onClick={toggleShowMore}
@@ -726,8 +714,6 @@ export default function Dashboard() {
                         {showAllPosts ? "Show Less" : "Show More"}
                       </button>
                     )}
-                  </>
-                )}
               </div>
             )}
 
