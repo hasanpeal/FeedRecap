@@ -30,7 +30,7 @@ export default function Dashboard() {
   const [totalNewsletters, setTotalNewsletters] = useState(0);
   const [latestNewsletter, setLatestNewsletter] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [PageLoading, setPageLoading] = useState(false);
+  const [PageLoading, setPageLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedTab, setSelectedTab] = useState("newsfeed");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -275,6 +275,7 @@ const fetchData = async () => {
 useEffect(() => {
   if (wise && registeredWise) {
     console.log("wise and registeredWise are ready, calling fetchPosts...");
+    setPageLoading(false)
     fetchPosts();
   }
 }, [wise, registeredWise]);
@@ -652,13 +653,13 @@ const fetchPosts = async () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-indigo-900 via-purple-800 to-blue-600 mainCont">
+    <div className="bg-[conic-gradient(at_bottom_right,_var(--tw-gradient-stops))] from-[#1d4ed8] via-[#1e40af] to-[#111827] mainCont">
       <Navbar3 />
       {PageLoading ? (
-        <SpinnerWithMessage message="Updating your feed type and refreshing the dashboard..." />
+        <SpinnerWithMessage message="Dashboard loading..." />
       ) : (
         <div>
-          <div className="container mx-auto  py-12">
+          <div className="container mx-auto  py-12 ">
             <Toaster />
             {selectedTab === "newsfeed" && (
               <div className="newsfeed-content">
@@ -667,7 +668,7 @@ const fetchPosts = async () => {
                     <div key={post.tweet_id} className="post-card">
                       <div className="post-header">
                         <h3>@{post.username}</h3>
-                        <span>{timeAgo(post.time)}</span>
+                        {/* <span>{timeAgo(post.time)}</span> */}
                       </div>
                       {wise === "categorywise" && (
                         <h3 className="categoryTextP">

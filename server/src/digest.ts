@@ -1093,38 +1093,38 @@ Here is the tweet data you are summarizing:\n\n` +
 // // Call the function with a test user email
 // testProfileswiseByEmail("pealh0320@gmail.com");
 
-async function testNewsletter() {
-  try {
-    // Fetch the user
-    const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
-    if (!user) {
-      console.error("❌ User not found with email: pealh0320@gmail.com");
-      return;
-    }
+// async function testNewsletter() {
+//   try {
+//     // Fetch the user
+//     const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
+//     if (!user) {
+//       console.error("❌ User not found with email: pealh0320@gmail.com");
+//       return;
+//     }
 
-    // Define categories for the test (based on user preferences)
-    const categories = ["Politics", "Geopolitics", "Finance", "AI"];
+//     // Define categories for the test (based on user preferences)
+//     const categories = ["Politics", "Geopolitics", "Finance", "AI"];
 
-    // Fetch tweets for the categories
-    const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
-      categories
-    );
+//     // Fetch tweets for the categories
+//     const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
+//       categories
+//     );
 
-    // Generate the newsletter
-    const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+//     // Generate the newsletter
+//     const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
 
-    if (!newsletter) {
-      console.error("❌ Failed to generate newsletter.");
-      return;
-    }
+//     if (!newsletter) {
+//       console.error("❌ Failed to generate newsletter.");
+//       return;
+//     }
 
-    // Send the newsletter
-    await sendNewsletterEmail(user, newsletter);
+//     // Send the newsletter
+//     await sendNewsletterEmail(user, newsletter);
 
-    console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
-  } catch (error) {
-    console.error("❌ Error during test:", error);
-  }
-}
+//     console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
+//   } catch (error) {
+//     console.error("❌ Error during test:", error);
+//   }
+// }
 
-testNewsletter();
+// testNewsletter();

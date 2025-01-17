@@ -273,7 +273,22 @@ export default function Navbar2() {
 
       {/* Report Modal */}
       <dialog id="report_modal" className="bg-white p-6 rounded-lg max-w-lg">
-        <h2 className="text-xl font-bold mb-4">Report a Problem</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Report a Problem</h2>
+          <button
+            className="text-gray-800 font-bold text-lg"
+            onClick={() => {
+              const modal = document.getElementById(
+                "report_modal"
+              ) as HTMLDialogElement;
+              if (modal) {
+                modal.close();
+              }
+            }}
+          >
+            &times;
+          </button>
+        </div>
         <form ref={form} onSubmit={sendEmail}>
           <div className="space-y-4">
             <div>
@@ -281,6 +296,7 @@ export default function Navbar2() {
               <input
                 type="text"
                 name="user_name"
+                value={firstName + " " + lastName}
                 className="w-full p-2 border rounded"
                 placeholder="Your Name"
                 required
@@ -291,6 +307,7 @@ export default function Navbar2() {
               <input
                 type="email"
                 name="user_email"
+                value = {email}
                 className="w-full p-2 border rounded"
                 placeholder="Your Email"
                 required

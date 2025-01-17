@@ -41,9 +41,25 @@ export default function RootLayout({
         />
         <meta property="og:url" content="https://www.feedrecap.com" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="/icons8-feed-50.png" />
+        <meta
+          property="og:image"
+          content="https://www.feedrecap.com/icons8-feed-50.png"
+        />
+
         <link rel="canonical" href="https://www.feedrecap.com" />
-        <link rel="icon" type="image/png" href="/icons8-feed-50.png" />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/icons8-feed-50.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/icons8-feed-50.png"
+        />
+        <link rel="apple-touch-icon" href="/icons8-feed-50.png" />
       </head>
       <body className={inter.className}>
         <EmailProvider>{children}</EmailProvider>
