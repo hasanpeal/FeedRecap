@@ -41,14 +41,14 @@ export default function Dashboard() {
   const [feedType, setFeedType] = useState<"categorywise" | "customProfiles">(
     "categorywise"
   );
-  const [wise, setWise] = useState("") // To handle feed type selection
-  const [registeredWise, setRegisteredWise] = useState("") // Registered feed type from backend
+  const [wise, setWise] = useState(""); // To handle feed type selection
+  const [registeredWise, setRegisteredWise] = useState(""); // Registered feed type from backend
 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState<boolean>(false);
   const [cache, setCache] = useState<{ [key: string]: string[] }>({});
-
+  const [postsLoading, setPostsLoading] = useState(false);
   const availableCategories = [
     "Politics",
     "Geopolitics",
@@ -218,102 +218,110 @@ export default function Dashboard() {
   //   }
   // };
 
-const fetchData = async () => {
-  try {
-    const [
-      categoriesRes,
-      timesRes,
-      timezoneRes,
-      totalNewslettersRes,
-      newsletterRes,
-      profilesRes,
-      wiseRes,
-    ] = await Promise.all([
-      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getCategories`, {
-        params: { email: emailContext },
-      }),
-      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimes`, {
-        params: { email: emailContext },
-      }),
-      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimezone`, {
-        params: { email: emailContext },
-      }),
-      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTotalNewsletters`, {
-        params: { email: emailContext },
-      }),
-      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`, {
-        params: { email: emailContext },
-      }),
-      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getProfiles`, {
-        params: { email: emailContext },
-      }),
-      axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
-        params: { email: emailContext },
-      }),
-    ]);
+  const fetchData = async () => {
+    try {
+      const [
+        categoriesRes,
+        timesRes,
+        timezoneRes,
+        totalNewslettersRes,
+        newsletterRes,
+        profilesRes,
+        wiseRes,
+      ] = await Promise.all([
+        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getCategories`, {
+          params: { email: emailContext },
+        }),
+        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimes`, {
+          params: { email: emailContext },
+        }),
+        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimezone`, {
+          params: { email: emailContext },
+        }),
+        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTotalNewsletters`, {
+          params: { email: emailContext },
+        }),
+        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`, {
+          params: { email: emailContext },
+        }),
+        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getProfiles`, {
+          params: { email: emailContext },
+        }),
+        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
+          params: { email: emailContext },
+        }),
+      ]);
 
-    // Update states
-    setCategories(categoriesRes.data.categories);
-    setTime(timesRes.data.time);
-    setDbTimezone(timezoneRes.data.timezone);
-    setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
-    setLatestNewsletter(newsletterRes.data.newsletter);
-    setProfiles(profilesRes.data.profiles);
+      // Update states
+      setCategories(categoriesRes.data.categories);
+      setTime(timesRes.data.time);
+      setDbTimezone(timezoneRes.data.timezone);
+      setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
+      setLatestNewsletter(newsletterRes.data.newsletter);
+      setProfiles(profilesRes.data.profiles);
 
-    // Update wise and registeredWise, then fetchPosts
-    setWise(wiseRes.data.wise);
-    setRegisteredWise(wiseRes.data.wise);
+      // Update wise and registeredWise, then fetchPosts
+      setWise(wiseRes.data.wise);
+      setRegisteredWise(wiseRes.data.wise);
 
-    // console.log("All data fetched and states updated.");
-  } catch (err) {
-    console.error("Error fetching initial data:", err);
-    toast.error("Error loading initial data.");
-  }
-};
-
-// Use a separate useEffect to handle fetchPosts after `wise` is updated
-useEffect(() => {
-  if (wise && registeredWise) {
-    // console.log("wise and registeredWise are ready, calling fetchPosts...");
-    fetchPosts();
-  }
-}, [wise, registeredWise]);
-
-useEffect(() => {
-  if (emailContext) {
-    fetchData();
-  }
-}, [emailContext]);
-
-const fetchPosts = async () => {
-  // console.log("DATAS inside fetchPosts:", wise, registeredWise);
-  try {
-    const response =
-      wise === "categorywise"
-        ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
-            params: { email: emailContext },
-          })
-        : await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`, {
-            params: { email: emailContext },
-          });
-
-    if (response.data.code === 0) {
-      const sortedPosts = response.data.data.sort(
-        (a: Post, b: Post) =>
-          new Date(b.time).getTime() - new Date(a.time).getTime()
-      ); // Sort posts by time
-      setPosts(sortedPosts);
-      setPageLoading(false);
-      // console.log("Fetched posts:", sortedPosts);
-    } else {
-      toast.error("Error loading posts.");
+      // console.log("All data fetched and states updated.");
+    } catch (err) {
+      console.error("Error fetching initial data:", err);
+      toast.error("Error loading initial data.");
     }
-  } catch (error) {
-    console.error("Error fetching posts:", error);
-    toast.error("Error fetching posts.");
-  }
-};
+  };
 
+  // Use a separate useEffect to handle fetchPosts after `wise` is updated
+  useEffect(() => {
+    if (wise && registeredWise) {
+      // console.log("wise and registeredWise are ready, calling fetchPosts...");
+      fetchPosts();
+    }
+    if (posts) {
+      setPageLoading(false);
+    }
+  }, [wise, registeredWise]);
+
+  useEffect(() => {
+    if (emailContext) {
+      fetchData();
+    }
+  }, [emailContext]);
+
+  const fetchPosts = async () => {
+    setPostsLoading(true); // Start loading
+    // console.log("DATAS inside fetchPosts:", wise, registeredWise);
+    try {
+      const response =
+        wise === "categorywise"
+          ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
+              params: { email: emailContext },
+            })
+          : await axios.get(
+              `${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`,
+              {
+                params: { email: emailContext },
+              }
+            );
+
+      if (response.data.code === 0) {
+        const sortedPosts = response.data.data.sort(
+          (a: Post, b: Post) =>
+            new Date(b.time).getTime() - new Date(a.time).getTime()
+        ); // Sort posts by time
+        setPosts(sortedPosts);
+
+        // console.log("Fetched posts:", sortedPosts);
+      } else {
+        toast.error("Error loading posts.");
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      toast.error("Error fetching posts.");
+    } finally {
+      setPostsLoading(false); // End loading
+    }
+  };
 
   const sortPostsByCategoryLikes = (posts: Post[]): Post[] => {
     // Define the type for category groups
@@ -627,6 +635,17 @@ const fetchPosts = async () => {
       return undefined;
     }
   };
+
+  function formatTime(date: string | number | Date): string {
+    const options: Intl.DateTimeFormatOptions = {
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    };
+    return new Date(date).toLocaleTimeString("en-US", options);
+  }
+
+
   function timeAgo(date: string | number | Date) {
     const seconds = Math.floor(
       (new Date().getTime() - new Date(date).getTime()) / 1000
@@ -663,37 +682,52 @@ const fetchPosts = async () => {
             <Toaster />
             {selectedTab === "newsfeed" && (
               <div className="newsfeed-content">
-                <div className="post-grid">
-                  {filteredPosts.slice(0, visiblePosts).map((post) => (
-                    <div key={post.tweet_id} className="post-card">
-                      <div className="post-header">
-                        <h3>@{post.username}</h3>
-                        {/* <span>{timeAgo(post.time)}</span> */}
-                      </div>
-                      {wise === "categorywise" && (
-                        <h3 className="categoryTextP">
-                          <span className="categoryTextC">Category: </span>
-                          {post.category}
-                        </h3>
-                      )}
-                      <p>{post.text}</p>
-                      <a
-                        href={`https://twitter.com/i/web/status/${post.tweet_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="view-post"
-                      >
-                        View Post
-                      </a>
+                {postsLoading ? (
+                  <div>Loading posts...</div> // Optional loading indicator
+                ) : posts.length === 0 ? (
+                  // Display message if no posts are available
+                  <div className="no-posts-message">
+                    Not enough posts to show ‼️ Consider adding more categories
+                    or profiles 😊
+                  </div>
+                ) : (
+                  <>
+                    <div className="post-grid">
+                      {filteredPosts.slice(0, visiblePosts).map((post) => (
+                        <div key={post.tweet_id} className="post-card">
+                          <div className="post-header">
+                            <h3>@{post.username}</h3>
+                            <span>{formatTime(post.time)}</span>
+                          </div>
+                          {wise === "categorywise" && (
+                            <h3 className="categoryTextP">
+                              <span className="categoryTextC">Category: </span>
+                              {post.category}
+                            </h3>
+                          )}
+                          <p>{post.text}</p>
+                          <a
+                            href={`https://twitter.com/i/web/status/${post.tweet_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="view-post"
+                          >
+                            View Post
+                          </a>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <button
-                  className="category1-button show-more-button"
-                  onClick={toggleShowMore}
-                >
-                  {showAllPosts ? "Show Less" : "Show More"}
-                </button>
+
+                    {!postsLoading && posts.length > 10 && (
+                      <button
+                        className="category1-button show-more-button"
+                        onClick={toggleShowMore}
+                      >
+                        {showAllPosts ? "Show Less" : "Show More"}
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             )}
 

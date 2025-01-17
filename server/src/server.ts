@@ -170,7 +170,7 @@ app.get("/api/posts", async (req, res) => {
     const formattedPosts = posts.flatMap(post => {
       return post.tweets.map(tweet => ({
         username: post.screenName,
-        time: post.createdAt,
+        time: tweet.createdAt,
         likes: tweet.likes,
         category: post.category,
         text: tweet.text,
