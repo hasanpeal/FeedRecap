@@ -49,12 +49,12 @@ export interface ICustomProfilePost extends Document {
   screenName: string; // Twitter profile's screen name
   tweets: [
     {
-      text: { type: String, required: true },
-      likes: { type: Number, required: true },
-      tweet_id: { type: String, required: true },
-      createdAt: { type: Date, required: true }, // Add `createdAt` for each tweet
-    },
-  ],
+      text: { type: String; required: true };
+      likes: { type: Number; required: true };
+      tweet_id: { type: String; required: true };
+      createdAt: { type: Date; required: true }; // Add `createdAt` for each tweet
+    }
+  ];
   createdAt: Date; // When the posts were fetched
 }
 
@@ -92,7 +92,7 @@ async function ensureDatabaseConnections() {
 
 // Helper function to clean up markdown-like symbols (*, **, etc.)
 async function cleanNewsletterText(text: string) {
- return text.replace(/\*\*|\*/g, "");
+  return text.replace(/\*\*|\*/g, "");
 }
 
 // Fetch and store tweets for specified categories
@@ -113,15 +113,10 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
     Finance: ["financialjuice", "ForexLive", "DeItaone", "WSJ"],
     AI: ["pmddomingos", "AndrewYNg", "tegmark", "OpenAI"],
     Tech: ["paulgraham", "ycombinator", "jason", "elonmusk"],
-    Crypto: [
-      "VitalikButerin",
-      "pierre_crypt0",
-      "APompliano",
-      "ErikVoorhees",
-    ],
+    Crypto: ["VitalikButerin", "pierre_crypt0", "APompliano", "ErikVoorhees"],
     Meme: ["stoolpresidente", "litcapital", "trustfundterry", "TheoVon"],
     Sports: ["SportsCenter", "WojESPN", "BleacherReport", "TheAthletic"],
-    Entertainment: ["IMDb", "Netflix", "TheAVClub", "LightsCameraPod"]
+    Entertainment: ["IMDb", "Netflix", "TheAVClub", "LightsCameraPod"],
   };
 
   for (const category of categories) {
@@ -284,11 +279,9 @@ Here is the tweet data you are summarizing:
       )
       .join("\n\n");
 
-
-      // console.log("Top Tweets to be included: ", topTweetsText);
+    // console.log("Top Tweets to be included: ", topTweetsText);
     // Append the top 15 tweets to the Gemini-generated newsletter
     const finalNewsletterContent = `${result}\n\n**TOP TWEETS OF TODAY:**\n${topTweetsText}`;
-
 
     // console.log("Final Newsletter Content: ", finalNewsletterContent);
     // Convert the newsletter to HTML using `marked`
@@ -301,11 +294,9 @@ Here is the tweet data you are summarizing:
   }
 }
 
-
 function removeLinksFromText(text: string): string {
   return text.replace(/https?:\/\/\S+/g, "").trim(); // Removes all links starting with http/https
 }
-
 
 // Function to calculate top 15 tweets from different users, ensuring diversity
 export async function fetchTweetsForCategories(
@@ -417,7 +408,6 @@ export async function fetchTweetsForCategories(
   return { tweetsByCategory, top15Tweets: uniqueTop15Tweets };
 }
 
-
 // Helper function to convert HTML to plain text
 function convertHtmlToPlainText(html: string): string {
   const tempDiv = document.createElement("div");
@@ -445,23 +435,7 @@ export async function sendNewsletterEmail(
   // Share buttons with individual lines and additional spacing
   const shareButtons = `
     <div style="text-align: center; margin-top: 20px;">
-      <h3>Share this Newsletter:</h3>
-      <div style="margin-bottom: 10px;">
-        <a href="https://wa.me/?text=${encodeURIComponent(
-          `Check out this newsletter: ${shortLink}`
-        )}" style="padding: 10px 20px; background-color: #25D366; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 10px;">Share on WhatsApp</a>
-      </div>
-      <div style="margin-bottom: 10px;">
-        <a href="https://t.me/share/url?url=${shortLink}&text=${encodeURIComponent(
-    "Check out this newsletter!"
-  )}" style="padding: 10px 20px; background-color: #0088cc; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 10px;">Share on Telegram</a>
-      </div>
-      <div style="margin-bottom: 10px;">
-        <a href="mailto:?subject=FeedRecap Newsletter&body=${shortLink}" style="padding: 10px 20px; background-color: #D44638; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 10px;">Share via Email</a>
-      </div>
-    </div>
-    <div style="text-align: center; margin-top: 20px;">
-      <p>Read the newsletter online: <a href="${shortLink}"><em>${shortLink}</em></a></p>
+      <p>Share this newsletter with your friends <a href="${shortLink}"><em>${shortLink}</em></a></p>
     </div>
   `;
 
@@ -488,7 +462,6 @@ export async function sendNewsletterEmail(
   }
 }
 
-
 // First cron job: Fetch new tweets every 4 hours
 cron.schedule(
   "0 */4 * * *",
@@ -510,7 +483,7 @@ cron.schedule(
       "Entertainment",
     ]);
 
-    console.log("✅ [Tweet Fetching Cron]: Tweets have been updated.");
+    // console.log("✅ [Tweet Fetching Cron]: Tweets have been updated.");
   },
   {
     scheduled: true,
@@ -602,7 +575,6 @@ cron.schedule(
   }
 );
 
-
 // cron.schedule(
 //   "0 * * * *", // This cron job runs every hour
 //   async () => {
@@ -683,24 +655,30 @@ async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
   try {
     // Fetch all users with the specified time preference
     const users = await User.find({ time: timeSlot }).exec();
-    console.log(users)
+    console.log(users);
     if (users.length === 0) {
       console.log(`📭 [Debug] No users found for time slot: ${timeSlot}`);
       return;
     }
 
-    console.log(`📋 [Debug] Found ${users.length} users for time slot: ${timeSlot}`);
+    console.log(
+      `📋 [Debug] Found ${users.length} users for time slot: ${timeSlot}`
+    );
 
     for (const user of users) {
       // Validate email
       if (!isValidEmail(user.email)) {
-        console.log(`⚠️ [Debug] Skipping user with invalid email: ${user.email}`);
+        console.log(
+          `⚠️ [Debug] Skipping user with invalid email: ${user.email}`
+        );
         continue;
       }
 
       // Check if the user has valid time preferences
       if (!user.time || user.time.length === 0) {
-        console.log(`⚠️ [Debug] Skipping user with no time preferences: ${user.email}`);
+        console.log(
+          `⚠️ [Debug] Skipping user with no time preferences: ${user.email}`
+        );
         continue;
       }
 
@@ -708,32 +686,49 @@ async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
       try {
         if (user.wise === "categorywise") {
           // Fetch tweets for user's categories and generate the newsletter
-          const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(user.categories);
-          const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+          const { tweetsByCategory, top15Tweets } =
+            await fetchTweetsForCategories(user.categories);
+          const newsletter = await generateNewsletter(
+            tweetsByCategory,
+            top15Tweets
+          );
           if (newsletter) {
             await sendNewsletterEmail(user, newsletter);
           }
         } else if (user.wise === "customProfiles") {
           // Fetch tweets for custom profiles and generate the newsletter
-          const { tweetsByProfiles, top15Tweets } = await fetchTweetsForProfiles(user.profiles, user._id as mongoose.Types.ObjectId);
-          const newsletter = await generateCustomProfileNewsletter(tweetsByProfiles, top15Tweets);
+          const { tweetsByProfiles, top15Tweets } =
+            await fetchTweetsForProfiles(
+              user.profiles,
+              user._id as mongoose.Types.ObjectId
+            );
+          const newsletter = await generateCustomProfileNewsletter(
+            tweetsByProfiles,
+            top15Tweets
+          );
           if (newsletter) {
             await sendNewsletterEmail(user, newsletter);
           }
         }
         console.log(`✅ [Debug] Newsletter sent to: ${user.email}`);
       } catch (error) {
-        console.error(`❌ [Debug] Error processing newsletter for ${user.email}:`, error);
+        console.error(
+          `❌ [Debug] Error processing newsletter for ${user.email}:`,
+          error
+        );
       }
     }
   } catch (error) {
-    console.error(`❌ [Debug] Error processing newsletters for time slot: ${timeSlot}`, error);
+    console.error(
+      `❌ [Debug] Error processing newsletters for time slot: ${timeSlot}`,
+      error
+    );
   }
 }
 
 // Scheduler function
 function runContinuousScheduler() {
-  console.log("🚀 [Debug] Starting continuous scheduler...");
+  // console.log("🚀 [Debug] Starting continuous scheduler...");
   const scheduleTimes = {
     Morning: "09:00", // 9 AM Eastern
     Afternoon: "15:00", // 3 PM Eastern
@@ -742,11 +737,13 @@ function runContinuousScheduler() {
 
   setInterval(async () => {
     const currentTime = moment().tz("America/New_York").format("HH:mm");
-    console.log(`⏱️ [Debug] Current time: ${currentTime} Eastern`);
+    // console.log(`⏱️ [Debug] Current time: ${currentTime} Eastern`);
 
     for (const [timeSlot, scheduledTime] of Object.entries(scheduleTimes)) {
       if (currentTime === scheduledTime) {
-        console.log(`🎯 [Debug] Time matched for ${timeSlot}. Processing newsletters...`);
+        console.log(
+          `🎯 [Debug] Time matched for ${timeSlot}. Processing newsletters...`
+        );
         await processNewslettersForTimeSlot(timeSlot);
       }
     }
@@ -767,7 +764,7 @@ const sendDigest = async () => {
     to: "jeremy.shoykhet+1@gmail.com",
     from: process.env.FROM_EMAIL || "",
     subject: `Automated FeedRecap's total user count update`,
-    text: digestMessage
+    text: digestMessage,
   };
 
   try {
@@ -786,48 +783,16 @@ const sendDigest = async () => {
 
   try {
     await sgMail.send(msg2);
-    console.log(`✅ [Email Sent]: Total User count`);
+    // console.log(`✅ [Email Sent]: Total User count`);
   } catch (error) {
     console.error(`❌ [Error]: Error Sending Total User count`);
   }
 };
 
 // Run the task every 4 hours
-cron.schedule('0 */6 * * *', () => {
+cron.schedule("0 */6 * * *", () => {
   sendDigest();
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export async function fetchTweetsForProfiles(
   profiles: string[],
@@ -963,11 +928,6 @@ export async function fetchTweetsForProfiles(
   return { tweetsByProfiles, top15Tweets };
 }
 
-
-
-
-
-
 export async function generateCustomProfileNewsletter(
   tweetsByProfiles: {
     profile: string;
@@ -1069,10 +1029,6 @@ Here is the tweet data you are summarizing:\n\n` +
   }
 }
 
-
-
-
-
 // async function testProfileswiseByEmail(userEmail: string) {
 //   try {
 //     // Step 1: Fetch the user by email
@@ -1126,8 +1082,6 @@ Here is the tweet data you are summarizing:\n\n` +
 
 //     console.log(`✅ [Test]: Newsletter generated successfully.`);
 
-    
-
 //     console.log(
 //       `✅ [Test]: Newsletter saved for user ${user.email}.`
 //     );
@@ -1139,39 +1093,38 @@ Here is the tweet data you are summarizing:\n\n` +
 // // Call the function with a test user email
 // testProfileswiseByEmail("pealh0320@gmail.com");
 
+async function testNewsletter() {
+  try {
+    // Fetch the user
+    const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
+    if (!user) {
+      console.error("❌ User not found with email: pealh0320@gmail.com");
+      return;
+    }
 
-// async function testNewsletter() {
-//   try {
-//     // Fetch the user
-//     const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
-//     if (!user) {
-//       console.error("❌ User not found with email: pealh0320@gmail.com");
-//       return;
-//     }
+    // Define categories for the test (based on user preferences)
+    const categories = ["Politics", "Geopolitics", "Finance", "AI"];
 
-//     // Define categories for the test (based on user preferences)
-//     const categories = ["Politics", "Geopolitics", "Finance", "AI"];
+    // Fetch tweets for the categories
+    const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
+      categories
+    );
 
-//     // Fetch tweets for the categories
-//     const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
-//       categories
-//     );
+    // Generate the newsletter
+    const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
 
-//     // Generate the newsletter
-//     const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+    if (!newsletter) {
+      console.error("❌ Failed to generate newsletter.");
+      return;
+    }
 
-//     if (!newsletter) {
-//       console.error("❌ Failed to generate newsletter.");
-//       return;
-//     }
+    // Send the newsletter
+    await sendNewsletterEmail(user, newsletter);
 
-//     // Send the newsletter
-//     await sendNewsletterEmail(user, newsletter);
+    console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
+  } catch (error) {
+    console.error("❌ Error during test:", error);
+  }
+}
 
-//     console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
-//   } catch (error) {
-//     console.error("❌ Error during test:", error);
-//   }
-// }
-
-// testNewsletter();
+testNewsletter();
