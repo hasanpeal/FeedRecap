@@ -883,7 +883,7 @@ app.post("/updateCookieConsent", (req, res) => {
 
 // Check session route
 app.get("/check-session", (req, res) => {
-  console.log("Directed to get route to check session");
+  // console.log("Directed to get route to check session");
   if (req.isAuthenticated()) {
     // console.log("User is authenticated");
     const user = req.user as { email: string };

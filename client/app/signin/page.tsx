@@ -59,12 +59,12 @@ export default function Signin() {
             { withCredentials: true }
           );
           if (response.data.isAuthenticated) {
-            console.log("Authenticated:", response.data);
+            // console.log("Authenticated:", response.data);
             const { email } = response.data;
             setEmailContext(email);
             router.push("/dashboard");
           } else {
-            console.log("Not authenticated");
+            // console.log("Not authenticated");
           }
         } catch (error) {
           console.error(error);
@@ -79,7 +79,7 @@ export default function Signin() {
       const code = params.get("code");
       const message = params.get("message");
       const capturedEmail = params.get("email");
-      console.log("CAPTURED EMIL ID" + capturedEmail);
+      // console.log("CAPTURED EMIL ID" + capturedEmail);
       if (code) {
         if (parseInt(code) === 0) {
           setLoading2(true);
@@ -92,7 +92,7 @@ export default function Signin() {
             }
           );
 
-          console.log("CAPT" + response.data.code, response.data.isNewUser);
+          // console.log("CAPT" + response.data.code, response.data.isNewUser);
 
           if (response.data.code == 0 && response.data.isNewUser)
             router.push("/newuser");
@@ -158,7 +158,7 @@ export default function Signin() {
           toast.success(message, {id: "success5"});
           setLoad(true);
           setEmailContext(email);
-          console.log(email);
+          // console.log(email);
           const response = await axios.get(
             `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
             {
@@ -171,9 +171,9 @@ export default function Signin() {
           else if (response.data.code == 0 && !response.data.isNewUser)
             router.push("/dashboard");
           else toast.error("Server Error");
-          console.log(response)
+          // console.log(response)
         } else {
-          console.log(result);
+          // console.log(result);
           toast.error("Server Error");
         }
       } catch (err) {

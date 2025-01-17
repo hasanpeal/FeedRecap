@@ -264,7 +264,7 @@ const fetchData = async () => {
     setWise(wiseRes.data.wise);
     setRegisteredWise(wiseRes.data.wise);
 
-    console.log("All data fetched and states updated.");
+    // console.log("All data fetched and states updated.");
   } catch (err) {
     console.error("Error fetching initial data:", err);
     toast.error("Error loading initial data.");
@@ -274,8 +274,7 @@ const fetchData = async () => {
 // Use a separate useEffect to handle fetchPosts after `wise` is updated
 useEffect(() => {
   if (wise && registeredWise) {
-    console.log("wise and registeredWise are ready, calling fetchPosts...");
-    setPageLoading(false)
+    // console.log("wise and registeredWise are ready, calling fetchPosts...");
     fetchPosts();
   }
 }, [wise, registeredWise]);
@@ -287,7 +286,7 @@ useEffect(() => {
 }, [emailContext]);
 
 const fetchPosts = async () => {
-  console.log("DATAS inside fetchPosts:", wise, registeredWise);
+  // console.log("DATAS inside fetchPosts:", wise, registeredWise);
   try {
     const response =
       wise === "categorywise"
@@ -304,7 +303,8 @@ const fetchPosts = async () => {
           new Date(b.time).getTime() - new Date(a.time).getTime()
       ); // Sort posts by time
       setPosts(sortedPosts);
-      console.log("Fetched posts:", sortedPosts);
+      setPageLoading(false);
+      // console.log("Fetched posts:", sortedPosts);
     } else {
       toast.error("Error loading posts.");
     }
@@ -413,7 +413,7 @@ const fetchPosts = async () => {
           .filter((item: any) => item.screen_name)
           .slice(0, 6)
           .map((item: any) => item.screen_name);
-        console.log("Suggestions fetched:", results); // Debug
+        // console.log("Suggestions fetched:", results); // Debug
         return results;
       } else {
         console.warn("No suggestions found for keyword:", keyword); // Debug

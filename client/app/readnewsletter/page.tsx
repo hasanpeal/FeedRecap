@@ -31,7 +31,7 @@ export default function ReadNewsletter({
           `${process.env.NEXT_PUBLIC_SERVER}/newsletter/${newsletterId}`
         );
         setNewsletterContent(response.data.newsletter);
-        console.log("NEWSLETTER REVCEIVED", response.data);
+        // console.log("NEWSLETTER REVCEIVED", response.data);
       } catch (err: any) {
         setError(
           err.response?.data ||
