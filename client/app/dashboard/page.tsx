@@ -727,7 +727,7 @@ export default function Dashboard() {
                   <div className="stat-card">
                     <h3 className="stat-title">Latest Newsletter</h3>
                     <div
-                      className="stat-text"
+                      className="stat-text newsletext"
                       dangerouslySetInnerHTML={{
                         __html:
                           latestNewsletter ||
