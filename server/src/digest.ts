@@ -275,13 +275,13 @@ Here is the tweet data you are summarizing:
             tweet.screenName
           } <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
-          }"> <em>Tweet</em> </a>`
+          }"> <em>View Post</em> </a>`
       )
       .join("\n\n");
 
     // console.log("Top Tweets to be included: ", topTweetsText);
     // Append the top 15 tweets to the Gemini-generated newsletter
-    const finalNewsletterContent = `${result}\n\n**TOP TWEETS OF TODAY:**\n${topTweetsText}`;
+    const finalNewsletterContent = `${result}\n\n**TOP POSTS OF TODAY:**\n${topTweetsText}`;
 
     // console.log("Final Newsletter Content: ", finalNewsletterContent);
     // Convert the newsletter to HTML using `marked`
@@ -1003,16 +1003,16 @@ Here is the tweet data you are summarizing:\n\n` +
         (tweet, index) =>
           `${index + 1}. ${tweet.text.replace(/\n/g, " ")} - @${
             tweet.screenName
-          } 👉 <a href="https://x.com/${tweet.screenName}/status/${
+          } <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
-          }"> Tweet </a>`
+          }"> <em>View Post</em> </a>`
       )
       .join("\n\n");
 
     // console.log("Top Tweets to be included: ", topTweetsText);
 
     // Combine Gemini-generated content with the valid top 15 tweets
-    const finalNewsletterContent = `${result}\n\n**TOP TWEETS OF TODAY:**\n${topTweetsText}`;
+    const finalNewsletterContent = `${result}\n\n**TOP POSTS OF TODAY:**\n${topTweetsText}`;
 
     // console.log("Final Newsletter Content: ", finalNewsletterContent);
 
