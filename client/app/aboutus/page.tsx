@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import Link from "next/link";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -59,8 +59,8 @@ export default function AboutUs() {
               delivery times
             </li>
             <li>
-              Our AI scours Twitter for the latest and most relevant tweets on
-              your chosen topics
+              Our AI scours X for the latest and most relevant tweets on your
+              chosen topics
             </li>
             <li>
               {" "}

@@ -752,7 +752,7 @@ export default function Signin() {
         </div>
       </div>
       <Footer2 />
-      <CookieConsent />
+      {/* <CookieConsent /> */}
     </div>
   );
 }

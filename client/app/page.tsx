@@ -205,7 +205,7 @@ export default function Home() {
 
       {/* Footer */}
       <Footer />
-      <CookieConsent />
+      {/* <CookieConsent /> */}
     </div>
   );
 }

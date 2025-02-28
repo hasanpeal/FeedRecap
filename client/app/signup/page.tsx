@@ -193,7 +193,7 @@ const Signup: React.FC = () => {
 
           if (result.data.code == 0) {
             setEmailContext(email);
-            toast.success("Sign up successful", {id: "success2"})
+            // toast.success("Sign up successful", {id: "success2"})
             const response = await axios.get(
               `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
               {
@@ -412,7 +412,7 @@ const Signup: React.FC = () => {
         </div>
       </div>
       <Footer2 />
-      <CookieConsent />
+      {/* <CookieConsent /> */}
     </div>
   );
 };

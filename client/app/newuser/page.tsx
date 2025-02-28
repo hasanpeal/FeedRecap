@@ -314,14 +314,10 @@ export default function SelectCategories() {
         }
       );
       if (response.data.code === 0) {
-        setTimeout(() => {
           router.push("/dashboard");
-        }, 30000); // 10000ms = 30 seconds
-      } else {
-        toast.error("Server error.");
       }
     } catch (err) {
-      toast.error("Server error.");
+      toast.error("Server error");
     } finally {
       setLoading(false);
     }
@@ -480,9 +476,9 @@ export default function SelectCategories() {
         </div>
       </div>
       )} */}
-      <SpinnerWithMessage/>
+      {/* <SpinnerWithMessage/> */}
       <Footer2 />
-      <CookieConsent />
+      {/* <CookieConsent /> */}
     </div>
   );
 }
