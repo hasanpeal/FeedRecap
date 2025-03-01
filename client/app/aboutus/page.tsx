@@ -15,12 +15,12 @@ export default function AboutUs() {
             About Us
           </h2>
           <p className="text-gray-300 text-lg mb-8">
-            At FeedRecap, we believe staying informed shouldn't feel
+            At FeedRecap, we believe staying informed shouldn&apos;t feel
             overwhelming. Founded with the idea that everyone deserves quick,
             easy access to the news they care about, our app delivers
-            personalized newsletters packed with top tweets. Whether it's
-            politics, finance, sports, or tech, FeedRecap ensures you're always
-            in the loop.
+            personalized newsletters packed with top tweets. Whether it&apos;s
+            politics, finance, sports, or tech, FeedRecap ensures you&apos;re
+            always in the loop.
           </p>
           <h3 className="text-3xl font-semibold mb-6 text-center bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
             Our Mission
@@ -46,7 +46,7 @@ export default function AboutUs() {
               chosen topics
             </li>
             <li>
-              At your specified time, you'll receive a beautifully curated
+              At your specified time, you&apos;ll receive a beautifully curated
               newsletter straight to your inbox—keeping you informed without the
               hassle
             </li>

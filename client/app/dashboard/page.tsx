@@ -203,7 +203,7 @@ export default function Dashboard() {
           (a: Post, b: Post) => new Date(b.time).getTime() - new Date(a.time).getTime(),
         )
 
-        const uniqueUsernames = Array.from(new Set(sortedPosts.map((post) => post.username)))
+        const uniqueUsernames = Array.from(new Set(sortedPosts.map((post:any) => post.username)))
         const avatarPromises = uniqueUsernames.map(async (username) => {
           try {
             const avatarResponse = await axios.get("https://twitter-api45.p.rapidapi.com/screenname.php", {
@@ -223,7 +223,7 @@ export default function Dashboard() {
         const avatars = await Promise.all(avatarPromises)
         const avatarMap = Object.fromEntries(avatars.map(({ username, avatar }) => [username, avatar]))
 
-        const postsWithAvatars = sortedPosts.map((post) => ({
+        const postsWithAvatars = sortedPosts.map((post:any) => ({
           ...post,
           avatar: avatarMap[post.username],
         }))

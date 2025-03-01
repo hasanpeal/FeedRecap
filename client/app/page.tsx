@@ -239,7 +239,7 @@ useEffect(() => {
               </h3>
               <p className="text-gray-400">
                 Manage your preferences, see the latest newsletters, and track
-                how many you've received—right from your personal dashboard
+                how many you&apos;ve received—right from your personal dashboard
               </p>
             </div>
             <div className="bg-[#111] p-8 rounded-xl border border-gray-800 hover:border-[#7FFFD4]/30 transition-all">
@@ -314,8 +314,8 @@ useEffect(() => {
                 ))}
               </div>
               <p className="text-gray-300 mb-6">
-                "FeedRecap helps me stay updated with important news without
-                wasting time scrolling!"
+                &quot;FeedRecap helps me stay updated with important news
+                without wasting time scrolling!&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold">
@@ -341,8 +341,8 @@ useEffect(() => {
                 ))}
               </div>
               <p className="text-gray-300 mb-6">
-                "I love the curated updates, I feel more in control of my day!
-                Amazing time saving tool for me."
+                &quot;I love the curated updates, I feel more in control of my
+                day! Amazing time saving tool for me.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold">
@@ -368,8 +368,9 @@ useEffect(() => {
                 ))}
               </div>
               <p className="text-gray-300 mb-6">
-                "The best way to catch up on the day&apos;s top news quickly! I
-                really love the contents that I get through newsletter form."
+                &quot;The best way to catch up on the day&apos;s top news
+                quickly! I really love the contents that I get through
+                newsletter form.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold">
