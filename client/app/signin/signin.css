@@ -13,3 +13,7 @@
 .loading-spinner {
   @apply w-8 h-8 border-4 border-[#7FFFD4] border-t-transparent rounded-full animate-spin;
 }
+
+.custom-rounded {
+  border-radius: 0.5rem;
+}
