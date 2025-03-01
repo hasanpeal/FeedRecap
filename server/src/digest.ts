@@ -196,6 +196,201 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
   // );
 }
 
+// export async function generateNewsletter(
+//   tweetsByCategory: {
+//     category: string;
+//     tweetsByUser: { screenName: string; tweets: string[] }[];
+//   }[],
+//   top15Tweets: {
+//     screenName: string;
+//     category: string;
+//     tweet: string;
+//     likes: number;
+//     tweet_id: string;
+//   }[]
+// ): Promise<string | undefined> {
+//   const geminiOptions = {
+//     method: "POST",
+//     url: "https://gemini-pro-ai.p.rapidapi.com/",
+//     headers: {
+//       "x-rapidapi-key": process.env.RAPID_API_KEY || "",
+//       "x-rapidapi-host": "gemini-pro-ai.p.rapidapi.com",
+//       "Content-Type": "application/json",
+//     },
+//     data: {
+//       contents: [
+//         {
+//           parts: [
+//             {
+//               text:
+//                 `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 12 OF THESE RULES!! (Take as long as you want to process):
+
+// 1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all categories. Title this section "Summary".
+// 2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
+// 3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
+// 4. **Follow the themes of each category**, ensuring the content feels cohesive and relevant to the category. Each category should feel distinct.
+// 5. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
+// 6. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
+// 7. **Do NOT cite sources**—just summarize the tweets without citations.
+// 8. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
+// 9. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
+// 10. **Format the newsletter as bullet points** for each category. Each bullet point should summarize a key piece of information from the tweets, just as if you were a news reporter covering these topics. Write succinctly and clearly.
+// 11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
+// 12. Ensure the **bullet points are separated by category** and well-structured.
+
+// Here is the tweet data you are summarizing:
+// \n\n` +
+//                 tweetsByCategory
+//                   .map(({ category, tweetsByUser }) => {
+//                     return (
+//                       `Category: ${category}\n` +
+//                       tweetsByUser
+//                         .map(
+//                           ({ screenName, tweets }) =>
+//                             `Tweets by @${screenName}:\n${tweets.join(
+//                               "\n"
+//                             )}\n\n`
+//                         )
+//                         .join("")
+//                     );
+//                   })
+//                   .join(""),
+//             },
+//           ],
+//         },
+//       ],
+//     },
+//   };
+
+//   try {
+//     const response = await axios.request(geminiOptions);
+//     let result = response.data.candidates[0].content.parts[0].text;
+//     // console.log("Generated Content from Gemini AI: ", result);
+
+//     // Manually append the top 15 tweets to the end of the newsletter
+//     const topTweetsText = top15Tweets
+//       .map(
+//         (tweet, index) =>
+//           `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} - @${
+//             tweet.screenName
+//           } <a href="https://x.com/${tweet.screenName}/status/${
+//             tweet.tweet_id
+//           }"> <em>View Post</em> </a>`
+//       )
+//       .join("\n\n");
+
+//     // console.log("Top Tweets to be included: ", topTweetsText);
+//     // Append the top 15 tweets to the Gemini-generated newsletter
+//     const finalNewsletterContent = `${result}\n\n**TOP POSTS OF TODAY:**\n${topTweetsText}`;
+
+//     // console.log("Final Newsletter Content: ", finalNewsletterContent);
+//     // Convert the newsletter to HTML using `marked`
+//     const newsletterHTML = marked(finalNewsletterContent);
+
+//     return newsletterHTML;
+//   } catch (error) {
+//     console.error("❌ [Error]: Error generating newsletter:", error);
+//     return undefined;
+//   }
+// }
+
+
+// Grok API
+// export async function generateNewsletter(
+//   tweetsByCategory: {
+//     category: string;
+//     tweetsByUser: { screenName: string; tweets: string[] }[];
+//   }[],
+//   top15Tweets: {
+//     screenName: string;
+//     category: string;
+//     tweet: string;
+//     likes: number;
+//     tweet_id: string;
+//   }[]
+// ): Promise<string | undefined> {
+//   const grokOptions = {
+//     method: "POST",
+//     url: "https://grok-3-0-ai.p.rapidapi.com/",
+//     headers: {
+//       "x-rapidapi-key": process.env.RAPID_API_KEY || "",
+//       "x-rapidapi-host": "grok-3-0-ai.p.rapidapi.com",
+//       "Content-Type": "application/json",
+//     },
+//     data: {
+//       model: "grok-3",
+//       messages: [
+//         {
+//           role: "user",
+//           content:
+//             `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 12 OF THESE RULES!! (Take as long as you want to process):
+
+// 1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all categories. Title this section "Summary".
+// 2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
+// 3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
+// 4. **Follow the themes of each category**, ensuring the content feels cohesive and relevant to the category. Each category should feel distinct.
+// 5. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
+// 6. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
+// 7. **Do NOT cite sources**—just summarize the tweets without citations.
+// 8. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
+// 9. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
+// 10. **Format the newsletter as bullet points** for each category. Each bullet point should summarize a key piece of information from the tweets, just as if you were a news reporter covering these topics. Write succinctly and clearly.
+// 11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
+// 12. Ensure the **bullet points are separated by category** and well-structured.
+// 13. After each section add a horizontal line. Here is the format: Summary (heading) then summary content then horizontal line. Same goes for other section: heading -> Content -> Horizontal Line
+
+// Here is the tweet data you are summarizing:
+
+// ` +
+//             tweetsByCategory
+//               .map(({ category, tweetsByUser }) => {
+//                 return (
+//                   `Category: ${category}\n` +
+//                   tweetsByUser
+//                     .map(
+//                       ({ screenName, tweets }) =>
+//                         `Tweets by @${screenName}:\n${tweets.join("\n")}\n\n`
+//                     )
+//                     .join("")
+//                 );
+//               })
+//               .join(""),
+//         },
+//       ],
+//     },
+//   };
+
+//   try {
+//     const response = await axios.request(grokOptions);
+//     let result = response.data.choices[0].message.content;
+
+//     // Manually append the top 15 tweets to the end of the newsletter
+//     const topTweetsText = top15Tweets
+//       .map(
+//         (tweet, index) =>
+//           `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} - @$${
+//             tweet.screenName
+//           } <a href="https://x.com/${tweet.screenName}/status/${
+//             tweet.tweet_id
+//           }"> <em>View Post</em> </a>`
+//       )
+//       .join("\n\n");
+
+//     const finalNewsletterContent = `${result}\n\n**TOP POSTS OF TODAY:**\n${topTweetsText}`;
+
+//     // Convert the newsletter to HTML using `marked`
+//     const newsletterHTML = marked(finalNewsletterContent);
+
+//     return newsletterHTML;
+//   } catch (error) {
+//     console.error("❌ [Error]: Error generating newsletter:", error);
+//     return undefined;
+//   }
+// }
+
+
+
+// DEEPSEEK API:
 export async function generateNewsletter(
   tweetsByCategory: {
     category: string;
@@ -209,21 +404,21 @@ export async function generateNewsletter(
     tweet_id: string;
   }[]
 ): Promise<string | undefined> {
-  const geminiOptions = {
+  const deepseekOptions = {
     method: "POST",
-    url: "https://gemini-pro-ai.p.rapidapi.com/",
+    url: "https://deepseek-v31.p.rapidapi.com/",
     headers: {
       "x-rapidapi-key": process.env.RAPID_API_KEY || "",
-      "x-rapidapi-host": "gemini-pro-ai.p.rapidapi.com",
+      "x-rapidapi-host": "deepseek-v31.p.rapidapi.com",
       "Content-Type": "application/json",
     },
     data: {
-      contents: [
+      model: "deepseek-v3",
+      messages: [
         {
-          parts: [
-            {
-              text:
-                `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 12 OF THESE RULES!! (Take as long as you want to process):
+          role: "user",
+          content:
+            `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 14 OF THESE RULES!! (Take as long as you want to process):
 
 1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all categories. Title this section "Summary".
 2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
@@ -237,41 +432,38 @@ export async function generateNewsletter(
 10. **Format the newsletter as bullet points** for each category. Each bullet point should summarize a key piece of information from the tweets, just as if you were a news reporter covering these topics. Write succinctly and clearly.
 11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
 12. Ensure the **bullet points are separated by category** and well-structured.
-
+13. After each section add a horizontal line. Here is the format: Summary (heading) then skip one line then summary content then horizontal line. Same goes for other section: heading -> Skip one line -> Content -> Horizontal Line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
+14. MUST: Make sure each heading (bold) and its content has consisted font, size and style.
 Here is the tweet data you are summarizing:
-\n\n` +
-                tweetsByCategory
-                  .map(({ category, tweetsByUser }) => {
-                    return (
-                      `Category: ${category}\n` +
-                      tweetsByUser
-                        .map(
-                          ({ screenName, tweets }) =>
-                            `Tweets by @${screenName}:\n${tweets.join(
-                              "\n"
-                            )}\n\n`
-                        )
-                        .join("")
-                    );
-                  })
-                  .join(""),
-            },
-          ],
+
+` +
+            tweetsByCategory
+              .map(({ category, tweetsByUser }) => {
+                return (
+                  `Category: ${category}\n` +
+                  tweetsByUser
+                    .map(
+                      ({ screenName, tweets }) =>
+                        `Tweets by @${screenName}:\n${tweets.join("\n")}\n\n`
+                    )
+                    .join("")
+                );
+              })
+              .join(""),
         },
       ],
     },
   };
 
   try {
-    const response = await axios.request(geminiOptions);
-    let result = response.data.candidates[0].content.parts[0].text;
-    // console.log("Generated Content from Gemini AI: ", result);
+    const response = await axios.request(deepseekOptions);
+    let result = response.data.choices[0].message.content;
 
     // Manually append the top 15 tweets to the end of the newsletter
     const topTweetsText = top15Tweets
       .map(
         (tweet, index) =>
-          `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} - @${
+          `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} - @$${
             tweet.screenName
           } <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
@@ -279,11 +471,9 @@ Here is the tweet data you are summarizing:
       )
       .join("\n\n");
 
-    // console.log("Top Tweets to be included: ", topTweetsText);
-    // Append the top 15 tweets to the Gemini-generated newsletter
+    // Append the top 15 tweets to the generated newsletter
     const finalNewsletterContent = `${result}\n\n**TOP POSTS OF TODAY:**\n${topTweetsText}`;
 
-    // console.log("Final Newsletter Content: ", finalNewsletterContent);
     // Convert the newsletter to HTML using `marked`
     const newsletterHTML = marked(finalNewsletterContent);
 
@@ -293,6 +483,7 @@ Here is the tweet data you are summarizing:
     return undefined;
   }
 }
+
 
 function removeLinksFromText(text: string): string {
   return text.replace(/https?:\/\/\S+/g, "").trim(); // Removes all links starting with http/https
@@ -928,6 +1119,199 @@ export async function fetchTweetsForProfiles(
   return { tweetsByProfiles, top15Tweets };
 }
 
+// export async function generateCustomProfileNewsletter(
+//   tweetsByProfiles: {
+//     profile: string;
+//     tweets: string[];
+//   }[],
+//   top15Tweets: {
+//     screenName: string;
+//     text: string; // Correct property name
+//     likes: number;
+//     tweet_id: string;
+//   }[]
+// ): Promise<string | undefined> {
+//   const geminiOptions = {
+//     method: "POST",
+//     url: "https://gemini-pro-ai.p.rapidapi.com/",
+//     headers: {
+//       "x-rapidapi-key": process.env.RAPID_API_KEY || "",
+//       "x-rapidapi-host": "gemini-pro-ai.p.rapidapi.com",
+//       "Content-Type": "application/json",
+//     },
+//     data: {
+//       contents: [
+//         {
+//           parts: [
+//             {
+//               text:
+//                 `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 9 OF THESE RULES!! (Take as long as you want to process):
+
+// 1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all tweets. Title this section "Summary".
+// 2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
+// 3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
+// 4. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
+// 5. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
+// 6. **Do NOT cite sources**—just summarize the tweets without citations.
+// 7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
+// 8. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
+// 9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
+// Here is the tweet data you are summarizing:\n\n` +
+//                 tweetsByProfiles
+//                   .map(
+//                     ({ profile, tweets }) =>
+//                       `Tweets by @${profile}:\n${tweets.join("\n")}\n\n`
+//                   )
+//                   .join(""),
+//             },
+//           ],
+//         },
+//       ],
+//     },
+//   };
+
+//   try {
+//     // Debug `top15Tweets` array
+//     // console.log("✅ [Debug]: Validating top15Tweets:", top15Tweets);
+
+//     // Validate `top15Tweets` to ensure all objects have a valid `text`
+//     const validTopTweets = top15Tweets.filter(
+//       (tweet) => tweet.text && typeof tweet.text === "string"
+//     );
+
+//     // console.log(
+//     //   "✅ [Debug]: Valid top tweets (after filtering invalid ones):",
+//     //   validTopTweets
+//     // );
+
+//     const response = await axios.request(geminiOptions);
+//     let result = response.data.candidates[0].content.parts[0].text;
+//     // console.log("Generated Content from Gemini AI: ", result);
+
+//     // Append the valid top 15 tweets to the newsletter
+//     const topTweetsText = validTopTweets
+//       .map(
+//         (tweet, index) =>
+//           `${index + 1}. ${tweet.text.replace(/\n/g, " ")} - @${
+//             tweet.screenName
+//           } <a href="https://x.com/${tweet.screenName}/status/${
+//             tweet.tweet_id
+//           }"> <em>View Post</em> </a>`
+//       )
+//       .join("\n\n");
+
+//     // console.log("Top Tweets to be included: ", topTweetsText);
+
+//     // Combine Gemini-generated content with the valid top 15 tweets
+//     const finalNewsletterContent = `${result}\n\n**TOP POSTS OF TODAY:**\n${topTweetsText}`;
+
+//     // console.log("Final Newsletter Content: ", finalNewsletterContent);
+
+//     // Convert the newsletter to HTML using `marked`
+//     const newsletterHTML = marked(finalNewsletterContent);
+
+//     return newsletterHTML;
+//   } catch (error) {
+//     console.error(
+//       "❌ [Error]: Error generating custom profile newsletter:",
+//       error
+//     );
+//     return undefined;
+//   }
+// }
+
+
+// GROK 3.0 API:
+// export async function generateCustomProfileNewsletter(
+//   tweetsByProfiles: {
+//     profile: string;
+//     tweets: string[];
+//   }[],
+//   top15Tweets: {
+//     screenName: string;
+//     text: string;
+//     likes: number;
+//     tweet_id: string;
+//   }[]
+// ): Promise<string | undefined> {
+//   const grokOptions = {
+//     method: "POST",
+//     url: "https://grok-3-0-ai.p.rapidapi.com/",
+//     headers: {
+//       "x-rapidapi-key": process.env.RAPID_API_KEY || "",
+//       "x-rapidapi-host": "grok-3-0-ai.p.rapidapi.com",
+//       "Content-Type": "application/json",
+//     },
+//     data: {
+//       model: "grok-3",
+//       messages: [
+//         {
+//           role: "user",
+//           content:
+//             `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 10 OF THESE RULES!! (Take as long as you want to process):
+
+// 1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all tweets. Title this section "Summary".
+// 2. **Consider ALL tweets of all user**—do not focus on a few tweets. Make sure each user's tweet is fairly represented in the newsletter.
+// 3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
+// 4. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
+// 5. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
+// 6. **Do NOT cite sources**—just summarize the tweets without citations.
+// 7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
+// 8. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
+// 9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
+// 10. After each section add a horizontal line. Here is the format: Summary (heading) then summary content then horizontal line. Same goes for other section: heading -> Content -> Horizontal Line
+// Here is the tweet data you are summarizing:
+
+// ` +
+//             tweetsByProfiles
+//               .map(
+//                 ({ profile, tweets }) =>
+//                   `Tweets by @${profile}:\n${tweets.join("\n")}\n\n`
+//               )
+//               .join(""),
+//         },
+//       ],
+//     },
+//   };
+
+//   try {
+//     // Validate `top15Tweets` to ensure all objects have a valid `text`
+//     const validTopTweets = top15Tweets.filter(
+//       (tweet) => tweet.text && typeof tweet.text === "string"
+//     );
+
+//     const response = await axios.request(grokOptions);
+//     let result = response.data.choices[0].message.content;
+
+//     // Append the valid top 15 tweets to the newsletter
+//     const topTweetsText = validTopTweets
+//       .map(
+//         (tweet, index) =>
+//           `${index + 1}. ${tweet.text.replace(/\n/g, " ")} - @$${
+//             tweet.screenName
+//           } <a href="https://x.com/${tweet.screenName}/status/${
+//             tweet.tweet_id
+//           }"> <em>View Post</em> </a>`
+//       )
+//       .join("\n\n");
+
+//     // Combine generated content with the valid top 15 tweets
+//     const finalNewsletterContent = `${result}\n\n**TOP POSTS OF TODAY:**\n${topTweetsText}`;
+
+//     // Convert the newsletter to HTML using `marked`
+//     const newsletterHTML = marked(finalNewsletterContent);
+
+//     return newsletterHTML;
+//   } catch (error) {
+//     console.error(
+//       "❌ [Error]: Error generating custom profile newsletter:",
+//       error
+//     );
+//     return undefined;
+//   }
+// }
+
+// DEEEPSEEK API
 export async function generateCustomProfileNewsletter(
   tweetsByProfiles: {
     profile: string;
@@ -935,26 +1319,26 @@ export async function generateCustomProfileNewsletter(
   }[],
   top15Tweets: {
     screenName: string;
-    text: string; // Correct property name
+    text: string;
     likes: number;
     tweet_id: string;
   }[]
 ): Promise<string | undefined> {
-  const geminiOptions = {
+  const deepseekOptions = {
     method: "POST",
-    url: "https://gemini-pro-ai.p.rapidapi.com/",
+    url: "https://deepseek-v31.p.rapidapi.com/",
     headers: {
       "x-rapidapi-key": process.env.RAPID_API_KEY || "",
-      "x-rapidapi-host": "gemini-pro-ai.p.rapidapi.com",
+      "x-rapidapi-host": "deepseek-v31.p.rapidapi.com",
       "Content-Type": "application/json",
     },
     data: {
-      contents: [
+      model: "deepseek-v3",
+      messages: [
         {
-          parts: [
-            {
-              text:
-                `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 9 OF THESE RULES!! (Take as long as you want to process):
+          role: "user",
+          content:
+            `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 11 OF THESE RULES!! (Take as long as you want to process):
 
 1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all tweets. Title this section "Summary".
 2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
@@ -965,43 +1349,36 @@ export async function generateCustomProfileNewsletter(
 7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
 8. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
 9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
-Here is the tweet data you are summarizing:\n\n` +
-                tweetsByProfiles
-                  .map(
-                    ({ profile, tweets }) =>
-                      `Tweets by @${profile}:\n${tweets.join("\n")}\n\n`
-                  )
-                  .join(""),
-            },
-          ],
+10. After each section add a horizontal line. Here is the format: Summary (heading) then skip one line then summary content then horizontal line. Same goes for other section: heading -> Skip one line -> Content -> Horizontal Line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
+11. MUST: Make sure each heading (bold) and its content has consisted font, size and style.
+Here is the tweet data you are summarizing:
+
+` +
+            tweetsByProfiles
+              .map(
+                ({ profile, tweets }) =>
+                  `Tweets by @${profile}:\n${tweets.join("\n")}\n\n`
+              )
+              .join(""),
         },
       ],
     },
   };
 
   try {
-    // Debug `top15Tweets` array
-    // console.log("✅ [Debug]: Validating top15Tweets:", top15Tweets);
-
     // Validate `top15Tweets` to ensure all objects have a valid `text`
     const validTopTweets = top15Tweets.filter(
       (tweet) => tweet.text && typeof tweet.text === "string"
     );
 
-    // console.log(
-    //   "✅ [Debug]: Valid top tweets (after filtering invalid ones):",
-    //   validTopTweets
-    // );
-
-    const response = await axios.request(geminiOptions);
-    let result = response.data.candidates[0].content.parts[0].text;
-    // console.log("Generated Content from Gemini AI: ", result);
+    const response = await axios.request(deepseekOptions);
+    let result = response.data.choices[0].message.content;
 
     // Append the valid top 15 tweets to the newsletter
     const topTweetsText = validTopTweets
       .map(
         (tweet, index) =>
-          `${index + 1}. ${tweet.text.replace(/\n/g, " ")} - @${
+          `${index + 1}. ${tweet.text.replace(/\n/g, " ")} - @$${
             tweet.screenName
           } <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
@@ -1009,12 +1386,8 @@ Here is the tweet data you are summarizing:\n\n` +
       )
       .join("\n\n");
 
-    // console.log("Top Tweets to be included: ", topTweetsText);
-
-    // Combine Gemini-generated content with the valid top 15 tweets
+    // Combine generated content with the valid top 15 tweets
     const finalNewsletterContent = `${result}\n\n**TOP POSTS OF TODAY:**\n${topTweetsText}`;
-
-    // console.log("Final Newsletter Content: ", finalNewsletterContent);
 
     // Convert the newsletter to HTML using `marked`
     const newsletterHTML = marked(finalNewsletterContent);
@@ -1028,6 +1401,7 @@ Here is the tweet data you are summarizing:\n\n` +
     return undefined;
   }
 }
+
 
 // async function testProfileswiseByEmail(userEmail: string) {
 //   try {
@@ -1081,7 +1455,8 @@ Here is the tweet data you are summarizing:\n\n` +
 //     }
 
 //     console.log(`✅ [Test]: Newsletter generated successfully.`);
-
+//     console.log(newsletter);
+//     await sendNewsletterEmail(user, newsletter);
 //     console.log(
 //       `✅ [Test]: Newsletter saved for user ${user.email}.`
 //     );
