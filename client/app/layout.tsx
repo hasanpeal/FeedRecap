@@ -8,7 +8,9 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
+import { Montserrat } from "next/font/google";
 
+const montserrat = Montserrat({ subsets: ["latin"] });
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
@@ -61,7 +63,7 @@ export default function RootLayout({
         />
         <link rel="apple-touch-icon" href="/icons8-feed-50.png" />
       </head>
-      <body className={inter.className}>
+      <body className={(inter.className, montserrat.className)}>
         <EmailProvider>{children}</EmailProvider>
         <Analytics />
         <SpeedInsights />

@@ -37,21 +37,21 @@ const port = 3001;
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
-// Redis client setup
-const redisClient = createClient({
-  url: process.env.REDIS || "",
-});
-redisClient.on("error", (err: any) => console.log("Redis Client Error", err));
+// // Redis client setup
+// const redisClient = createClient({
+//   url: process.env.REDIS || "",
+// });
+// redisClient.on("error", (err: any) => console.log("Redis Client Error", err));
 
-(async () => {
-  await redisClient.connect();
-  console.log("Connected to Redis");
-})();
+// (async () => {
+//   await redisClient.connect();
+//   console.log("Connected to Redis");
+// })();
 
-// Initialize Redis store
-const redisStore = new RedisStore({
-  client: redisClient,
-});
+// // Initialize Redis store
+// const redisStore = new RedisStore({
+//   client: redisClient,
+// });
 
 // Trust the first proxy
 app.set("trust proxy", 1);
@@ -76,11 +76,11 @@ passport.use(
       try {
         const user = await User.findOne({ email });
         if (!user) {
-          return done(null, false, { message: "Incorrect email." });
+          return done(null, false, { message: "Incorrect email" });
         }
         const match = await bcrypt.compare(password, user.password);
         if (!match) {
-          return done(null, false, { message: "Incorrect password." });
+          return done(null, false, { message: "Incorrect password" });
         }
         return done(null, user);
       } catch (err) {
@@ -113,7 +113,7 @@ declare module "express-session" {
 
 app.use(
   session({
-    store: redisStore,
+    // store: redisStore,
     secret: "secret",
     resave: false,
     saveUninitialized: false,

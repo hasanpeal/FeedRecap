@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
-import React, { useRef } from "react";
+import type React from "react";
+import { useRef } from "react";
 import emailjs from "@emailjs/browser";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function Footer() {
-  const form = useRef(null);
+  const form = useRef<HTMLFormElement>(null);
 
-  const sendEmail = (e: any) => {
+  const sendEmail = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (form.current) {
@@ -35,17 +36,21 @@ export default function Footer() {
   return (
     <div>
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-6">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p>
-            &copy; {new Date().getFullYear()} FeedRecap. All rights reserved
-          </p>
-          <nav className="space-x-4 mt-4">
+      <footer className="bg-black border-t border-gray-800 text-white py-8">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center">
+          <div className="mb-4 md:mb-0">
+            <p className="text-[#7FFFD4] font-semibold">
+              &copy; {new Date().getFullYear()} FeedRecap. All rights reserved
+            </p>
+          </div>
+          <nav className="space-x-6">
             <Link href="/aboutus">
-              <button className="text-white">About Us</button>
+              <button className="text-white hover:text-[#7FFFD4] transition-colors">
+                About Us
+              </button>
             </Link>
             <button
-              className="text-white"
+              className="text-white hover:text-[#7FFFD4] transition-colors"
               onClick={() => {
                 const modal = document.getElementById(
                   "contact_modal"
@@ -64,32 +69,52 @@ export default function Footer() {
       <Toaster />
 
       {/* Contact Modal */}
-      <dialog id="contact_modal" className="modal">
-        <div className="modal-box">
-          <form method="dialog">
-            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+      <dialog
+        id="contact_modal"
+        className="modal p-4 rounded-lg bg-[#111] border border-gray-800 text-white"
+      >
+        <div className="modal-box bg-[#111] p-6 w-full max-w-md mx-auto">
+          <form method="dialog" className="absolute right-2 top-2">
+            <button className="text-gray-400 hover:text-white transition-colors">
               ✕
             </button>
           </form>
-          <form ref={form} onSubmit={sendEmail}>
-            <label className="block text-left mb-2">Name</label>
-            <input
-              type="text"
-              name="user_name"
-              className="input input-bordered w-full mb-4"
-            />
-            <label className="block text-left mb-2">Email</label>
-            <input
-              type="email"
-              name="user_email"
-              className="input input-bordered w-full mb-4"
-            />
-            <label className="block text-left mb-2">Message</label>
-            <textarea
-              name="message"
-              className="textarea textarea-bordered w-full mb-4"
-            ></textarea>
-            <button className="btn btn-primary w-full" type="submit">
+          <h3 className="font-bold text-lg mb-4 text-[#7FFFD4]">Contact Us</h3>
+          <form ref={form} onSubmit={sendEmail} className="space-y-4">
+            <div>
+              <label className="block text-left mb-2 text-gray-300">Name</label>
+              <input
+                type="text"
+                name="user_name"
+                className="w-full px-3 py-2 bg-black border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] text-white"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-left mb-2 text-gray-300">
+                Email
+              </label>
+              <input
+                type="email"
+                name="user_email"
+                className="w-full px-3 py-2 bg-black border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] text-white"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-left mb-2 text-gray-300">
+                Message
+              </label>
+              <textarea
+                name="message"
+                className="w-full px-3 py-2 bg-black border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] text-white h-32"
+                required
+              ></textarea>
+            </div>
+            <button
+              className="w-full bg-[#7FFFD4] text-black font-semibold py-2 rounded-md hover:bg-[#00CED1] transition-colors"
+              type="submit"
+            >
               Submit
             </button>
           </form>

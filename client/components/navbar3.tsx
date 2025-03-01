@@ -1,11 +1,14 @@
 "use client";
+
 import Link from "next/link";
-import React, { useState, useRef, useEffect } from "react";
+import type React from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useEmail } from "@/context/UserContext";
 import axios from "axios";
 import emailjs from "@emailjs/browser";
 import { Toaster, toast } from "react-hot-toast";
+import { useNotification } from "@/utils/notifications"
 
 export default function Navbar2() {
   const router = useRouter();
@@ -13,9 +16,11 @@ export default function Navbar2() {
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>(emailContext || "");
-  const [menuOpen, setMenuOpen] = useState(false); // State for hamburger menu
+  const [menuOpen, setMenuOpen] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { notification, showNotification } = useNotification();
+
   useEffect(() => {
     if (emailContext) {
       fetchUserDetails();
@@ -26,7 +31,9 @@ export default function Navbar2() {
     try {
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_SERVER}/getUserDetails`,
-        { params: { email: emailContext } }
+        {
+          params: { email: emailContext },
+        }
       );
       if (response.data.code === 0) {
         setFirstName(response.data.firstName || "");
@@ -79,7 +86,6 @@ export default function Navbar2() {
         { withCredentials: true }
       );
       if (response.data.code === 0) {
-        toast.success("Logged out successfully.");
         localStorage.removeItem("cookieConsent");
         localStorage.removeItem("email");
         router.push("/");
@@ -142,17 +148,21 @@ export default function Navbar2() {
   }, [menuOpen]);
 
   return (
-    <header className="shadow-md bg-base-300 rounded-b-xl">
+    <header className="bg-black border-b border-gray-800">
       <Toaster />
-      <div className="py-4 px-6 flex justify-between items-center">
-        <Link className="text-xl font-bold text-gray-800" href="/">
-          FeedRecap
+      <div className="py-4 px-6 flex items-center justify-between max-w-7xl mx-auto">
+        <Link href="/" className="flex items-center">
+          <span className="text-3xl font-extrabold tracking-tight">
+            <span className="bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
+              Feed
+            </span>
+            <span className="text-[#7FFFD4]">Recap</span>
+          </span>
         </Link>
 
-        {/* Show Hamburger Button only if menu is closed */}
         {menuOpen || (
           <button
-            className="md:hidden text-gray-800"
+            className="md:hidden text-[#7FFFD4]"
             onClick={() => setMenuOpen(true)}
           >
             <svg
@@ -175,11 +185,11 @@ export default function Navbar2() {
         <nav
           ref={dropdownRef}
           className={`${
-            menuOpen ? "block bg-white" : "hidden"
+            menuOpen ? "block bg-black" : "hidden"
           } md:flex md:bg-transparent md:shadow-none flex-col md:flex-row items-center md:space-x-4 space-y-2 md:space-y-0 p-4 md:p-0 rounded md:rounded-none shadow md:shadow-none`}
         >
           <button
-            className="text-gray-800 font-semibold w-full md:w-auto text-left md:text-center"
+            className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
             onClick={() => {
               const modal = document.getElementById(
                 "report_modal"
@@ -192,7 +202,7 @@ export default function Navbar2() {
             Report a Problem
           </button>
           <button
-            className="text-gray-800 font-semibold w-full md:w-auto text-left md:text-center"
+            className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
             onClick={() => {
               const modal = document.getElementById(
                 "account_modal"
@@ -205,7 +215,7 @@ export default function Navbar2() {
             Account
           </button>
           <button
-            className="text-gray-800 font-semibold w-full md:w-auto text-left md:text-center"
+            className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
             onClick={handleLogout}
           >
             Logout
@@ -214,8 +224,13 @@ export default function Navbar2() {
       </div>
 
       {/* Account Modal */}
-      <dialog id="account_modal" className="bg-white p-6 rounded-lg max-w-lg">
-        <h2 className="text-xl font-bold mb-4">Update Account</h2>
+      <dialog
+        id="account_modal"
+        className="bg-[#111] p-6 rounded-lg max-w-lg text-white"
+      >
+        <h2 className="text-xl font-bold mb-4 text-[#7FFFD4]">
+          Update Account
+        </h2>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2">First Name</label>
@@ -223,7 +238,7 @@ export default function Navbar2() {
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
               placeholder="First Name"
             />
           </div>
@@ -233,7 +248,7 @@ export default function Navbar2() {
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
               placeholder="Last Name"
             />
           </div>
@@ -243,20 +258,20 @@ export default function Navbar2() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
               placeholder="Email"
             />
           </div>
         </div>
         <div className="mt-6 space-x-4">
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded"
+            className="bg-[#7FFFD4] text-black px-4 py-2 rounded hover:bg-[#00CED1] transition-colors"
             onClick={handleAccountUpdate}
           >
             Update Account
           </button>
           <button
-            className="bg-gray-400 text-white px-4 py-2 rounded"
+            className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
             onClick={() => {
               const modal = document.getElementById(
                 "account_modal"
@@ -272,11 +287,14 @@ export default function Navbar2() {
       </dialog>
 
       {/* Report Modal */}
-      <dialog id="report_modal" className="bg-white p-6 rounded-lg max-w-lg">
+      <dialog
+        id="report_modal"
+        className="bg-[#111] p-6 rounded-lg max-w-lg text-white"
+      >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Report a Problem</h2>
+          <h2 className="text-xl font-bold text-[#7FFFD4]">Report a Problem</h2>
           <button
-            className="text-gray-800 font-bold text-lg"
+            className="text-[#7FFFD4] font-bold text-lg hover:text-white transition-colors"
             onClick={() => {
               const modal = document.getElementById(
                 "report_modal"
@@ -297,7 +315,7 @@ export default function Navbar2() {
                 type="text"
                 name="user_name"
                 value={firstName + " " + lastName}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
                 placeholder="Your Name"
                 required
               />
@@ -307,8 +325,8 @@ export default function Navbar2() {
               <input
                 type="email"
                 name="user_email"
-                value = {email}
-                className="w-full p-2 border rounded"
+                value={email}
+                className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
                 placeholder="Your Email"
                 required
               />
@@ -317,7 +335,7 @@ export default function Navbar2() {
               <label className="block text-sm font-medium mb-2">Message</label>
               <textarea
                 name="message"
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
                 placeholder="Your Message"
                 required
               ></textarea>
@@ -326,7 +344,7 @@ export default function Navbar2() {
           <div className="mt-6">
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded w-full"
+              className="bg-[#7FFFD4] text-black px-4 py-2 rounded hover:bg-[#00CED1] transition-colors w-full"
             >
               Submit Report
             </button>

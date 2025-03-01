@@ -21,14 +21,27 @@ const UserSchema: Schema = new Schema({
   lastName: { type: String, required: false },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: false },
-  isNewUser: { type: Boolean, default: true },
-  time: { type: [String], default: [] },
+  isNewUser: { type: Boolean, default: false },
+  time: { type: [String], default: ["Morning", "Afternoon", "Night"] },
   newsletter: {
     type: String,
     default:
       "Thank you for signing up. Please wait for your first newsletter to generate",
   },
-  categories: { type: [String], default: [] },
+  categories: {
+    type: [String],
+    default: [
+      "Politics",
+      "Geopolitics",
+      "Finance",
+      "AI",
+      "Tech",
+      "Crypto",
+      "Meme",
+      "Sports",
+      "Entertainment",
+    ],
+  },
   timezone: { type: String, required: false },
   totalnewsletter: { type: Number, default: 0 },
   wise: {

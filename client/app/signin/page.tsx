@@ -1,18 +1,13 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, KeyboardEvent } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import { useRef, useState, type KeyboardEvent } from "react";
 import axios from "axios";
 import Link from "next/link";
-import Image from "next/image";
-import "@/app/signin/signin.css";
-import eye from "@/public/eye.svg";
-import { useEmail } from "@/context/UserContext"; 
+import { Eye, Mail, Lock } from "lucide-react";
+import { useEmail } from "@/context/UserContext";
 import Navbar2 from "@/components/navbar2";
-import Footer2 from "@/components/footer2";
-import CookieConsent from "@/components/cookies";
-
+import Footer from "@/components/footer";
 
 export default function Signin() {
   const [email, setEmail] = useState("");
@@ -49,29 +44,26 @@ export default function Signin() {
 
   const form = useRef<HTMLFormElement>(null);
   const { setEmailContext } = useEmail();
-  const router = useRouter(); 
+  const router = useRouter();
 
-    React.useEffect(() => {
-      const checkSession = async () => {
-        try {
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_SERVER}/check-session`,
-            { withCredentials: true }
-          );
-          if (response.data.isAuthenticated) {
-            // console.log("Authenticated:", response.data);
-            const { email } = response.data;
-            setEmailContext(email);
-            router.push("/dashboard");
-          } else {
-            // console.log("Not authenticated");
-          }
-        } catch (error) {
-          console.error(error);
+  React.useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_SERVER}/check-session`,
+          { withCredentials: true }
+        );
+        if (response.data.isAuthenticated) {
+          const { email } = response.data;
+          setEmailContext(email);
+          router.push("/dashboard");
         }
-      };
-      checkSession();
-    },[]);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    checkSession();
+  }, [router, setEmailContext]);
 
   React.useEffect(() => {
     const checkParams = async () => {
@@ -79,105 +71,98 @@ export default function Signin() {
       const code = params.get("code");
       const message = params.get("message");
       const capturedEmail = params.get("email");
-      // console.log("CAPTURED EMIL ID" + capturedEmail);
       if (code) {
-        if (parseInt(code) === 0) {
+        if (Number.parseInt(code) === 0) {
           setLoading2(true);
           setEmailContext(capturedEmail || "");
-         
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
-            {
-              params: { email: capturedEmail },
-            }
-          );
-
-          // console.log("CAPT" + response.data.code, response.data.isNewUser);
-
-          if (response.data.code == 0 && response.data.isNewUser)
-            router.push("/newuser");
-          else if (response.data.code == 0 && !response.data.isNewUser)
-            router.push("/dashboard");
+          router.push("/dashboard");
         } else {
-          toast.error(message || "Authentication failed", {
-            id: "success3",
-          });
+          setFormErrors((prev) => ({
+            ...prev,
+            password: message || "Authentication failed",
+          }));
+          setTimeout(
+            () => setFormErrors((prev) => ({ ...prev, password: "" })),
+            3000
+          );
         }
       }
     };
     checkParams();
   }, [router, setEmailContext]);
 
-   React.useEffect(() => {
-    const storage = async() => {
+  React.useEffect(() => {
+    const storage = async () => {
       const savedEmail = localStorage.getItem("email");
       if (savedEmail) {
         setEmailContext(savedEmail);
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
-          {
-            params: { email: savedEmail },
-          }
-        );
+        // const response = await axios.get(
+        //   `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
+        //   {
+        //     params: { email: savedEmail },
+        //   }
+        // );
 
-        if (response.data.code == 0 && response.data.isNewUser)
-          router.push("/newuser");
-        else if (response.data.code == 0 && !response.data.isNewUser)
-          router.push("/dashboard");
-        else toast.error("Server Error");
+        // if (response.data.code == 0 && response.data.isNewUser)
+        //   router.push("/newuser");
+        // else if (response.data.code == 0 && !response.data.isNewUser)
+        router.push("/dashboard");
+        // else setFormErrors((prev) => ({ ...prev, password: "Server Error" }));
       }
-    }
-     storage();
-   }, []);
+    };
+    storage();
+  }, [router, setEmailContext]);
 
   async function emailDoesntExist() {
-    // console.log("debug 2", email);
     try {
-      const result = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/validateEmail`, {
-        params: { email: email },
-      });
+      const result = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/validateEmail`,
+        {
+          params: { email: email },
+        }
+      );
       const code = result.data.code;
-      // console.log("Email exist code: ", code);
       return code !== 0;
     } catch (err) {
-      // console.log("Error in emailAlreadyExist function");
       return true;
-      // console.log("Error triggered");
     }
   }
 
   const handleLogin = async () => {
     if (await validateForm()) {
       try {
-        const result = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/login`, {
-          email,
-          password,
-        });
+        const result = await axios.post(
+          `${process.env.NEXT_PUBLIC_SERVER}/login`,
+          {
+            email,
+            password,
+          }
+        );
         const { code, message } = result.data;
         if (code === 0) {
-          toast.success(message, {id: "success5"});
           setLoad(true);
           setEmailContext(email);
-          // console.log(email);
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
-            {
-              params: { email: email },
-            }
-          );
-
-          if (response.data.code == 0 && response.data.isNewUser)
-            router.push("/newuser");
-          else if (response.data.code == 0 && !response.data.isNewUser)
-            router.push("/dashboard");
-          else toast.error("Server Error");
-          // console.log(response)
+          router.push("/dashboard");
         } else {
-          // console.log(result);
-          toast.error("Server Error");
+          setFormErrors((prev) => ({
+            ...prev,
+            password: message || "Invalid email or password",
+          }));
+          setTimeout(
+            () => setFormErrors((prev) => ({ ...prev, password: "" })),
+            3000
+          );
         }
       } catch (err) {
         console.error("Error in handleLogin function in Login.tsx");
+        setFormErrors((prev) => ({
+          ...prev,
+          password: "An error occurred. Please try again.",
+        }));
+        setTimeout(
+          () => setFormErrors((prev) => ({ ...prev, password: "" })),
+          3000
+        );
       }
     } else {
       setTimeout(() => {
@@ -198,10 +183,7 @@ export default function Signin() {
         }
       );
       setGeneratedOtp(result.data.otp);
-    } catch (error) {
-      // console.log("Error calling http://localhost:3000/sentOTP on login.tsx");
-    }
-    // console.log("OTP generated");
+    } catch (error) {}
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -231,9 +213,6 @@ export default function Signin() {
     } else if (await emailDoesntExist()) {
       errors.email = "Email isn't registered";
       isValid = false;
-      setTimeout(() => {
-        setFormErrors((prevErrors) => ({ ...prevErrors, email: "" }));
-      }, 3000);
     }
     if (!password) {
       errors.password = "Password is required";
@@ -245,8 +224,6 @@ export default function Signin() {
   };
 
   async function validateEmail() {
-    const exist = await emailDoesntExist();
-    // console.log("Debug 1", exist);
     const errors = {
       email: "",
     };
@@ -254,25 +231,15 @@ export default function Signin() {
     if (!email) {
       errors.email = "Email is required";
       isValid = false;
-      setTimeout(() => {
-        setFormErrors((prevErrors) => ({ ...prevErrors, email: "" }));
-      }, 3000);
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       errors.email = "Not a valid email";
       isValid = false;
-      setTimeout(() => {
-        setFormErrors((prevErrors) => ({ ...prevErrors, email: "" }));
-      }, 3000);
     } else {
       const exist = await emailDoesntExist();
-      // console.log("Debug 1", exist);
       if (exist) {
         errors.email = "Email isn't registered";
         isValid = false;
       }
-      setTimeout(() => {
-        setFormErrors((prevErrors) => ({ ...prevErrors, email: "" }));
-      }, 3000);
     }
     setEmailErrors(errors);
     return isValid;
@@ -289,9 +256,6 @@ export default function Signin() {
     if (!newPassword) {
       errors.nPass = "Password is required";
       isValid = false;
-      setTimeout(() => {
-        setFormErrors((prevErrors) => ({ ...prevErrors, nPass: "" }));
-      }, 5000);
     } else if (
       newPassword.length < 8 ||
       !/[a-zA-Z]/.test(newPassword) ||
@@ -300,17 +264,11 @@ export default function Signin() {
       errors.nPass =
         "Password must be at least 8 characters long and include a letter and a number";
       isValid = false;
-      setTimeout(() => {
-        setFormErrors((prevErrors) => ({ ...prevErrors, nPass: "" }));
-      }, 5000);
     }
 
     if (!confirmNewPassword) {
       errors.cnPass = "Password is required";
       isValid = false;
-      setTimeout(() => {
-        setFormErrors((prevErrors) => ({ ...prevErrors, cnPass: "" }));
-      }, 5000);
     } else if (
       confirmNewPassword.length < 8 ||
       !/[a-zA-Z]/.test(confirmNewPassword) ||
@@ -319,20 +277,11 @@ export default function Signin() {
       errors.cnPass =
         "Password must be at least 8 characters long and include a letter and a number";
       isValid = false;
-      setTimeout(() => {
-        setFormErrors((prevErrors) => ({ ...prevErrors, cnPass: "" }));
-      }, 5000);
     }
 
     if (newPassword !== confirmNewPassword) {
       errors.confirmPassword = "Password doesn't match";
       isValid = false;
-      setTimeout(() => {
-        setFormErrors((prevErrors) => ({
-          ...prevErrors,
-          confirmPassword: "",
-        }));
-      }, 5000);
     }
     setNewPasswordError(errors);
     return isValid;
@@ -368,7 +317,6 @@ export default function Signin() {
           setVerified(false);
         }, 3000);
       }
-      // console.log("OTP entered:", otp.join(""));
     }
   };
 
@@ -377,12 +325,6 @@ export default function Signin() {
   };
 
   async function handleSend() {
-    // console.log("Handle send function triggered");
-    // console.log(formErrors);
-
-    // console.log("Handle send function triggered");
-    const isEmailValid = await validateEmail();
-    // console.log("Debug 2", isEmailValid);
     if (await validateEmail()) {
       generateOtp();
       setShowOtp(true);
@@ -398,20 +340,32 @@ export default function Signin() {
   async function resetPassword() {
     if (validateNewPassword()) {
       try {
-        const result = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/resetPassword`, {
-          email: email,
-          newPassword: confirmNewPassword,
-        });
+        const result = await axios.post(
+          `${process.env.NEXT_PUBLIC_SERVER}/resetPassword`,
+          {
+            email: email,
+            newPassword: confirmNewPassword,
+          }
+        );
         if (result.data.code === 0) {
-          // console.log("Success resetting password");
-          toast.success("Password reset successful");
+          setFormErrors((prev) => ({
+            ...prev,
+            password: "Password reset successful",
+          }));
           setLoad2(true);
           setTimeout(() => {
             window.location.reload();
           }, 1000);
-        } else toast.error("Error resetting password");
+        } else
+          setFormErrors((prev) => ({
+            ...prev,
+            password: "Error resetting password",
+          }));
       } catch (err) {
-        // console.log("Error resetting password in Login.tsx");
+        setFormErrors((prev) => ({
+          ...prev,
+          password: "Error resetting password",
+        }));
       }
     } else {
       setTimeout(() => {
@@ -423,336 +377,308 @@ export default function Signin() {
       }, 3000);
     }
   }
+
   async function googleOauth() {
     window.location.href = `${process.env.NEXT_PUBLIC_SERVER}/auth/google/signin`;
   }
 
   return (
-    <div className="bg-gradient-to-r from-blue-900 via-blue-700 to-black mainStart">
+    <div className="min-h-screen bg-black">
       <Navbar2 />
-      <div className="mainContainer pb-40 mt-28 ">
-        <div className="card bg-base-100 w-96 shadow-xl cardDiv">
-          <Toaster />
-          <article className="text-center text-xl text-bold mt-4">
-            {" "}
-            Login
-          </article>
-          <div>
-            {forget && !passFlag && (
-              <label className="input input-bordered flex items-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                  className="h-4 w-4 opacity-70"
-                >
-                  <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z" />
-                  <path d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z" />
-                </svg>
-                <input
-                  type="email"
-                  className={`grow ${formErrors.email ? "border-red-500" : ""}`}
-                  placeholder="Email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </label>
-            )}
-            {formErrors.email && !passFlag && forget && !showOtp && (
-              <p className="alertText text-red-500">{formErrors.email}</p>
-            )}
-          </div>
+      <div className="container mx-auto px-4 py-32">
+        <div className="max-w-md mx-auto">
+          <div className="bg-[#111] rounded-xl border border-gray-800 p-8 shadow-xl">
+            <h1 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
+              Sign In
+            </h1>
 
-          <div>
             {forget && !passFlag && (
-              <label className="input input-bordered flex items-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                  className="h-4 w-4 opacity-70"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  className={`grow ${
-                    formErrors.password ? "border-red-500" : ""
-                  }`}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="email"
+                      className={`w-full bg-black border ${
+                        formErrors.email ? "border-red-500" : "border-gray-700"
+                      } rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] transition-colors`}
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                    />
+                  </div>
+                  {formErrors.email && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {formErrors.email}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className={`w-full bg-black border ${
+                        formErrors.password
+                          ? "border-red-500"
+                          : "border-gray-700"
+                      } rounded-lg pl-10 pr-10 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] transition-colors`}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    </button>
+                  </div>
+                  {formErrors.password && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {formErrors.password}
+                    </p>
+                  )}
+                </div>
+
                 <button
-                  className="btn btn-ghost showBtn"
-                  onClick={() => setShowPassword(!showPassword)}
+                  className="w-full bg-gradient-to-r from-[#7FFFD4] to-[#00CED1] text-black font-medium py-2 rounded-lg hover:opacity-90 transition-opacity"
+                  onClick={handleLogin}
                 >
-                  <Image
-                    src={eye}
-                    alt="eye-twotone"
-                    className="showIcon"
-                    width={10}
-                    height={10}
-                  />
+                  {load ? (
+                    <span className="loading loading-dots loading-md"></span>
+                  ) : (
+                    "Sign In"
+                  )}
                 </button>
-              </label>
-            )}
-            {formErrors.password && !passFlag && (
-              <p className="alertText text-red-500">{formErrors.password}</p>
-            )}
-          </div>
 
-          {forget && !passFlag && (
-            <a
-              className="link link-primary forgetLink"
-              onClick={handleForgetPass}
-            >
-              Forget Password
-            </a>
-          )}
-
-          {forget && !passFlag && (
-            <button className="btn btn-primary btnSubmit" onClick={handleLogin}>
-              Login
-            </button>
-          )}
-          {forget && !passFlag && (
-            <button
-              className="btn btn-outline btn-primary whiteText"
-              onClick={googleOauth}
-            >
-              {loading2 ? (
-                <span className="loading loading-dots loading-md"></span>
-              ) : (
-                <>
-                  Continue with{" "}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    viewBox="0 0 128 128"
-                  >
-                    <path
-                      fill="#fff"
-                      d="M44.59 4.21a63.28 63.28 0 004.33 120.9 67.6 67.6 0 0032.36.35 57.13 57.13 0 0025.9-13.46 57.44 57.44 0 0016-26.26 74.33 74.33 0 001.61-33.58H65.27v24.69h34.47a29.72 29.72 0 01-12.66 19.52 36.16 36.16 0 01-13.93 5.5 41.29 41.29 0 01-15.1 0A37.16 37.16 0 0144 95.74a39.3 39.3 0 01-14.5-19.42 38.31 38.31 0 010-24.63 39.25 39.25 0 019.18-14.91A37.17 37.17 0 0176.13 27a34.28 34.28 0 0113.64 8q5.83-5.8 11.64-11.63c2-2.09 4.18-4.08 6.15-6.22A61.22 61.22 0 0087.2 4.59a64 64 0 00-42.61-.38z"
-                    />
-                    <path
-                      fill="#e33629"
-                      d="M44.59 4.21a64 64 0 0142.61.37 61.22 61.22 0 0120.35 12.62c-2 2.14-4.11 4.14-6.15 6.22Q95.58 29.23 89.77 35a34.28 34.28 0 00-13.64-8 37.17 37.17 0 00-37.46 9.74 39.25 39.25 0 00-9.18 14.91L8.76 35.6A63.53 63.53 0 0144.59 4.21z"
-                    />
-                    <path
-                      fill="#f8bd00"
-                      d="M3.26 51.5a62.93 62.93 0 015.5-15.9l20.73 16.09a38.31 38.31 0 000 24.63q-10.36 8-20.73 16.08a63.33 63.33 0 01-5.5-40.9z"
-                    />
-                    <path
-                      fill="#587dbd"
-                      d="M65.27 52.15h59.52a74.33 74.33 0 01-1.61 33.58 57.44 57.44 0 01-16 26.26c-6.69-5.22-13.41-10.4-20.1-15.62a29.72 29.72 0 0012.66-19.54H65.27c-.01-8.22 0-16.45 0-24.68z"
-                    />
-                    <path
-                      fill="#319f43"
-                      d="M8.75 92.4q10.37-8 20.73-16.08A39.3 39.3 0 0044 95.74a37.16 37.16 0 0014.08 6.08 41.29 41.29 0 0015.1 0 36.16 36.16 0 0013.93-5.5c6.69 5.22 13.41 10.4 20.1 15.62a57.13 57.13 0 01-25.9 13.47 67.6 67.6 0 01-32.36-.35 63 63 0 01-23-11.59A63.73 63.73 0 018.75 92.4z"
-                    />
-                  </svg>
-                </>
-              )}
-            </button>
-          )}
-
-          {!forget && (
-            <label className="input input-bordered flex items-center gap-2 resetEmail">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="h-4 w-4 opacity-70"
-              >
-                <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z" />
-                <path d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z" />
-              </svg>
-              <input
-                type="email"
-                className={`grow ${emailErrors.email ? "border-red-500" : ""}`}
-                placeholder="Email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-              <button
-                className="btn btn-active btn-primary otpBtn"
-                onClick={handleSend}
-              >
-                Send
-              </button>
-            </label>
-          )}
-          {emailErrors.email && !forget && (
-            <p className="custoText text-red-500">{emailErrors.email}</p>
-          )}
-
-          {!forget && showOtp && (
-            <div id="otpSection">
-              <p>Please enter the 6-digit OTP sent to your email</p>
-              <div className="otpBox">
-                {otp.map((digit, index) => (
-                  <input
-                    key={index}
-                    type="text"
-                    value={digit}
-                    className={`otpInput w-12 h-12 ${
-                      otpError && !digit ? "border-red-500" : ""
-                    }`}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    ref={(el) => {
-                      otpRefs.current[index] = el;
-                    }}
-                  />
-                ))}
-              </div>
-
-              {verified && (
-                <p className="alertText text-red-500 customAlertLogin">
-                  {" "}
-                  Wrong OTP
-                </p>
-              )}
-
-              {!forget && (
-                <div className="verifyBtn">
+                <div className="text-center mt-4">
                   <button
-                    className="btn btn-active btn-primary"
-                    onClick={handleOtpVerify}
+                    className="text-[#7FFFD4] hover:text-[#00CED1] transition-colors text-sm"
+                    onClick={handleForgetPass}
                   >
-                    Verify
+                    Forgot Password?
                   </button>
                 </div>
-              )}
-            </div>
-          )}
 
-          {passFlag && (
-            <div className="resetDiv">
-              <label className="input input-bordered flex items-center gap-2 resetBox">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                  className="h-4 w-4 opacity-70"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <input
-                  type={showPassword2 ? "text" : "password"}
-                  className={`grow ${
-                    formErrors.password ? "border-red-500" : ""
-                  }`}
-                  placeholder="New Password"
-                  value={newPassword}
-                  onChange={(event) => setNewPassword(event.target.value)}
-                />
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-700"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-[#111] text-gray-400">OR</span>
+                  </div>
+                </div>
+
                 <button
-                  className="btn btn-ghost showBtn"
-                  onClick={() => setShowPassword2(!showPassword2)}
+                  className="w-full bg-white text-black font-medium py-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                  onClick={googleOauth}
                 >
-                  <Image
-                    src={eye}
-                    alt="eye-twotone"
-                    className="showIcon"
-                    width={10}
-                    height={10}
-                  />
+                  {loading2 ? (
+                    <span className="loading loading-dots loading-md"></span>
+                  ) : (
+                    <>
+                      <svg className="h-5 w-5" viewBox="0 0 24 24">
+                        <path
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          fill="#4285F4"
+                        />
+                        <path
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          fill="#34A853"
+                        />
+                        <path
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                          fill="#FBBC05"
+                        />
+                        <path
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                          fill="#EA4335"
+                        />
+                      </svg>
+                      Sign in with Google
+                    </>
+                  )}
                 </button>
-              </label>
+              </div>
+            )}
 
-              {newPasswordError.nPass && (
-                <p className="newPassText text-red-500">
-                  {newPasswordError.nPass}
-                </p>
-              )}
-
-              <label className="input input-bordered flex items-center gap-2 resetBox">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                  className="h-4 w-4 opacity-70"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
-                    clipRule="evenodd"
+            {!forget && (
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="email"
+                    className={`w-full bg-black border ${
+                      emailErrors.email ? "border-red-500" : "border-gray-700"
+                    } rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] transition-colors`}
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
                   />
-                </svg>
-                <input
-                  type={showPassword3 ? "text" : "password"}
-                  className={`grow ${
-                    formErrors.password ? "border-red-500" : ""
-                  }`}
-                  placeholder="Confirm New Password"
-                  value={confirmNewPassword}
-                  onChange={(event) =>
-                    setConfirmNewPassword(event.target.value)
-                  }
-                />
+                  <button
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#7FFFD4] text-black px-3 py-1 rounded-md text-sm font-medium"
+                    onClick={handleSend}
+                  >
+                    Send
+                  </button>
+                </div>
+                {emailErrors.email && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {emailErrors.email}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {!forget && showOtp && (
+              <div className="mt-6 space-y-4">
+                <p className="text-sm text-gray-300">
+                  Please enter the 6-digit OTP sent to your email
+                </p>
+                <div className="flex justify-between">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      type="text"
+                      value={digit}
+                      className={`w-10 h-10 text-center text-white bg-black border ${
+                        otpError && !digit
+                          ? "border-red-500"
+                          : "border-gray-700"
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] transition-colors`}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      ref={(el) => {
+                        otpRefs.current[index] = el;
+                      }}
+                    />
+                  ))}
+                </div>
+                {verified && <p className="text-sm text-red-500">Wrong OTP</p>}
                 <button
-                  className="btn btn-ghost showBtn"
-                  onClick={() => setShowPassword3(!showPassword3)}
+                  className="w-full bg-gradient-to-r from-[#7FFFD4] to-[#00CED1] text-black font-medium py-2 rounded-lg hover:opacity-90 transition-opacity"
+                  onClick={handleOtpVerify}
                 >
-                  <Image
-                    src={eye}
-                    alt="eye-twotone"
-                    className="showIcon"
-                    width={10}
-                    height={10}
-                  />
+                  Verify
                 </button>
-              </label>
+              </div>
+            )}
 
-              {newPasswordError.cnPass && (
-                <p className="newPassText text-red-500">
-                  {newPasswordError.cnPass}
-                </p>
-              )}
+            {passFlag && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type={showPassword2 ? "text" : "password"}
+                      className={`w-full bg-black border ${
+                        newPasswordError.nPass
+                          ? "border-red-500"
+                          : "border-gray-700"
+                      } rounded-lg pl-10 pr-10 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] transition-colors`}
+                      placeholder="Enter new password"
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword2(!showPassword2)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    </button>
+                  </div>
+                  {newPasswordError.nPass && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {newPasswordError.nPass}
+                    </p>
+                  )}
+                </div>
 
-              {newPasswordError.confirmPassword && (
-                <p className="newPassText text-red-500">
-                  {newPasswordError.confirmPassword}
-                </p>
-              )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type={showPassword3 ? "text" : "password"}
+                      className={`w-full bg-black border ${
+                        newPasswordError.cnPass
+                          ? "border-red-500"
+                          : "border-gray-700"
+                      } rounded-lg pl-10 pr-10 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] transition-colors`}
+                      placeholder="Confirm new password"
+                      value={confirmNewPassword}
+                      onChange={(event) =>
+                        setConfirmNewPassword(event.target.value)
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword3(!showPassword3)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    </button>
+                  </div>
+                  {newPasswordError.cnPass && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {newPasswordError.cnPass}
+                    </p>
+                  )}
+                </div>
 
-              <button
-                className="btn btn-outline btn-primary resetBtn"
-                onClick={resetPassword}
+                {newPasswordError.confirmPassword && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {newPasswordError.confirmPassword}
+                  </p>
+                )}
+
+                <button
+                  className="w-full bg-gradient-to-r from-[#7FFFD4] to-[#00CED1] text-black font-medium py-2 rounded-lg hover:opacity-90 transition-opacity"
+                  onClick={resetPassword}
+                >
+                  Set Password
+                </button>
+              </div>
+            )}
+
+            <div className="text-center text-sm text-gray-400 mt-6">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/signup"
+                className="text-[#7FFFD4] hover:text-[#00CED1] transition-colors"
               >
-                Set Password
-              </button>
+                Sign up
+              </Link>
             </div>
-          )}
 
-          <p>
-            {" "}
-            Dont have an account?{" "}
-            <Link href="/signup" className="links">
-              Sign up
-            </Link>
-          </p>
-          {load && (
-            <span className="loading loading-spinner text-primary Load1"></span>
-          )}
-
-          {load2 && (
-            <span className="loading loading-spinner text-primary Load1"></span>
-          )}
+            {load && (
+              <span className="loading loading-spinner text-primary"></span>
+            )}
+            {load2 && (
+              <span className="loading loading-spinner text-primary"></span>
+            )}
+          </div>
         </div>
       </div>
-      <Footer2 />
-      {/* <CookieConsent /> */}
+      {/* <Footer /> */}
     </div>
   );
 }

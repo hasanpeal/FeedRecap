@@ -1,54 +1,57 @@
-"use client";
-import React, { useState, useEffect, useCallback, ChangeEvent } from "react";
-import Navbar3 from "@/components/navbar3";
-import Footer2 from "@/components/footer2";
-import axios from "axios";
-import { useEmail } from "@/context/UserContext";
-import { Toaster, toast } from "react-hot-toast";
-import Image from "next/image";
-import { FaHeart } from "react-icons/fa";
-import "@/app/dashboard/dashboard.css";
-import _ from "lodash";
-import { LinkPreview } from "@dhaiwat10/react-link-preview";
+"use client"
+import { useState, useEffect, useCallback, type ChangeEvent } from "react"
+import axios from "axios"
+import { useEmail } from "@/context/UserContext"
+import Image from "next/image"
+import _ from "lodash"
+import Navbar3 from "@/components/navbar3"
+import Footer from "@/components/footer"
 
 interface Post {
-  username: string;
-  time: string;
-  likes: number;
-  category: string;
-  text: string;
-  tweet_id: string;
-  thumbnailUrl?: string;
+  username: string
+  time: string
+  likes: number
+  category: string
+  text: string
+  tweet_id: string
+  thumbnailUrl?: string
+  avatar?: string
+  isExpanded?: boolean
+}
+
+interface UserProfile {
+  username: string
+  avatar: string
 }
 
 export default function Dashboard() {
-  const { emailContext, setEmailContext } = useEmail();
-  const [categories, setCategories] = useState<string[]>([]);
-  const [time, setTime] = useState<string[]>([]);
-  const [timezone, setTimezone] = useState<string | null>(null);
-  const [dbTimezone, setDbTimezone] = useState<string | null>(null);
-  const [totalNewsletters, setTotalNewsletters] = useState(0);
-  const [latestNewsletter, setLatestNewsletter] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [PageLoading, setPageLoading] = useState(true);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [selectedTab, setSelectedTab] = useState("newsfeed");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [visiblePosts, setVisiblePosts] = useState(10);
-  const [showAllPosts, setShowAllPosts] = useState(false);
-  const [profiles, setProfiles] = useState<string[]>([]);
-  const [newProfile, setNewProfile] = useState("");
-  const [feedType, setFeedType] = useState<"categorywise" | "customProfiles">(
-    "categorywise"
-  );
-  const [wise, setWise] = useState(""); // To handle feed type selection
-  const [registeredWise, setRegisteredWise] = useState(""); // Registered feed type from backend
+  const { emailContext, setEmailContext } = useEmail()
+  const [categories, setCategories] = useState<string[]>([])
+  const [time, setTime] = useState<string[]>([])
+  const [timezone, setTimezone] = useState<string | null>(null)
+  const [dbTimezone, setDbTimezone] = useState<string | null>(null)
+  const [latestNewsletter, setLatestNewsletter] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
+  const [posts, setPosts] = useState<Post[]>([])
+  const [selectedTab, setSelectedTab] = useState("newsfeed")
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null)
+  const [visiblePosts, setVisiblePosts] = useState(10)
+  const [showAllPosts, setShowAllPosts] = useState(false)
+  const [profiles, setProfiles] = useState<UserProfile[]>([])
+  const [newProfile, setNewProfile] = useState("")
+  const [wise, setWise] = useState<"categorywise" | "customProfiles">("categorywise")
+  const [registeredWise, setRegisteredWise] = useState("")
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [showDropdown, setShowDropdown] = useState<boolean>(false)
+  const [loadingSuggestions, setLoadingSuggestions] = useState<boolean>(false)
+  const [cache, setCache] = useState<{ [key: string]: string[] }>({})
+  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null)
+  const [expandedPosts, setExpandedPosts] = useState<{ [key: string]: boolean }>({})
+  const [loadingProfiles, setLoadingProfiles] = useState<boolean>(true)
+  const [loadingPosts, setLoadingPosts] = useState<boolean>(true)
 
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [loadingSuggestions, setLoadingSuggestions] = useState<boolean>(false);
-  const [cache, setCache] = useState<{ [key: string]: string[] }>({});
-  // const [postsLoading, setPostsLoading] = useState(false);
   const availableCategories = [
     "Politics",
     "Geopolitics",
@@ -59,176 +62,92 @@ export default function Dashboard() {
     "Meme",
     "Sports",
     "Entertainment",
-  ];
-  const availableTimes = ["Morning", "Afternoon", "Night"];
+  ]
+  const availableTimes = ["Morning", "Afternoon", "Night"]
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem("email");
+    const savedEmail = localStorage.getItem("email")
     if (savedEmail) {
-      setEmailContext(savedEmail);
+      setEmailContext(savedEmail)
     }
-  }, []);
+  }, [setEmailContext])
 
   useEffect(() => {
     if (emailContext) {
-      localStorage.setItem("email", emailContext);
-      fetchData();
-      fetchPosts();
+      localStorage.setItem("email", emailContext)
+      fetchData()
+      fetchPosts()
     } else {
-      localStorage.removeItem("email");
+      localStorage.removeItem("email")
     }
-  }, [emailContext]);
+  }, [emailContext])
 
   useEffect(() => {
-    const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    setTimezone(detectedTimezone);
-  }, []);
+    const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    setTimezone(detectedTimezone)
+  }, [])
 
-  // useEffect(() => {
-  //   const fetchRegisteredWise = async () => {
-  //     try {
-  //       const response = await axios.get(
-  //         `${process.env.NEXT_PUBLIC_SERVER}/getWise`,
-  //         { params: { email: emailContext } }
-  //       );
-  //       setRegisteredWise(response.data.wise); // Set the saved feed type
-  //       setWise(response.data.wise); // Default wise to registeredWise
-  //     } catch (err) {
-  //       console.error("Error fetching registered wise:", err);
-  //       toast.error("Error loading feed type settings.");
-  //     }
-  //   };
+  useEffect(() => {
+    if (wise && registeredWise) {
+      fetchPosts()
+    }
+  }, [wise, registeredWise])
 
-  //   if (emailContext) {
-  //     fetchRegisteredWise();
-  //   }
-  // }, [emailContext]);
+  const getInitials = (username: string) => {
+    return username
+      .split(/[._-]/)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+  }
 
-  // useEffect(() => {
-  //   console.log("Updated wise:", wise); // Log after wise updates
-  // }, [wise]);
+   const playSound = () => {
+     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  // const fetchData = async () => {
-  //   try {
-  //     // Debugging variables
-  //     let categoriesRes,
-  //       timesRes,
-  //       timezoneRes,
-  //       totalNewslettersRes,
-  //       newsletterRes,
-  //       profilesRes,
-  //       wiseRes;
+     // Create Oscillator
+     const oscillator = audioCtx.createOscillator();
+     oscillator.type = "sine"; // Smooth & natural tone
+     oscillator.frequency.setValueAtTime(180, audioCtx.currentTime); // Low & soft tick
 
-  //     try {
-  //       categoriesRes = await axios.get(
-  //         `${process.env.NEXT_PUBLIC_SERVER}/getCategories`,
-  //         {
-  //           params: { email: emailContext },
-  //         }
-  //       );
-  //       setCategories(categoriesRes.data.categories);
-  //     } catch (err) {
-  //       console.error("Error fetching categories:", err);
-  //       throw new Error("Error fetching categories");
-  //     }
+     // Create Gain Node for volume control
+     const gainNode = audioCtx.createGain();
+     gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime); // Soft volume
+     gainNode.gain.exponentialRampToValueAtTime(
+       0.01,
+       audioCtx.currentTime + 0.08
+     ); // Quick decay
 
-  //     try {
-  //       timesRes = await axios.get(
-  //         `${process.env.NEXT_PUBLIC_SERVER}/getTimes`,
-  //         {
-  //           params: { email: emailContext },
-  //         }
-  //       );
-  //       setTime(timesRes.data.time);
-  //     } catch (err) {
-  //       console.error("Error fetching times:", err);
-  //       throw new Error("Error fetching times");
-  //     }
+     // Connect nodes
+     oscillator.connect(gainNode);
+     gainNode.connect(audioCtx.destination);
 
-  //     try {
-  //       timezoneRes = await axios.get(
-  //         `${process.env.NEXT_PUBLIC_SERVER}/getTimezone`,
-  //         {
-  //           params: { email: emailContext },
-  //         }
-  //       );
-  //       setDbTimezone(timezoneRes.data.timezone);
-  //     } catch (err) {
-  //       console.error("Error fetching timezone:", err);
-  //       throw new Error("Error fetching timezone");
-  //     }
+     // Start and stop the oscillator quickly for a haptic "tick"
+     oscillator.start(audioCtx.currentTime);
+     oscillator.stop(audioCtx.currentTime + 0.08); // 80ms short sound
+   };
 
-  //     try {
-  //       totalNewslettersRes = await axios.get(
-  //         `${process.env.NEXT_PUBLIC_SERVER}/getTotalNewsletters`,
-  //         {
-  //           params: { email: emailContext },
-  //         }
-  //       );
-  //       setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
-  //       console.log(totalNewsletters);
-  //     } catch (err) {
-  //       console.error("Error fetching total newsletters:", err);
-  //       throw new Error("Error fetching total newsletters");
-  //     }
-
-  //     try {
-  //       newsletterRes = await axios.get(
-  //         `${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`,
-  //         {
-  //           params: { email: emailContext },
-  //         }
-  //       );
-  //       setLatestNewsletter(newsletterRes.data.newsletter);
-  //       console.log(latestNewsletter);
-  //     } catch (err) {
-  //       console.error("Error fetching newsletter:", err);
-  //       throw new Error("Error fetching newsletter");
-  //     }
-
-  //     try {
-  //       profilesRes = await axios.get(
-  //         `${process.env.NEXT_PUBLIC_SERVER}/getProfiles`,
-  //         {
-  //           params: { email: emailContext },
-  //         }
-  //       );
-  //       setProfiles(profilesRes.data.profiles);
-  //     } catch (err) {
-  //       console.error("Error fetching profiles:", err);
-  //       throw new Error("Error fetching profiles");
-  //     }
-
-  //     try {
-  //       wiseRes = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
-  //         params: { email: emailContext },
-  //       });
-  //       setWise(wiseRes.data.wise);
-  //       console.log("Second wise", wiseRes.data)
-  //     } catch (err) {
-  //       console.error("Error fetching wise setting:", err);
-  //       throw new Error("Error fetching wise setting");
-  //     }
-
-  //     console.log("fetchData completed successfully");
-  //   } catch (err) {
-  //     // Global error handling
-  //     console.error("fetchData failed:", err);
-  //     toast.error("Error fetching user data.");
-  //   }
-  // };
+  const fetchUserProfile = async (username: string): Promise<UserProfile> => {
+    try {
+      const response = await axios.get("https://twitter-api45.p.rapidapi.com/screenname.php", {
+        params: { screenname: username },
+        headers: {
+          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
+          "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+        },
+      })
+      return { username, avatar: response.data.avatar }
+    } catch (error) {
+      console.error(`Error fetching profile for ${username}:`, error)
+      return { username, avatar: "/placeholder.svg" }
+    }
+  }
 
   const fetchData = async () => {
+    setPageLoading(true)
+    setLoadingProfiles(true)
     try {
-      const [
-        categoriesRes,
-        timesRes,
-        timezoneRes,
-        totalNewslettersRes,
-        newsletterRes,
-        profilesRes,
-        wiseRes,
-      ] = await Promise.all([
+      const [categoriesRes, timesRes, timezoneRes, newsletterRes, profilesRes, wiseRes] = await Promise.all([
         axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getCategories`, {
           params: { email: emailContext },
         }),
@@ -236,9 +155,6 @@ export default function Dashboard() {
           params: { email: emailContext },
         }),
         axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimezone`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTotalNewsletters`, {
           params: { email: emailContext },
         }),
         axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`, {
@@ -250,724 +166,812 @@ export default function Dashboard() {
         axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
           params: { email: emailContext },
         }),
-      ]);
+      ])
 
-      // Update states
-      setCategories(categoriesRes.data.categories);
-      setTime(timesRes.data.time);
-      setDbTimezone(timezoneRes.data.timezone);
-      setTotalNewsletters(totalNewslettersRes.data.totalnewsletter);
-      setLatestNewsletter(newsletterRes.data.newsletter);
-      setProfiles(profilesRes.data.profiles);
+      setCategories(categoriesRes.data.categories)
+      setTime(timesRes.data.time)
+      setDbTimezone(timezoneRes.data.timezone)
+      setLatestNewsletter(newsletterRes.data.newsletter)
 
-      // Update wise and registeredWise, then fetchPosts
-      setWise(wiseRes.data.wise);
-      setRegisteredWise(wiseRes.data.wise);
+      const fetchedProfiles = await Promise.all(profilesRes.data.profiles.map(fetchUserProfile))
+      setProfiles(fetchedProfiles)
 
-      // console.log("All data fetched and states updated.");
+      setWise(wiseRes.data.wise)
+      setRegisteredWise(wiseRes.data.wise)
     } catch (err) {
-      console.error("Error fetching initial data:", err);
-      toast.error("Error loading initial data.");
+      console.error("Error fetching initial data:", err)
+      showNotification("Error loading initial data.", "error")
+    } finally {
+      setLoadingProfiles(false)
     }
-  };
-
-  // Use a separate useEffect to handle fetchPosts after `wise` is updated
-  useEffect(() => {
-    if (wise && registeredWise) {
-      // console.log("wise and registeredWise are ready, calling fetchPosts...");
-      fetchPosts();
-    }
-    if (posts) {
-      setTimeout(()=>{
-        setPageLoading(false);
-      }, 1000)
-    }
-  }, [wise, registeredWise]);
-
-  useEffect(() => {
-    if (emailContext) {
-      fetchData();
-    }
-  }, [emailContext]);
+  }
 
   const fetchPosts = async () => {
-    // console.log("DATAS inside fetchPosts:", wise, registeredWise);
+    setLoadingPosts(true)
     try {
       const response =
         wise === "categorywise"
           ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
               params: { email: emailContext },
             })
-          : await axios.get(
-              `${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`,
-              {
-                params: { email: emailContext },
-              }
-            );
+          : await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`, {
+              params: { email: emailContext },
+            })
 
       if (response.data.code === 0) {
         const sortedPosts = response.data.data.sort(
-          (a: Post, b: Post) =>
-            new Date(b.time).getTime() - new Date(a.time).getTime()
-        ); // Sort posts by time
-        setPosts(sortedPosts);
+          (a: Post, b: Post) => new Date(b.time).getTime() - new Date(a.time).getTime(),
+        )
 
-        // console.log("Fetched posts:", sortedPosts);
+        const uniqueUsernames = Array.from(new Set(sortedPosts.map((post) => post.username)))
+        const avatarPromises = uniqueUsernames.map(async (username) => {
+          try {
+            const avatarResponse = await axios.get("https://twitter-api45.p.rapidapi.com/screenname.php", {
+              params: { screenname: username },
+              headers: {
+                "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
+                "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+              },
+            })
+            return { username, avatar: avatarResponse.data.avatar }
+          } catch (error) {
+            console.error(`Error fetching avatar for ${username}:`, error)
+            return { username, avatar: "/placeholder.svg" }
+          }
+        })
+
+        const avatars = await Promise.all(avatarPromises)
+        const avatarMap = Object.fromEntries(avatars.map(({ username, avatar }) => [username, avatar]))
+
+        const postsWithAvatars = sortedPosts.map((post) => ({
+          ...post,
+          avatar: avatarMap[post.username],
+        }))
+
+        setPosts(postsWithAvatars)
       } else {
-        toast.error("Error loading posts.");
+        showNotification("Error loading posts.", "error")
       }
     } catch (error) {
-      console.error("Error fetching posts:", error);
-      toast.error("Error fetching posts.");
+      console.error("Error fetching posts:", error)
+      showNotification("Error fetching posts.", "error")
+    } finally {
+      setLoadingPosts(false)
+      setPageLoading(false)
     }
-  };
+  }
 
-  const sortPostsByCategoryLikes = (posts: Post[]): Post[] => {
-    // Define the type for category groups
-    const categoryGroups: { [key: string]: Post[] } = {};
-
-    // Group posts by category
-    posts.forEach((post) => {
-      if (!categoryGroups[post.category]) {
-        categoryGroups[post.category] = [];
-      }
-      categoryGroups[post.category].push(post);
-    });
-
-    // Sort each category's posts by likes in descending order
-    Object.keys(categoryGroups).forEach((category) => {
-      categoryGroups[category].sort((a, b) => b.likes - a.likes);
-    });
-
-    // Pick top posts from each category in a round-robin fashion
-    const sortedPosts: Post[] = [];
-    const maxPostsPerCategory = Math.max(
-      ...Object.values(categoryGroups).map((group) => group.length)
-    );
-
-    for (let i = 0; i < maxPostsPerCategory; i++) {
-      for (const category in categoryGroups) {
-        if (categoryGroups[category][i]) {
-          sortedPosts.push(categoryGroups[category][i]);
-        }
-      }
+  const handleAddProfile = async (suggestion: string) => {
+    if (profiles.some((profile) => profile.username === suggestion)) {
+      showNotification("Profile already added.", "error")
+      return
     }
 
-    return sortedPosts;
-  };
-
-  // const fetchPosts = async () => {
-  //   try {
-  //     const response =
-  //       wise === "categorywise"
-  //         ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
-  //             params: { email: emailContext },
-  //           })
-  //         : await axios.get(
-  //             `${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`,
-  //             {
-  //               params: { email: emailContext },
-  //             }
-  //           );
-
-  //     if (response.data.code === 0) {
-  //       const sortedPosts = response.data.data.sort(
-  //         (a: Post, b: Post) =>
-  //           new Date(b.time).getTime() - new Date(a.time).getTime()
-  //       ); // Sort custom profile posts latest to oldest
-  //       setPosts(sortedPosts);
-  //       console.log("Posts are", posts)
-  //     } else {
-  //       toast.error("Error loading posts.");
-  //     }
-  //   } catch (error) {
-  //     toast.error("Error fetching posts.");
-  //   }
-  // };
-
-  const handleAddProfile = (suggestion: string) => {
-    if (profiles.includes(suggestion)) {
-      toast.error("Profile already added.");
-      return;
-    }
-
-    // if (profiles.length >= 10) {
-    //   toast.error("You can only add up to 10 profiles.");
-    //   return;
-    // }
-
-    // Add the suggestion to the profiles
-    setProfiles((prev) => [...prev, suggestion]);
-    setNewProfile(""); // Clear the input field
-    setShowDropdown(false); // Hide suggestions dropdown
-  };
+    const newProfile = await fetchUserProfile(suggestion)
+    setProfiles((prev) => [...prev, newProfile])
+    setNewProfile("")
+    setShowDropdown(false)
+  }
 
   const fetchSuggestions = async (keyword: string): Promise<string[]> => {
     try {
-      const response = await axios.get(
-        "https://twitter-api45.p.rapidapi.com/search.php",
-        {
-          params: { query: keyword, search_type: "People" },
-          headers: {
-            "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
-            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-          },
-        }
-      );
+      const response = await axios.get("https://twitter-api45.p.rapidapi.com/search.php", {
+        params: { query: keyword, search_type: "People" },
+        headers: {
+          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
+          "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+        },
+      })
 
       if (response.data && response.data.timeline) {
-        const results = response.data.timeline
+        return response.data.timeline
           .filter((item: any) => item.screen_name)
           .slice(0, 6)
-          .map((item: any) => item.screen_name);
-        // console.log("Suggestions fetched:", results); // Debug
-        return results;
+          .map((item: any) => item.screen_name)
       } else {
-        console.warn("No suggestions found for keyword:", keyword); // Debug
-        return [];
+        console.warn("No suggestions found for keyword:", keyword)
+        return []
       }
     } catch (err) {
-      console.error("Error fetching suggestions:", err);
-      return [];
+      console.error("Error fetching suggestions:", err)
+      return []
     }
-  };
+  }
 
   const debouncedSearch = useCallback(
     _.debounce(async (keyword: string) => {
       try {
-        // Check if results are cached
         if (cache[keyword]) {
-          setSuggestions(cache[keyword]);
+          setSuggestions(cache[keyword])
         } else {
-          const fetchedSuggestions = await fetchSuggestions(keyword);
-          setSuggestions(fetchedSuggestions);
-          setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
+          const fetchedSuggestions = await fetchSuggestions(keyword)
+          setSuggestions(fetchedSuggestions)
+          setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }))
         }
       } catch (error) {
-        console.error("Error fetching suggestions:", error);
-        setSuggestions([]); // Clear suggestions on error
+        console.error("Error fetching suggestions:", error)
+        setSuggestions([])
       } finally {
-        // Always hide the spinner after suggestions are ready
-        setLoadingSuggestions(false);
+        setLoadingSuggestions(false)
       }
 
-      setShowDropdown(true); // Ensure dropdown stays open
-    }, 100),
-    [cache]
-  );
+      setShowDropdown(true)
+    }, 300),
+    [],
+  )
 
   const handleSearchInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.target.value;
-    setNewProfile(input);
+    const input = event.target.value
+    setNewProfile(input)
 
-    setLoadingSuggestions(true);
+    setLoadingSuggestions(true)
     if (input.trim().length > 0) {
-      debouncedSearch(input);
+      debouncedSearch(input)
     } else {
-      setSuggestions([]);
-      setShowDropdown(false);
-      setLoadingSuggestions(false); // Hide the loading spinner if the input is empty
+      setSuggestions([])
+      setShowDropdown(false)
+      setLoadingSuggestions(false)
     }
-  };
+  }
 
   const handleProfileUpdate = async () => {
-    setLoading(true);
+    // setLoading(true)
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`,
-        {
-          email: emailContext,
-          profiles,
-        }
-      );
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`, {
+        email: emailContext,
+        profiles: profiles.map((p) => p.username),
+      })
+      console.log("code in handleprofileupdate", response.data.code);
       if (response.data.code === 0) {
-        toast.success("Profiles updated successfully!");
-        fetchData(); // Re-fetch data to update state
+        // setLoading(false);
+        showNotification("Profiles updated successfully!", "success")
+        // fetchData()
       } else {
-        toast.error("Error updating profiles.");
+        showNotification("Error updating profiles.", "error")
       }
     } catch (err) {
-      toast.error("Error updating profiles.");
-    } finally {
-      setLoading(false);
+      showNotification("Error updating profiles.", "error")
     }
-  };
+  }
 
   const handleCategoryUpdate = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/updateCategories`,
-        {
-          email: emailContext,
-          categories,
-        }
-      );
-      setLoading(false);
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateCategories`, {
+        email: emailContext,
+        categories,
+      })
+      setLoading(false)
       if (response.data.code === 0) {
-        toast.success("Categories Updated");
-        await fetchData(); // Fetch updated data after category update
-        await fetchPosts(); // Fetch updated posts after category update
-      } else toast.error("Server Error");
+        showNotification("Categories Updated", "success")
+        // await fetchData()
+        // await fetchPosts()
+      } else showNotification("Server Error", "error")
     } catch (err) {
-      toast.error("Server Error");
+      showNotification("Server Error", "error")
     }
-  };
+  }
 
   const handleTimeUpdate = async () => {
-    setLoading(true);
+    playSound();
+    setLoading(true)
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/updateTimes`,
-        { email: emailContext, time }
-      );
-      setLoading(false);
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateTimes`, { email: emailContext, time })
+      setLoading(false)
       if (response.data.code === 0) {
-        toast.success("Times Updated");
-        await fetchData(); // Fetch updated data after category update
-        await fetchPosts(); // Fetch updated posts after category update
-      } else toast.error("Server Error");
+        showNotification("Times Updated", "success")
+        // await fetchData()
+        // await fetchPosts()
+      } else showNotification("Server Error", "error")
     } catch (err) {
-      toast.error("Server Error");
+      showNotification("Server Error", "error")
     }
-  };
+  }
 
-  // Function to toggle showing more or fewer posts
   const toggleShowMore = () => {
     if (showAllPosts) {
-      setVisiblePosts(10);
+      setVisiblePosts(10)
     } else {
-      setVisiblePosts(posts.length);
+      setVisiblePosts(posts.length)
     }
-    setShowAllPosts(!showAllPosts);
-  };
+    setShowAllPosts(!showAllPosts)
+  }
 
-  // Filtered posts based on category
-  const filteredPosts = selectedCategory
-    ? posts.filter((post) => post.category === selectedCategory)
-    : posts;
+  const filteredPosts = posts.filter(
+    (post) =>
+      (selectedCategory ? post.category === selectedCategory : true) &&
+      (selectedProfile ? post.username === selectedProfile : true),
+  )
 
   const handleTimezoneUpdate = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/updateTimezone`,
-        { email: emailContext, timezone }
-      );
-      setLoading(false);
-      if (response.data.code === 0) toast.success("Timezone Updated");
-      else toast.error("Server Error");
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateTimezone`, {
+        email: emailContext,
+        timezone,
+      })
+      setLoading(false)
+      if (response.data.code === 0) showNotification("Timezone Updated", "success")
+      else showNotification("Server Error", "error")
     } catch (err) {
-      toast.error("Server Error");
+      showNotification("Server Error", "error")
     }
-  };
+  }
 
   const SpinnerWithMessage = ({ message }: { message: string }) => {
     return (
-      <div className="spinner-container bg-[conic-gradient(at_bottom_right,_var(--tw-gradient-stops))] from-[#1d4ed8] via-[#1e40af] to-[#111827]">
-        <div className="spinner"></div>
-        <p className="spinner-message">
-          {message} <br />
-        </p>
+      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="bg-[#111] p-6 rounded-lg shadow-xl text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#7FFFD4] mx-auto mb-4"></div>
+          <p className="text-[#7FFFD4]">{message}</p>
+        </div>
       </div>
-    );
-  };
+    )
+  }
 
   const handleFeedTypeUpdate = async () => {
     if (wise === "customProfiles" && profiles.length < 3) {
-      toast.error(
-        "Please add at least 3 followed profiles to switch to Custom Profiles."
-      );
-      return;
+      showNotification("Please add at least 3 followed profiles to switch to Custom Profiles.", "error")
+      return
     }
 
     if (wise === "categorywise" && categories.length === 0) {
-      toast.error(
-        "Please select at least 1 category to switch to Category-wise feed."
-      );
-      return;
+      showNotification("Please select at least 1 category to switch to Category-wise feed.", "error")
+      return
     }
 
-    setPageLoading(true); // Show spinner immediately
-
+    setPageLoading(true)
+    setSelectedTab("newsfeed");
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/updateFeedType`,
-        {
-          email: emailContext,
-          wise, // Current feed type state
-          categories: wise === "categorywise" ? categories : [], // Pass categories only if switching to categorywise
-          profiles: wise === "customProfiles" ? profiles : [], // Pass profiles only if switching to customProfiles
-        }
-      );
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateFeedType`, {
+        email: emailContext,
+        wise,
+        categories: wise === "categorywise" ? categories : [],
+        profiles: wise === "customProfiles" ? profiles.map((p) => p.username) : [],
+      })
 
       if (response.data.code === 0) {
-        setRegisteredWise(wise);
-        // Start fetching posts immediately
-        fetchPosts();
+        setRegisteredWise(wise)
+        await fetchPosts()
 
-        // Wait for 30 seconds, then navigate to Newsfeed
         setTimeout(() => {
           setPageLoading(false);
-          setSelectedTab("newsfeed"); // Redirect to Newsfeed tab
-          toast.success("Dashboard updated with new feed type!");
-        }, 30000);
+          showNotification("Dashboard updated with new feed type!", "success")
+        }, 5000)
       } else {
-        toast.error("Error updating feed type.");
+        showNotification("Error updating feed type.", "error")
       }
     } catch (err) {
-      console.error("Error updating feed type:", err);
-      toast.error("Error updating feed type.");
+      console.error("Error updating feed type:", err)
+      showNotification("Error updating feed type.", "error")
     } finally {
-      setLoading(false); // Hide spinner after 30 seconds
+      setLoading(false)
     }
-  };
-
-  const fetchThumbnail = async (url: string) => {
-    try {
-      const response = await axios.get(
-        `https://api.linkpreview.net/?key=YOUR_API_KEY&q=${url}`
-      );
-      return response.data.image;
-    } catch {
-      return undefined;
-    }
-  };
+  }
 
   function formatTime(date: string | number | Date): string {
     const options: Intl.DateTimeFormatOptions = {
       hour: "numeric",
       minute: "numeric",
       hour12: true,
-    };
-    return new Date(date).toLocaleTimeString("en-US", options);
+    }
+    return new Date(date).toLocaleTimeString("en-US", options)
   }
-
 
   function timeAgo(date: string | number | Date) {
-    const seconds = Math.floor(
-      (new Date().getTime() - new Date(date).getTime()) / 1000
-    );
-    let interval = Math.floor(seconds / 31536000);
+    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000)
+    let interval = Math.floor(seconds / 31536000)
 
-    if (interval >= 1)
-      return interval + " year" + (interval > 1 ? "s" : "") + " ago";
-    if ((interval = Math.floor(seconds / 2592000)) >= 1)
-      return interval + " month" + (interval > 1 ? "s" : "") + " ago";
-    if ((interval = Math.floor(seconds / 86400)) >= 1)
-      return interval + " day" + (interval > 1 ? "s" : "") + " ago";
-    if ((interval = Math.floor(seconds / 3600)) >= 1)
-      return interval + " hour" + (interval > 1 ? "s" : "") + " ago";
-    if ((interval = Math.floor(seconds / 60)) >= 1)
-      return interval + " minute" + (interval > 1 ? "s" : "") + " ago";
-    return Math.floor(seconds) + " seconds ago";
+    if (interval >= 1) return interval + " year" + (interval > 1 ? "s" : "") + " ago"
+    if ((interval = Math.floor(seconds / 2592000)) >= 1) return interval + " month" + (interval > 1 ? "s" : "") + " ago"
+    if ((interval = Math.floor(seconds / 86400)) >= 1) return interval + " day" + (interval > 1 ? "s" : "") + " ago"
+    if ((interval = Math.floor(seconds / 3600)) >= 1) return interval + " hour" + (interval > 1 ? "s" : "") + " ago"
+    if ((interval = Math.floor(seconds / 60)) >= 1) return interval + " minute" + (interval > 1 ? "s" : "") + " ago"
+    return Math.floor(seconds) + " seconds ago"
   }
 
-  const extractLink = (text: string) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const match = text.match(urlRegex);
-    return match ? match[0] : null;
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ message, type })
+    setTimeout(() => setNotification(null), 3000)
+  }
+
+  const togglePostExpansion = (tweetId: string) => {
+    setExpandedPosts((prev) => ({
+      ...prev,
+      [tweetId]: !prev[tweetId],
+    }))
+  }
+
+  const renderPostText = (text: string, tweetId: string) => {
+    const shouldTruncate = text.length > 250
+    const isExpanded = expandedPosts[tweetId]
+
+    if (!shouldTruncate) {
+      return <p className="mb-4">{text}</p>
+    }
+
+    return (
+      <div>
+        <p className="mb-2">{isExpanded ? text : `${text.slice(0, 250)}...`}</p>
+        <button onClick={() => togglePostExpansion(tweetId)} className="text-sm text-[#7FFFD4] hover:underline">
+          {isExpanded ? "Show Less" : "Show More"}
+        </button>
+      </div>
+    )
+  }
+
+  const renderAvatar = (username: string, avatar: string) => {
+    if (avatar && avatar !== "/placeholder.svg") {
+      return (
+        <Image
+          src={avatar || "/placeholder.svg"}
+          alt={username}
+          width={24}
+          height={24}
+          className="rounded-full"
+          onError={(e) => {
+            e.currentTarget.style.display = "none"
+            e.currentTarget.nextElementSibling?.classList.remove("hidden")
+          }}
+        />
+      )
+    }
+
+    const initials = getInitials(username)
+    return (
+      <div className="w-10 h-10 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold">
+        {initials}
+      </div>
+    )
+  }
+
+  const renderAvatar2 = (username: string, avatar: string) => {
+    if (avatar && avatar !== "/placeholder.svg") {
+      return (
+        <Image
+          src={avatar || "/placeholder.svg"}
+          alt={username}
+          width={40}
+          height={40}
+          className="rounded-full"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+            e.currentTarget.nextElementSibling?.classList.remove("hidden");
+          }}
+        />
+      );
+    }
+
+    const initials = getInitials(username);
+    return (
+      <div className="w-10 h-10 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold">
+        {initials}
+      </div>
+    );
   };
 
   return (
-    <div className="bg-[conic-gradient(at_bottom_right,_var(--tw-gradient-stops))] from-[#1d4ed8] via-[#1e40af] to-[#111827] mainCont">
+    <div className="min-h-screen bg-black text-white">
       <Navbar3 />
-      {PageLoading ? (
-        <SpinnerWithMessage message="Dashboard loading..." />
+      {pageLoading || loadingProfiles || loadingPosts ? (
+        <SpinnerWithMessage message="Loading dashboard..." />
       ) : (
-        <div>
-          <div className="container mx-auto  py-12 ">
-            <Toaster />
-            {selectedTab === "newsfeed" && (
-              <div className="newsfeed-content">
-                    <div className="post-grid">
-                      {filteredPosts.slice(0, visiblePosts).map((post) => (
-                        <div key={post.tweet_id} className="post-card">
-                          <div className="post-header">
-                            <h3>@{post.username}</h3>
-                            <span>{formatTime(post.time)}</span>
-                          </div>
-                          {wise === "categorywise" && (
-                            <h3 className="categoryTextP">
-                              <span className="categoryTextC">Category: </span>
-                              {post.category}
-                            </h3>
-                          )}
-                          <p>{post.text}</p>
-                          <a
-                            href={`https://twitter.com/i/web/status/${post.tweet_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="view-post"
-                          >
-                            View Post
-                          </a>
-                        </div>
-                      ))}
-                    </div>
+        <div className="container mx-auto px-4 py-12">
+          {notification && (
+            <div
+              className={`fixed top-4 right-4 p-4 rounded-lg ${
+                notification.type === "success"
+                  ? "bg-[#7FFFD4] text-black"
+                  : "bg-red-500 text-white"
+              }`}
+            >
+              {notification.message}
+            </div>
+          )}
 
-                    {posts.length > 10 && (
-                      <button
-                        className="category1-button show-more-button"
-                        onClick={toggleShowMore}
-                      >
-                        {showAllPosts ? "Show Less" : "Show More"}
-                      </button>
-                    )}
-              </div>
-            )}
+          {/* Navigation */}
+          <nav className="mb-8 flex items-center justify-between border-b border-gray-800 pb-4">
+            <div className="flex gap-8">
+              <button
+                onClick={() => setSelectedTab("newsfeed")}
+                className={`text-lg transition-colors ${
+                  selectedTab === "newsfeed"
+                    ? "text-[#7FFFD4]"
+                    : "text-gray-400 hover:text-[#7FFFD4]"
+                }`}
+              >
+                Newsfeed
+              </button>
+              <button
+                onClick={() => setSelectedTab("newsletter")}
+                className={`text-lg transition-colors ${
+                  selectedTab === "newsletter"
+                    ? "text-[#7FFFD4]"
+                    : "text-gray-400 hover:text-[#7FFFD4]"
+                }`}
+              >
+                Newsletter
+              </button>
+              <button
+                onClick={() => setSelectedTab("settings")}
+                className={`text-lg transition-colors ${
+                  selectedTab === "settings"
+                    ? "text-[#7FFFD4]"
+                    : "text-gray-400 hover:text-[#7FFFD4]"
+                }`}
+              >
+                Settings
+              </button>
+            </div>
+          </nav>
 
-            {selectedTab === "newsletter" && (
-              <div className="dashboard-card">
-                <div className="stats-box">
-                  <div className="stat-card">
-                    <h3 className="stat-title">Total Newsletters Received</h3>
-                    <p className="stat-value">{totalNewsletters}</p>
-                  </div>
-                  <div className="stat-card">
-                    <h3 className="stat-title">Latest Newsletter</h3>
-                    <div
-                      className="stat-text newsletext"
-                      dangerouslySetInnerHTML={{
-                        __html:
-                          latestNewsletter ||
-                          "<p>No newsletters available.</p>",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {selectedTab === "settings" && (
-              <div className="dashboard-card">
-                {/* Feed Type Selection */}
-                <section>
-                  <h2 className="section-title">Feed Type</h2>
-                  <div className="categories-box">
+          {selectedTab === "newsfeed" && (
+            <div className="newsfeed-content">
+              <div className="mb-6 flex flex-wrap gap-2">
+                {wise === "categorywise" && (
+                  <>
                     <button
-                      className={`category-button ${
-                        wise === "categorywise" ? "active" : ""
+                      onClick={() => setSelectedCategory(null)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        !selectedCategory
+                          ? "bg-[#7FFFD4] text-black"
+                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
                       }`}
-                      onClick={() => setWise("categorywise")}
                     >
-                      Category-wise
+                      All Categories
                     </button>
-                    <button
-                      className={`category-button ${
-                        wise === "customProfiles" ? "active" : ""
-                      }`}
-                      onClick={() => setWise("customProfiles")}
-                    >
-                      Custom Profiles
-                    </button>
-                  </div>
-                  <div className="feed-type-button-container">
-                    <button
-                      className="feed-type-button"
-                      onClick={handleFeedTypeUpdate}
-                      disabled={loading}
-                    >
-                      {loading ? "Updating..." : "Update Feed Type"}
-                    </button>
-                  </div>
-                </section>
-
-                {/* Update Categories Section */}
-                <section
-                  className={`mt-8 ${
-                    wise === "customProfiles" ? "blurred-section" : ""
-                  }`}
-                >
-                  <h2 className="section-title">Update Categories</h2>
-                  {wise === "customProfiles" && (
-                    <p className="blurred-message">
-                      Switch to <strong>Category-wise feed</strong> to update
-                      categories.
-                    </p>
-                  )}
-                  <div className="categories-box">
-                    {wise === "categorywise" &&
-                      availableCategories.map((category) => (
-                        <button
-                          key={category}
-                          className={`category-button ${
-                            categories.includes(category) ? "active" : ""
-                          }`}
-                          onClick={() =>
-                            setCategories((prev) =>
-                              prev.includes(category)
-                                ? prev.filter((c) => c !== category)
-                                : [...prev, category]
-                            )
-                          }
-                          disabled={loading}
-                        >
-                          {category}
-                        </button>
-                      ))}
-                  </div>
-                  {/* Show Update Categories Button Only When Registered as Categorywise */}
-                  {wise === "categorywise" &&
-                    registeredWise === "categorywise" && (
+                    {categories.map((category) => (
                       <button
-                        className="action-button"
-                        onClick={handleCategoryUpdate}
-                        disabled={loading}
-                      >
-                        {loading ? "Updating..." : "Update Categories"}
-                      </button>
-                    )}
-                </section>
-
-                {/* Manage Followed Profiles Section */}
-                <section
-                  className={`mt-8 ${
-                    wise === "categorywise" ? "blurred-section" : ""
-                  }`}
-                >
-                  <h2 className="section-title">Manage Followed Profiles</h2>
-                  {wise === "categorywise" && (
-                    <p className="blurred-message">
-                      Switch to <strong>Custom Profiles</strong> to manage
-                      followed profiles.
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    {wise === "customProfiles" &&
-                      profiles.map((profile) => (
-                        <div key={profile} className="profileTag">
-                          @{profile}
-                          <button
-                            className="removeProfileButton"
-                            onClick={() =>
-                              setProfiles((prev) =>
-                                prev.filter((p) => p !== profile)
-                              )
-                            }
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                  {wise === "customProfiles" && (
-                    <div className="input-container flex items-center gap-2 mt-4">
-                      <input
-                        type="text"
-                        value={newProfile}
-                        onChange={handleSearchInputChange}
-                        placeholder="@username"
-                        className="profileInput"
-                        disabled={loading}
-                      />
-                      {showDropdown && (
-                        <ul className="suggestions-dropdown">
-                          {loadingSuggestions ? (
-                            <li className="loading">Loading...</li>
-                          ) : suggestions.length > 0 ? (
-                            suggestions.map((suggestion, index) => (
-                              <li
-                                key={index}
-                                className="suggestion-item"
-                                onClick={() => handleAddProfile(suggestion)}
-                              >
-                                @{suggestion}
-                              </li>
-                            ))
-                          ) : (
-                            <li className="no-suggestions">No result found</li>
-                          )}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                  {/* Show Update Profiles Button Only When Registered as CustomProfiles */}
-                  {wise === "customProfiles" &&
-                    registeredWise === "customProfiles" && (
-                      <button
-                        className="action-button mt-4"
-                        onClick={handleProfileUpdate}
-                        disabled={loading}
-                      >
-                        {loading ? "Updating..." : "Update Profiles"}
-                      </button>
-                    )}
-                </section>
-
-                {/* Update Time Section */}
-                <section className="mt-8">
-                  <h2 className="section-title">Update Preferred Time</h2>
-                  <div className="categories-box">
-                    {availableTimes.map((timeOption) => (
-                      <button
-                        key={timeOption}
-                        className={`category-button ${
-                          time.includes(timeOption) ? "active" : ""
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                          selectedCategory === category
+                            ? "bg-[#7FFFD4] text-black"
+                            : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
                         }`}
-                        onClick={() =>
-                          setTime((prev) =>
-                            prev.includes(timeOption)
-                              ? prev.filter((t) => t !== timeOption)
-                              : [...prev, timeOption]
-                          )
-                        }
-                        disabled={loading}
                       >
-                        {timeOption}
+                        {category}
                       </button>
                     ))}
-                  </div>
-                  <button
-                    className="action-button"
-                    onClick={handleTimeUpdate}
-                    disabled={loading}
-                  >
-                    {loading ? "Updating..." : "Update Time"}
-                  </button>
-                </section>
-
-                {/* Update Timezone Section */}
-                <section className="mt-8">
-                  <h2 className="section-title">Timezone</h2>
-                  <p>Current Detected Timezone: {timezone}</p>
-                  <p>Registered Timezone: {dbTimezone}</p>
-                  {timezone !== dbTimezone && (
+                  </>
+                )}
+                {wise === "customProfiles" && (
+                  <>
                     <button
-                      className="action-button bg-red-500 text-white mt-4"
-                      onClick={handleTimezoneUpdate}
+                      onClick={() => setSelectedProfile(null)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        !selectedProfile
+                          ? "bg-[#7FFFD4] text-black"
+                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                      }`}
+                    >
+                      All Profiles
+                    </button>
+                    {profiles.map((profile) => (
+                      <button
+                        key={profile.username}
+                        onClick={() => setSelectedProfile(profile.username)}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors flex items-center ${
+                          selectedProfile === profile.username
+                            ? "bg-[#7FFFD4] text-black"
+                            : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                        }`}
+                      >
+                        {renderAvatar(profile.username, profile.avatar)}
+                        <span className="ml-2">@{profile.username}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+              <div className="post-grid grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredPosts.slice(0, visiblePosts).map((post) => (
+                  <div
+                    key={post.tweet_id}
+                    className="post-card overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30"
+                  >
+                    <div className="post-header mb-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {renderAvatar2(post.username, post.avatar || "")}
+                        <div>
+                          <h3 className="font-medium">@{post.username}</h3>
+                          <span className="text-sm text-gray-400">
+                            {formatTime(post.time)}
+                          </span>
+                        </div>
+                      </div>
+                      {wise === "categorywise" && (
+                        <span className="rounded-full bg-[#7FFFD4]/10 px-3 py-1 text-sm text-[#7FFFD4]">
+                          {post.category}
+                        </span>
+                      )}
+                    </div>
+                    {renderPostText(post.text, post.tweet_id)}
+                    <a
+                      href={`https://twitter.com/i/web/status/${post.tweet_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-[#7FFFD4] hover:underline"
+                    >
+                      View Post
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                    </a>
+                  </div>
+                ))}
+              </div>
+
+              {posts.length > 10 && (
+                <div className="mt-8 flex justify-center">
+                  <button
+                    className="rounded-full bg-[#7FFFD4] px-6 py-2 text-black transition-opacity hover:opacity-90"
+                    onClick={toggleShowMore}
+                  >
+                    {showAllPosts ? "Show Less" : "Show More"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedTab === "newsletter" && (
+            
+              <div className="space-y-4 rounded-xl border border-gray-800 bg-black p-6">
+                <h3 className="text-xl font-semibold text-[#7FFFD4]">
+                  Latest Newsletter
+                </h3>
+                <div
+                  className="prose prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      latestNewsletter || "<p>No newsletters available.</p>",
+                  }}
+                />
+              </div>
+            
+          )}
+
+          {selectedTab === "settings" && (
+            <div className="settings-content space-y-8 rounded-xl border border-gray-800 bg-[#111] p-6">
+              {/* Feed Type Selection */}
+              <section className="space-y-4">
+                <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                  Feed Type
+                </h2>
+                <div className="flex gap-4">
+                  <button
+                    className={`rounded-full px-6 py-2 transition-colors ${
+                      wise === "categorywise"
+                        ? "bg-[#7FFFD4] text-black"
+                        : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                    }`}
+                    onClick={() => setWise("categorywise")}
+                  >
+                    Category-wise
+                  </button>
+                  <button
+                    className={`rounded-full px-6 py-2 transition-colors ${
+                      wise === "customProfiles"
+                        ? "bg-[#7FFFD4] text-black"
+                        : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                    }`}
+                    onClick={() => setWise("customProfiles")}
+                  >
+                    Custom Profiles
+                  </button>
+                </div>
+                <button
+                  className="mt-4 rounded-full bg-black px-28 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                  onClick={handleFeedTypeUpdate}
+                  disabled={loading}
+                >
+                  {loading ? "Updating..." : "Update Feed Type"}
+                </button>
+              </section>
+
+              {/* Update Categories Section */}
+              <section
+                className={`space-y-4 ${
+                  wise === "customProfiles" ? "opacity-50" : ""
+                }`}
+              >
+                <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                  Update Categories
+                </h2>
+                {wise === "customProfiles" && (
+                  <p className="text-gray-400">
+                    Switch to <strong>Category-wise feed</strong> to update
+                    categories.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {availableCategories.map((category) => (
+                    <button
+                      key={category}
+                      className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                        categories.includes(category)
+                          ? "bg-[#7FFFD4] text-black"
+                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                      }`}
+                      onClick={() =>
+                        setCategories((prev) =>
+                          prev.includes(category)
+                            ? prev.filter((c) => c !== category)
+                            : [...prev, category]
+                        )
+                      }
+                      disabled={loading || wise === "customProfiles"}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+                {wise === "categorywise" &&
+                  registeredWise === "categorywise" && (
+                    <button
+                      className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                      onClick={handleCategoryUpdate}
                       disabled={loading}
                     >
-                      {loading ? "Updating..." : "Update Timezone"}
+                      {loading ? "Updating..." : "Update Categories"}
                     </button>
                   )}
-                </section>
-              </div>
-            )}
-          </div>
+              </section>
 
-          <div className="tab-navigation">
-            <button
-              onClick={() => setSelectedTab("newsfeed")}
-              className={selectedTab === "newsfeed" ? "active-tab" : ""}
-            >
-              Newsfeed
-            </button>
-            <button
-              onClick={() => setSelectedTab("newsletter")}
-              className={selectedTab === "newsletter" ? "active-tab" : ""}
-            >
-              Newsletter
-            </button>
-            <button
-              onClick={() => setSelectedTab("settings")}
-              className={selectedTab === "settings" ? "active-tab" : ""}
-            >
-              Settings
-            </button>
-          </div>
+              {/* Manage Followed Profiles Section */}
+              <section
+                className={`space-y-4 ${
+                  wise === "categorywise" ? "opacity-50" : ""
+                }`}
+              >
+                <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                  Manage Followed Profiles
+                </h2>
+                {wise === "categorywise" && (
+                  <p className="text-gray-400">
+                    Switch to <strong>Custom Profiles</strong> to manage
+                    followed profiles.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {profiles.map((profile) => (
+                    <div
+                      key={profile.username}
+                      className="flex items-center gap-2 rounded-full border border-[#7FFFD4] px-4 py-2 text-sm"
+                    >
+                      {renderAvatar(profile.username, profile.avatar)}
+                      <span>@{profile.username}</span>
+                      <button
+                        className="text-gray-400 hover:text-white"
+                        onClick={() =>
+                          setProfiles((prev) =>
+                            prev.filter((p) => p.username !== profile.username)
+                          )
+                        }
+                        disabled={loading || wise === "categorywise"}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {wise === "customProfiles" && (
+                  <div className="relative mt-4">
+                    <input
+                      type="text"
+                      value={newProfile}
+                      onChange={handleSearchInputChange}
+                      placeholder="@username"
+                      className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
+                      disabled={loading}
+                    />
+                    {showDropdown && (
+                      <ul className="absolute left-0 right-0 top-full mt-2 rounded-lg border border-gray-800 bg-black">
+                        {loadingSuggestions ? (
+                          <li className="p-2 text-gray-400">Loading...</li>
+                        ) : suggestions.length > 0 ? (
+                          suggestions.map((suggestion, index) => (
+                            <li
+                              key={index}
+                              className="cursor-pointer p-2 hover:bg-[#7FFFD4]/10"
+                              onClick={() => handleAddProfile(suggestion)}
+                            >
+                              @{suggestion}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="p-2 text-gray-400">No result found</li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                )}
+                {wise === "customProfiles" &&
+                  registeredWise === "customProfiles" && (
+                    <button
+                      className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                      onClick={handleProfileUpdate}
+                      disabled={loading}
+                    >
+                      {loading ? "Updating..." : "Update Profiles"}
+                    </button>
+                  )}
+              </section>
+
+              {/* Update Time Section */}
+              <section className="space-y-4">
+                <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                  Update Preferred Time
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {availableTimes.map((timeOption) => (
+                    <button
+                      key={timeOption}
+                      className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                        time.includes(timeOption)
+                          ? "bg-[#7FFFD4] text-black"
+                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                      }`}
+                      onClick={() =>
+                        setTime((prev) =>
+                          prev.includes(timeOption)
+                            ? prev.filter((t) => t !== timeOption)
+                            : [...prev, timeOption]
+                        )
+                      }
+                      disabled={loading}
+                    >
+                      {timeOption}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                  onClick={handleTimeUpdate}
+                  disabled={loading}
+                >
+                  {loading ? "Updating..." : "Update Time"}
+                </button>
+              </section>
+
+              {/* Update Timezone Section */}
+              <section className="space-y-4">
+                <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                  Timezone
+                </h2>
+                <p className="text-gray-400">
+                  Current Detected Timezone: {timezone}
+                </p>
+                <p className="text-gray-400">
+                  Registered Timezone: {dbTimezone}
+                </p>
+                {timezone !== dbTimezone && (
+                  <button
+                    className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                    onClick={handleTimezoneUpdate}
+                    disabled={loading}
+                  >
+                    {loading ? "Updating..." : "Update Timezone"}
+                  </button>
+                )}
+              </section>
+            </div>
+          )}
         </div>
       )}
+      {/* <Footer /> */}
     </div>
   );
 }
+
