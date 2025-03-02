@@ -1,56 +1,62 @@
-"use client"
-import { useState, useEffect, useCallback, type ChangeEvent } from "react"
-import axios from "axios"
-import { useEmail } from "@/context/UserContext"
-import Image from "next/image"
-import _ from "lodash"
-import Navbar3 from "@/components/navbar3"
-import Footer from "@/components/footer"
+"use client";
+import { useState, useEffect, useCallback, type ChangeEvent } from "react";
+import axios from "axios";
+import { useEmail } from "@/context/UserContext";
+import Image from "next/image";
+import _ from "lodash";
+import Navbar3 from "@/components/navbar3";
 
 interface Post {
-  username: string
-  time: string
-  likes: number
-  category: string
-  text: string
-  tweet_id: string
-  thumbnailUrl?: string
-  avatar?: string
-  isExpanded?: boolean
+  username: string;
+  time: string;
+  likes: number;
+  category: string;
+  text: string;
+  tweet_id: string;
+  thumbnailUrl?: string;
+  avatar?: string;
+  isExpanded?: boolean;
 }
 
 interface UserProfile {
-  username: string
-  avatar: string
+  username: string;
+  avatar: string;
 }
 
 export default function Dashboard() {
-  const { emailContext, setEmailContext } = useEmail()
-  const [categories, setCategories] = useState<string[]>([])
-  const [time, setTime] = useState<string[]>([])
-  const [timezone, setTimezone] = useState<string | null>(null)
-  const [dbTimezone, setDbTimezone] = useState<string | null>(null)
-  const [latestNewsletter, setLatestNewsletter] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [pageLoading, setPageLoading] = useState(true)
-  const [posts, setPosts] = useState<Post[]>([])
-  const [selectedTab, setSelectedTab] = useState("newsfeed")
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [selectedProfile, setSelectedProfile] = useState<string | null>(null)
-  const [visiblePosts, setVisiblePosts] = useState(10)
-  const [showAllPosts, setShowAllPosts] = useState(false)
-  const [profiles, setProfiles] = useState<UserProfile[]>([])
-  const [newProfile, setNewProfile] = useState("")
-  const [wise, setWise] = useState<"categorywise" | "customProfiles">("categorywise")
-  const [registeredWise, setRegisteredWise] = useState("")
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const [showDropdown, setShowDropdown] = useState<boolean>(false)
-  const [loadingSuggestions, setLoadingSuggestions] = useState<boolean>(false)
-  const [cache, setCache] = useState<{ [key: string]: string[] }>({})
-  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null)
-  const [expandedPosts, setExpandedPosts] = useState<{ [key: string]: boolean }>({})
-  const [loadingProfiles, setLoadingProfiles] = useState<boolean>(true)
-  const [loadingPosts, setLoadingPosts] = useState<boolean>(true)
+  const { emailContext, setEmailContext } = useEmail();
+  const [categories, setCategories] = useState<string[]>([]);
+  const [time, setTime] = useState<string[]>([]);
+  const [timezone, setTimezone] = useState<string | null>(null);
+  const [dbTimezone, setDbTimezone] = useState<string | null>(null);
+  const [latestNewsletter, setLatestNewsletter] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [selectedTab, setSelectedTab] = useState("newsfeed");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const [visiblePosts, setVisiblePosts] = useState(10);
+  const [showAllPosts, setShowAllPosts] = useState(false);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [newProfile, setNewProfile] = useState("");
+  const [wise, setWise] = useState<"categorywise" | "customProfiles">(
+    "categorywise"
+  );
+  const [registeredWise, setRegisteredWise] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState<boolean>(false);
+  const [cache, setCache] = useState<{ [key: string]: string[] }>({});
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
+  const [expandedPosts, setExpandedPosts] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [loadingProfiles, setLoadingProfiles] = useState<boolean>(true);
+  const [loadingPosts, setLoadingPosts] = useState<boolean>(true);
 
   const availableCategories = [
     "Politics",
@@ -62,36 +68,36 @@ export default function Dashboard() {
     "Meme",
     "Sports",
     "Entertainment",
-  ]
-  const availableTimes = ["Morning", "Afternoon", "Night"]
+  ];
+  const availableTimes = ["Morning", "Afternoon", "Night"];
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem("email")
+    const savedEmail = localStorage.getItem("email");
     if (savedEmail) {
-      setEmailContext(savedEmail)
+      setEmailContext(savedEmail);
     }
-  }, [setEmailContext])
+  }, [setEmailContext]);
 
   useEffect(() => {
     if (emailContext) {
-      localStorage.setItem("email", emailContext)
-      fetchData()
-      fetchPosts()
+      localStorage.setItem("email", emailContext);
+      fetchData();
+      fetchPosts();
     } else {
-      localStorage.removeItem("email")
+      localStorage.removeItem("email");
     }
-  }, [emailContext])
+  }, [emailContext]);
 
   useEffect(() => {
-    const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-    setTimezone(detectedTimezone)
-  }, [])
+    const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setTimezone(detectedTimezone);
+  }, []);
 
   useEffect(() => {
     if (wise && registeredWise) {
-      fetchPosts()
+      fetchPosts();
     }
-  }, [wise, registeredWise])
+  }, [wise, registeredWise]);
 
   const getInitials = (username: string) => {
     return username
@@ -99,55 +105,76 @@ export default function Dashboard() {
       .map((part) => part[0])
       .join("")
       .toUpperCase()
-      .slice(0, 2)
-  }
+      .slice(0, 2);
+  };
 
-   const playSound = () => {
-     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const playSound = () => {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-     // Create Oscillator
-     const oscillator = audioCtx.createOscillator();
-     oscillator.type = "sine"; // Smooth & natural tone
-     oscillator.frequency.setValueAtTime(180, audioCtx.currentTime); // Low & soft tick
+    // Create Oscillator
+    const oscillator = audioCtx.createOscillator();
+    oscillator.type = "sine"; // Smooth & natural tone
+    oscillator.frequency.setValueAtTime(180, audioCtx.currentTime); // Low & soft tick
 
-     // Create Gain Node for volume control
-     const gainNode = audioCtx.createGain();
-     gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime); // Soft volume
-     gainNode.gain.exponentialRampToValueAtTime(
-       0.01,
-       audioCtx.currentTime + 0.08
-     ); // Quick decay
+    // Create Gain Node for volume control
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime); // Soft volume
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.01,
+      audioCtx.currentTime + 0.08
+    ); // Quick decay
 
-     // Connect nodes
-     oscillator.connect(gainNode);
-     gainNode.connect(audioCtx.destination);
+    // Connect nodes
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
 
-     // Start and stop the oscillator quickly for a haptic "tick"
-     oscillator.start(audioCtx.currentTime);
-     oscillator.stop(audioCtx.currentTime + 0.08); // 80ms short sound
-   };
+    // Start and stop the oscillator quickly for a haptic "tick"
+    oscillator.start(audioCtx.currentTime);
+    oscillator.stop(audioCtx.currentTime + 0.08); // 80ms short sound
+  };
 
   const fetchUserProfile = async (username: string): Promise<UserProfile> => {
-    try {
-      const response = await axios.get("https://twitter-api45.p.rapidapi.com/screenname.php", {
-        params: { screenname: username },
-        headers: {
-          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
-          "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-        },
-      })
-      return { username, avatar: response.data.avatar }
-    } catch (error) {
-      console.error(`Error fetching profile for ${username}:`, error)
-      return { username, avatar: "/placeholder.svg" }
+    let retries = 0;
+    const maxRetries = 3;
+
+    while (retries < maxRetries) {
+      try {
+        const response = await axios.get(
+          "https://twitter-api45.p.rapidapi.com/screenname.php",
+          {
+            params: { screenname: username },
+            headers: {
+              "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
+              "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+            },
+          }
+        );
+        return { username, avatar: response.data.avatar };
+      } catch (error) {
+        console.error(`Error fetching profile for ${username}:`, error);
+        retries++;
+        if (retries === maxRetries) {
+          return { username, avatar: "/placeholder.svg" };
+        }
+        // Wait for a short time before retrying
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
     }
-  }
+    return { username, avatar: "/placeholder.svg" };
+  };
 
   const fetchData = async () => {
-    setPageLoading(true)
-    setLoadingProfiles(true)
+    setPageLoading(true);
+    setLoadingProfiles(true);
     try {
-      const [categoriesRes, timesRes, timezoneRes, newsletterRes, profilesRes, wiseRes] = await Promise.all([
+      const [
+        categoriesRes,
+        timesRes,
+        timezoneRes,
+        newsletterRes,
+        profilesRes,
+        wiseRes,
+      ] = await Promise.all([
         axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getCategories`, {
           params: { email: emailContext },
         }),
@@ -166,237 +193,249 @@ export default function Dashboard() {
         axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
           params: { email: emailContext },
         }),
-      ])
+      ]);
 
-      setCategories(categoriesRes.data.categories)
-      setTime(timesRes.data.time)
-      setDbTimezone(timezoneRes.data.timezone)
-      setLatestNewsletter(newsletterRes.data.newsletter)
+      setCategories(categoriesRes.data.categories);
+      setTime(timesRes.data.time);
+      setDbTimezone(timezoneRes.data.timezone);
+      setLatestNewsletter(newsletterRes.data.newsletter);
 
-      const fetchedProfiles = await Promise.all(profilesRes.data.profiles.map(fetchUserProfile))
-      setProfiles(fetchedProfiles)
+      const fetchedProfiles = await Promise.all(
+        profilesRes.data.profiles.map(fetchUserProfile)
+      );
+      setProfiles(fetchedProfiles);
 
-      setWise(wiseRes.data.wise)
-      setRegisteredWise(wiseRes.data.wise)
+      setWise(wiseRes.data.wise);
+      setRegisteredWise(wiseRes.data.wise);
     } catch (err) {
-      console.error("Error fetching initial data:", err)
-      showNotification("Error loading initial data.", "error")
+      console.error("Error fetching initial data:", err);
+      showNotification("Error loading initial data.", "error");
     } finally {
-      setLoadingProfiles(false)
+      setLoadingProfiles(false);
     }
-  }
+  };
 
   const fetchPosts = async () => {
-    setLoadingPosts(true)
+    setLoadingPosts(true);
     try {
       const response =
         wise === "categorywise"
           ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
               params: { email: emailContext },
             })
-          : await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`, {
-              params: { email: emailContext },
-            })
+          : await axios.get(
+              `${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`,
+              {
+                params: { email: emailContext },
+              }
+            );
 
       if (response.data.code === 0) {
         const sortedPosts = response.data.data.sort(
-          (a: Post, b: Post) => new Date(b.time).getTime() - new Date(a.time).getTime(),
-        )
+          (a: Post, b: Post) =>
+            new Date(b.time).getTime() - new Date(a.time).getTime()
+        );
 
-        const uniqueUsernames = Array.from(new Set(sortedPosts.map((post:any) => post.username)))
-        const avatarPromises = uniqueUsernames.map(async (username) => {
-          try {
-            const avatarResponse = await axios.get("https://twitter-api45.p.rapidapi.com/screenname.php", {
-              params: { screenname: username },
-              headers: {
-                "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
-                "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-              },
-            })
-            return { username, avatar: avatarResponse.data.avatar }
-          } catch (error) {
-            console.error(`Error fetching avatar for ${username}:`, error)
-            return { username, avatar: "/placeholder.svg" }
-          }
-        })
+        const uniqueUsernames: string[] = Array.from(
+          new Set(sortedPosts.map((post: any) => post.username))
+        );
+        const avatarPromises = uniqueUsernames.map(fetchUserProfile);
 
-        const avatars = await Promise.all(avatarPromises)
-        const avatarMap = Object.fromEntries(avatars.map(({ username, avatar }) => [username, avatar]))
+        const avatars = await Promise.all(avatarPromises);
+        const avatarMap = Object.fromEntries(
+          avatars.map(({ username, avatar }) => [username, avatar])
+        );
 
-        const postsWithAvatars = sortedPosts.map((post:any) => ({
+        const postsWithAvatars = sortedPosts.map((post: any) => ({
           ...post,
           avatar: avatarMap[post.username],
-        }))
+        }));
 
-        setPosts(postsWithAvatars)
+        setPosts(postsWithAvatars);
       } else {
-        showNotification("Error loading posts.", "error")
+        showNotification("Error loading posts.", "error");
       }
     } catch (error) {
-      console.error("Error fetching posts:", error)
-      showNotification("Error fetching posts.", "error")
+      console.error("Error fetching posts:", error);
+      showNotification("Error fetching posts.", "error");
     } finally {
-      setLoadingPosts(false)
-      setPageLoading(false)
+      setLoadingPosts(false);
+      setPageLoading(false);
     }
-  }
+  };
 
   const handleAddProfile = async (suggestion: string) => {
     if (profiles.some((profile) => profile.username === suggestion)) {
-      showNotification("Profile already added.", "error")
-      return
+      showNotification("Profile already added.", "error");
+      return;
     }
 
-    const newProfile = await fetchUserProfile(suggestion)
-    setProfiles((prev) => [...prev, newProfile])
-    setNewProfile("")
-    setShowDropdown(false)
-  }
+    const newProfile = await fetchUserProfile(suggestion);
+    setProfiles((prev) => [...prev, newProfile]);
+    setNewProfile("");
+    setShowDropdown(false);
+  };
 
   const fetchSuggestions = async (keyword: string): Promise<string[]> => {
     try {
-      const response = await axios.get("https://twitter-api45.p.rapidapi.com/search.php", {
-        params: { query: keyword, search_type: "People" },
-        headers: {
-          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
-          "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-        },
-      })
+      const response = await axios.get(
+        "https://twitter-api45.p.rapidapi.com/search.php",
+        {
+          params: { query: keyword, search_type: "People" },
+          headers: {
+            "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
+            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+          },
+        }
+      );
 
       if (response.data && response.data.timeline) {
         return response.data.timeline
           .filter((item: any) => item.screen_name)
           .slice(0, 6)
-          .map((item: any) => item.screen_name)
+          .map((item: any) => item.screen_name);
       } else {
-        console.warn("No suggestions found for keyword:", keyword)
-        return []
+        console.warn("No suggestions found for keyword:", keyword);
+        return [];
       }
     } catch (err) {
-      console.error("Error fetching suggestions:", err)
-      return []
+      console.error("Error fetching suggestions:", err);
+      return [];
     }
-  }
+  };
 
   const debouncedSearch = useCallback(
     _.debounce(async (keyword: string) => {
       try {
         if (cache[keyword]) {
-          setSuggestions(cache[keyword])
+          setSuggestions(cache[keyword]);
         } else {
-          const fetchedSuggestions = await fetchSuggestions(keyword)
-          setSuggestions(fetchedSuggestions)
-          setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }))
+          const fetchedSuggestions = await fetchSuggestions(keyword);
+          setSuggestions(fetchedSuggestions);
+          setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
         }
       } catch (error) {
-        console.error("Error fetching suggestions:", error)
-        setSuggestions([])
+        console.error("Error fetching suggestions:", error);
+        setSuggestions([]);
       } finally {
-        setLoadingSuggestions(false)
+        setLoadingSuggestions(false);
       }
 
-      setShowDropdown(true)
+      setShowDropdown(true);
     }, 300),
-    [],
-  )
+    []
+  );
 
   const handleSearchInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.target.value
-    setNewProfile(input)
+    const input = event.target.value;
+    setNewProfile(input);
 
-    setLoadingSuggestions(true)
+    setLoadingSuggestions(true);
     if (input.trim().length > 0) {
-      debouncedSearch(input)
+      debouncedSearch(input);
     } else {
-      setSuggestions([])
-      setShowDropdown(false)
-      setLoadingSuggestions(false)
+      setSuggestions([]);
+      setShowDropdown(false);
+      setLoadingSuggestions(false);
     }
-  }
+  };
 
   const handleProfileUpdate = async () => {
     // setLoading(true)
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`, {
-        email: emailContext,
-        profiles: profiles.map((p) => p.username),
-      })
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`,
+        {
+          email: emailContext,
+          profiles: profiles.map((p) => p.username),
+        }
+      );
       console.log("code in handleprofileupdate", response.data.code);
       if (response.data.code === 0) {
         // setLoading(false);
-        showNotification("Profiles updated successfully!", "success")
+        showNotification("Profiles updated successfully!", "success");
         // fetchData()
       } else {
-        showNotification("Error updating profiles.", "error")
+        showNotification("Error updating profiles.", "error");
       }
     } catch (err) {
-      showNotification("Error updating profiles.", "error")
+      showNotification("Error updating profiles.", "error");
     }
-  }
+  };
 
   const handleCategoryUpdate = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateCategories`, {
-        email: emailContext,
-        categories,
-      })
-      setLoading(false)
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/updateCategories`,
+        {
+          email: emailContext,
+          categories,
+        }
+      );
+      setLoading(false);
       if (response.data.code === 0) {
-        showNotification("Categories Updated", "success")
+        showNotification("Categories Updated", "success");
         // await fetchData()
         // await fetchPosts()
-      } else showNotification("Server Error", "error")
+      } else showNotification("Server Error", "error");
     } catch (err) {
-      showNotification("Server Error", "error")
+      showNotification("Server Error", "error");
     }
-  }
+  };
 
   const handleTimeUpdate = async () => {
     playSound();
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateTimes`, { email: emailContext, time })
-      setLoading(false)
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/updateTimes`,
+        { email: emailContext, time }
+      );
+      setLoading(false);
       if (response.data.code === 0) {
-        showNotification("Times Updated", "success")
+        showNotification("Times Updated", "success");
         // await fetchData()
         // await fetchPosts()
-      } else showNotification("Server Error", "error")
+      } else showNotification("Server Error", "error");
     } catch (err) {
-      showNotification("Server Error", "error")
+      showNotification("Server Error", "error");
     }
-  }
+  };
 
   const toggleShowMore = () => {
     if (showAllPosts) {
-      setVisiblePosts(10)
+      setVisiblePosts(10);
     } else {
-      setVisiblePosts(posts.length)
+      setVisiblePosts(posts.length);
     }
-    setShowAllPosts(!showAllPosts)
-  }
+    setShowAllPosts(!showAllPosts);
+  };
 
   const filteredPosts = posts.filter(
     (post) =>
       (selectedCategory ? post.category === selectedCategory : true) &&
-      (selectedProfile ? post.username === selectedProfile : true),
-  )
+      (selectedProfile ? post.username === selectedProfile : true)
+  );
 
   const handleTimezoneUpdate = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateTimezone`, {
-        email: emailContext,
-        timezone,
-      })
-      setLoading(false)
-      if (response.data.code === 0) showNotification("Timezone Updated", "success")
-      else showNotification("Server Error", "error")
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/updateTimezone`,
+        {
+          email: emailContext,
+          timezone,
+        }
+      );
+      setLoading(false);
+      if (response.data.code === 0)
+        showNotification("Timezone Updated", "success");
+      else showNotification("Server Error", "error");
     } catch (err) {
-      showNotification("Server Error", "error")
+      showNotification("Server Error", "error");
     }
-  }
+  };
 
   const SpinnerWithMessage = ({ message }: { message: string }) => {
     return (
@@ -406,99 +445,119 @@ export default function Dashboard() {
           <p className="text-[#7FFFD4]">{message}</p>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   const handleFeedTypeUpdate = async () => {
     if (wise === "customProfiles" && profiles.length < 3) {
-      showNotification("Please add at least 3 followed profiles to switch to Custom Profiles.", "error")
-      return
+      showNotification(
+        "Please add at least 3 followed profiles to switch to Custom Profiles.",
+        "error"
+      );
+      return;
     }
 
     if (wise === "categorywise" && categories.length === 0) {
-      showNotification("Please select at least 1 category to switch to Category-wise feed.", "error")
-      return
+      showNotification(
+        "Please select at least 1 category to switch to Category-wise feed.",
+        "error"
+      );
+      return;
     }
 
-    setPageLoading(true)
+    setPageLoading(true);
     setSelectedTab("newsfeed");
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/updateFeedType`, {
-        email: emailContext,
-        wise,
-        categories: wise === "categorywise" ? categories : [],
-        profiles: wise === "customProfiles" ? profiles.map((p) => p.username) : [],
-      })
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/updateFeedType`,
+        {
+          email: emailContext,
+          wise,
+          categories: wise === "categorywise" ? categories : [],
+          profiles:
+            wise === "customProfiles" ? profiles.map((p) => p.username) : [],
+        }
+      );
 
       if (response.data.code === 0) {
-        setRegisteredWise(wise)
-        await fetchPosts()
+        setRegisteredWise(wise);
+        await fetchPosts();
 
         setTimeout(() => {
           setPageLoading(false);
-          showNotification("Dashboard updated with new feed type!", "success")
-        }, 5000)
+          showNotification("Dashboard updated with new feed type", "success");
+        }, 5000);
       } else {
-        showNotification("Error updating feed type.", "error")
+        showNotification("Error updating feed type.", "error");
       }
     } catch (err) {
-      console.error("Error updating feed type:", err)
-      showNotification("Error updating feed type.", "error")
+      console.error("Error updating feed type:", err);
+      showNotification("Error updating feed type.", "error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   function formatTime(date: string | number | Date): string {
     const options: Intl.DateTimeFormatOptions = {
       hour: "numeric",
       minute: "numeric",
       hour12: true,
-    }
-    return new Date(date).toLocaleTimeString("en-US", options)
+    };
+    return new Date(date).toLocaleTimeString("en-US", options);
   }
 
   function timeAgo(date: string | number | Date) {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000)
-    let interval = Math.floor(seconds / 31536000)
+    const seconds = Math.floor(
+      (new Date().getTime() - new Date(date).getTime()) / 1000
+    );
+    let interval = Math.floor(seconds / 31536000);
 
-    if (interval >= 1) return interval + " year" + (interval > 1 ? "s" : "") + " ago"
-    if ((interval = Math.floor(seconds / 2592000)) >= 1) return interval + " month" + (interval > 1 ? "s" : "") + " ago"
-    if ((interval = Math.floor(seconds / 86400)) >= 1) return interval + " day" + (interval > 1 ? "s" : "") + " ago"
-    if ((interval = Math.floor(seconds / 3600)) >= 1) return interval + " hour" + (interval > 1 ? "s" : "") + " ago"
-    if ((interval = Math.floor(seconds / 60)) >= 1) return interval + " minute" + (interval > 1 ? "s" : "") + " ago"
-    return Math.floor(seconds) + " seconds ago"
+    if (interval >= 1)
+      return interval + " year" + (interval > 1 ? "s" : "") + " ago";
+    if ((interval = Math.floor(seconds / 2592000)) >= 1)
+      return interval + " month" + (interval > 1 ? "s" : "") + " ago";
+    if ((interval = Math.floor(seconds / 86400)) >= 1)
+      return interval + " day" + (interval > 1 ? "s" : "") + " ago";
+    if ((interval = Math.floor(seconds / 3600)) >= 1)
+      return interval + " hour" + (interval > 1 ? "s" : "") + " ago";
+    if ((interval = Math.floor(seconds / 60)) >= 1)
+      return interval + " minute" + (interval > 1 ? "s" : "") + " ago";
+    return Math.floor(seconds) + " seconds ago";
   }
 
   const showNotification = (message: string, type: "success" | "error") => {
-    setNotification({ message, type })
-    setTimeout(() => setNotification(null), 3000)
-  }
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   const togglePostExpansion = (tweetId: string) => {
     setExpandedPosts((prev) => ({
       ...prev,
       [tweetId]: !prev[tweetId],
-    }))
-  }
+    }));
+  };
 
   const renderPostText = (text: string, tweetId: string) => {
-    const shouldTruncate = text.length > 250
-    const isExpanded = expandedPosts[tweetId]
+    const shouldTruncate = text.length > 250;
+    const isExpanded = expandedPosts[tweetId];
 
     if (!shouldTruncate) {
-      return <p className="mb-4">{text}</p>
+      return <p className="mb-4">{text}</p>;
     }
 
     return (
       <div>
         <p className="mb-2">{isExpanded ? text : `${text.slice(0, 250)}...`}</p>
-        <button onClick={() => togglePostExpansion(tweetId)} className="text-sm text-[#7FFFD4] hover:underline">
+        <button
+          onClick={() => togglePostExpansion(tweetId)}
+          className="text-sm text-[#7FFFD4] hover:underline"
+        >
           {isExpanded ? "Show Less" : "Show More"}
         </button>
       </div>
-    )
-  }
+    );
+  };
 
   const renderAvatar = (username: string, avatar: string) => {
     if (avatar && avatar !== "/placeholder.svg") {
@@ -510,20 +569,20 @@ export default function Dashboard() {
           height={24}
           className="rounded-full"
           onError={(e) => {
-            e.currentTarget.style.display = "none"
-            e.currentTarget.nextElementSibling?.classList.remove("hidden")
+            e.currentTarget.style.display = "none";
+            e.currentTarget.nextElementSibling?.classList.remove("hidden");
           }}
         />
-      )
+      );
     }
 
-    const initials = getInitials(username)
+    const initials = getInitials(username);
     return (
-      <div className="w-10 h-10 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold">
+      <div className="w-6 h-6 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold text-xs">
         {initials}
       </div>
-    )
-  }
+    );
+  };
 
   const renderAvatar2 = (username: string, avatar: string) => {
     if (avatar && avatar !== "/placeholder.svg") {
@@ -726,20 +785,18 @@ export default function Dashboard() {
           )}
 
           {selectedTab === "newsletter" && (
-            
-              <div className="space-y-4 rounded-xl border border-gray-800 bg-black p-6">
-                <h3 className="text-xl font-semibold text-[#7FFFD4]">
-                  Latest Newsletter
-                </h3>
-                <div
-                  className="prose prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{
-                    __html:
-                      latestNewsletter || "<p>No newsletters available.</p>",
-                  }}
-                />
-              </div>
-            
+            <div className="space-y-4 rounded-xl border border-gray-800 bg-black p-6">
+              <h3 className="text-xl font-semibold text-[#7FFFD4]">
+                Latest Newsletter
+              </h3>
+              <div
+                className="prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={{
+                  __html:
+                    latestNewsletter || "<p>No newsletters available.</p>",
+                }}
+              />
+            </div>
           )}
 
           {selectedTab === "settings" && (
@@ -944,34 +1001,10 @@ export default function Dashboard() {
                   {loading ? "Updating..." : "Update Time"}
                 </button>
               </section>
-
-              {/* Update Timezone Section */}
-              <section className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#7FFFD4]">
-                  Timezone
-                </h2>
-                <p className="text-gray-400">
-                  Current Detected Timezone: {timezone}
-                </p>
-                <p className="text-gray-400">
-                  Registered Timezone: {dbTimezone}
-                </p>
-                {timezone !== dbTimezone && (
-                  <button
-                    className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
-                    onClick={handleTimezoneUpdate}
-                    disabled={loading}
-                  >
-                    {loading ? "Updating..." : "Update Timezone"}
-                  </button>
-                )}
-              </section>
             </div>
           )}
         </div>
       )}
-      {/* <Footer /> */}
     </div>
   );
 }
-
