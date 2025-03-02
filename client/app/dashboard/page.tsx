@@ -1,10 +1,17 @@
 "use client";
-import { useState, useEffect, useCallback, type ChangeEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  type ChangeEvent,
+  useRef,
+} from "react";
 import axios from "axios";
 import { useEmail } from "@/context/UserContext";
 import Image from "next/image";
 import _ from "lodash";
 import Navbar3 from "@/components/navbar3";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Post {
   username: string;
@@ -57,6 +64,7 @@ export default function Dashboard() {
   }>({});
   const [loadingProfiles, setLoadingProfiles] = useState<boolean>(true);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(true);
+  const profilesContainerRef = useRef<HTMLDivElement>(null);
 
   const availableCategories = [
     "Politics",
@@ -99,6 +107,26 @@ export default function Dashboard() {
     }
   }, [wise, registeredWise]);
 
+  // Add ref for dropdown container
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Modify the click outside handler
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const getInitials = (username: string) => {
     return username
       .split(/[._-]/)
@@ -133,6 +161,36 @@ export default function Dashboard() {
     oscillator.stop(audioCtx.currentTime + 0.08); // 80ms short sound
   };
 
+  // const fetchUserProfile = async (username: string): Promise<UserProfile> => {
+  //   let retries = 0;
+  //   const maxRetries = 3;
+
+  //   while (retries < maxRetries) {
+  //     try {
+  //       const response = await axios.get(
+  //         "https://twitter-api45.p.rapidapi.com/screenname.php",
+  //         {
+  //           params: { screenname: username },
+  //           headers: {
+  //             "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
+  //             "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+  //           },
+  //         }
+  //       );
+  //       return { username, avatar: response.data.avatar };
+  //     } catch (error) {
+  //       console.error(`Error fetching profile for ${username}:`, error);
+  //       retries++;
+  //       if (retries === maxRetries) {
+  //         return { username, avatar: "/placeholder.svg" };
+  //       }
+  //       // Wait for a short time before retrying
+  //       await new Promise((resolve) => setTimeout(resolve, 1000));
+  //     }
+  //   }
+  //   return { username, avatar: "/placeholder.svg" };
+  // };
+
   const fetchUserProfile = async (username: string): Promise<UserProfile> => {
     let retries = 0;
     const maxRetries = 3;
@@ -149,17 +207,30 @@ export default function Dashboard() {
             },
           }
         );
-        return { username, avatar: response.data.avatar };
+
+        // If we successfully get an avatar, return immediately
+        if (response.data && response.data.avatar) {
+          return { username, avatar: response.data.avatar };
+        }
+
+        // If we get a response but no avatar, throw an error to trigger a retry
+        throw new Error("No avatar in response");
       } catch (error) {
         console.error(`Error fetching profile for ${username}:`, error);
         retries++;
-        if (retries === maxRetries) {
+
+        // If we've reached max retries, return with placeholder
+        if (retries >= maxRetries) {
           return { username, avatar: "/placeholder.svg" };
         }
+
         // Wait for a short time before retrying
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
+
+    // This line should never be reached due to the return in the if statement above,
+    // but we'll keep it as a fallback
     return { username, avatar: "/placeholder.svg" };
   };
 
@@ -341,7 +412,6 @@ export default function Dashboard() {
   };
 
   const handleProfileUpdate = async () => {
-    // setLoading(true)
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`,
@@ -352,9 +422,7 @@ export default function Dashboard() {
       );
       console.log("code in handleprofileupdate", response.data.code);
       if (response.data.code === 0) {
-        // setLoading(false);
         showNotification("Profiles updated successfully!", "success");
-        // fetchData()
       } else {
         showNotification("Error updating profiles.", "error");
       }
@@ -376,8 +444,6 @@ export default function Dashboard() {
       setLoading(false);
       if (response.data.code === 0) {
         showNotification("Categories Updated", "success");
-        // await fetchData()
-        // await fetchPosts()
       } else showNotification("Server Error", "error");
     } catch (err) {
       showNotification("Server Error", "error");
@@ -395,8 +461,6 @@ export default function Dashboard() {
       setLoading(false);
       if (response.data.code === 0) {
         showNotification("Times Updated", "success");
-        // await fetchData()
-        // await fetchPosts()
       } else showNotification("Server Error", "error");
     } catch (err) {
       showNotification("Server Error", "error");
@@ -497,7 +561,6 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
-  
 
   function formatTime(date: string | number | Date): string {
     const options: Intl.DateTimeFormatOptions = {
@@ -610,6 +673,16 @@ export default function Dashboard() {
     );
   };
 
+  const scrollProfiles = (direction: "left" | "right") => {
+    if (profilesContainerRef.current) {
+      const scrollAmount = 200; // Adjust this value to control scroll distance
+      profilesContainerRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar3 />
@@ -667,62 +740,89 @@ export default function Dashboard() {
 
           {selectedTab === "newsfeed" && (
             <div className="newsfeed-content">
-              <div className="mb-6 flex flex-wrap gap-2">
-                {wise === "categorywise" && (
-                  <>
-                    <button
-                      onClick={() => setSelectedCategory(null)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                        !selectedCategory
-                          ? "bg-[#7FFFD4] text-black"
-                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
-                      }`}
-                    >
-                      All Categories
-                    </button>
-                    {categories.map((category) => (
-                      <button
-                        key={category}
-                        onClick={() => setSelectedCategory(category)}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                          selectedCategory === category
-                            ? "bg-[#7FFFD4] text-black"
-                            : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
-                        }`}
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </>
-                )}
-                {wise === "customProfiles" && (
-                  <>
-                    <button
-                      onClick={() => setSelectedProfile(null)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                        !selectedProfile
-                          ? "bg-[#7FFFD4] text-black"
-                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
-                      }`}
-                    >
-                      All Profiles
-                    </button>
-                    {profiles.map((profile) => (
-                      <button
-                        key={profile.username}
-                        onClick={() => setSelectedProfile(profile.username)}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors flex items-center ${
-                          selectedProfile === profile.username
-                            ? "bg-[#7FFFD4] text-black"
-                            : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
-                        }`}
-                      >
-                        {renderAvatar(profile.username, profile.avatar)}
-                        <span className="ml-2">@{profile.username}</span>
-                      </button>
-                    ))}
-                  </>
-                )}
+              <div className="relative mb-6">
+                <button
+                  onClick={() => scrollProfiles("left")}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors"
+                >
+                  <ChevronLeft className="h-5 w-5 text-[#7FFFD4]" />
+                </button>
+
+                <div className="relative overflow-x-hidden ml-2 mr-2">
+                  <div
+                    ref={profilesContainerRef}
+                    className="flex gap-2 overflow-x-auto scrollbar-hide whitespace-nowrap px-8"
+                    style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                      WebkitOverflowScrolling: "touch",
+                    }}
+                  >
+                    {wise === "categorywise" ? (
+                      <>
+                        <button
+                          onClick={() => setSelectedCategory(null)}
+                          className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                            !selectedCategory
+                              ? "bg-[#7FFFD4] text-black"
+                              : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                          }`}
+                        >
+                          All Categories
+                        </button>
+                        {categories.map((category) => (
+                          <button
+                            key={category}
+                            onClick={() => setSelectedCategory(category)}
+                            className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                              selectedCategory === category
+                                ? "bg-[#7FFFD4] text-black"
+                                : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                            }`}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setSelectedProfile(null)}
+                          className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                            !selectedProfile
+                              ? "bg-[#7FFFD4] text-black"
+                              : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                          }`}
+                        >
+                          All Profiles
+                        </button>
+                        {profiles.map((profile) => (
+                          <button
+                            key={profile.username}
+                            onClick={() => setSelectedProfile(profile.username)}
+                            className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap max-w-[200px] ${
+                              selectedProfile === profile.username
+                                ? "bg-[#7FFFD4] text-black"
+                                : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                            }`}
+                          >
+                            {renderAvatar(profile.username, profile.avatar)}
+                            <span className="ml-2 truncate">
+                              @{profile.username}
+                            </span>
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => scrollProfiles("right")}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors"
+                >
+                  <ChevronRight className="h-5 w-5 text-[#7FFFD4]" />
+                </button>
               </div>
               <div className="post-grid grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filteredPosts.slice(0, visiblePosts).map((post) => (
@@ -925,34 +1025,40 @@ export default function Dashboard() {
                   ))}
                 </div>
                 {wise === "customProfiles" && (
-                  <div className="relative mt-4">
-                    <input
-                      type="text"
-                      value={newProfile}
-                      onChange={handleSearchInputChange}
-                      placeholder="@username"
-                      className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
-                      disabled={loading}
-                    />
-                    {showDropdown && (
-                      <ul className="absolute left-0 right-0 top-full mt-2 rounded-lg border border-gray-800 bg-black">
-                        {loadingSuggestions ? (
-                          <li className="p-2 text-gray-400">Loading...</li>
-                        ) : suggestions.length > 0 ? (
-                          suggestions.map((suggestion, index) => (
-                            <li
-                              key={index}
-                              className="cursor-pointer p-2 hover:bg-[#7FFFD4]/10"
-                              onClick={() => handleAddProfile(suggestion)}
-                            >
-                              @{suggestion}
-                            </li>
-                          ))
-                        ) : (
-                          <li className="p-2 text-gray-400">No result found</li>
-                        )}
-                      </ul>
-                    )}
+                  <div className="relative mt-4" ref={dropdownRef}>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={newProfile}
+                        onChange={handleSearchInputChange}
+                        placeholder="@username"
+                        className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
+                        disabled={loading}
+                      />
+                      {showDropdown && (
+                        <div className="absolute left-0 right-0 top-full mt-2 rounded-lg border border-gray-800 bg-black">
+                          <ul>
+                            {loadingSuggestions ? (
+                              <li className="p-2 text-gray-400">Loading...</li>
+                            ) : suggestions.length > 0 ? (
+                              suggestions.map((suggestion, index) => (
+                                <li
+                                  key={index}
+                                  className="cursor-pointer p-2 hover:bg-[#7FFFD4]/10"
+                                  onClick={() => handleAddProfile(suggestion)}
+                                >
+                                  @{suggestion}
+                                </li>
+                              ))
+                            ) : (
+                              <li className="p-2 text-gray-400">
+                                No result found
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {wise === "customProfiles" &&

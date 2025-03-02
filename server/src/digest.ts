@@ -432,7 +432,7 @@ export async function generateNewsletter(
 10. **Format the newsletter as bullet points** for each category. Each bullet point should summarize a key piece of information from the tweets, just as if you were a news reporter covering these topics. Write succinctly and clearly.
 11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
 12. Ensure the **bullet points are separated by category** and well-structured.
-13. After each section add a horizontal line. Here is the format: Summary (heading) then skip one line then summary content then horizontal line. Same goes for other section: heading -> Skip one line -> Content -> Horizontal Line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
+13. Here is the format: Summary (heading) then skip one line then summary content then skip one line. Same goes for other section: heading -> Skip one line -> Content -> Skip one line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
 14. MUST: Make sure each heading (bold) and its content has consisted font, size and style.
 Here is the tweet data you are summarizing:
 
@@ -1349,7 +1349,7 @@ export async function generateCustomProfileNewsletter(
 7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
 8. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
 9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
-10. After each section add a horizontal line. Here is the format: Summary (heading) then skip one line then summary content then horizontal line. Same goes for other section: heading -> Skip one line -> Content -> Horizontal Line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
+10. Here is the format: Summary (heading) then skip one line then summary content then skip one line. Same goes for other section: heading -> Skip one line -> Content -> Skip one line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
 11. MUST: Make sure each heading (bold) and its content has consisted font, size and style.
 Here is the tweet data you are summarizing:
 
