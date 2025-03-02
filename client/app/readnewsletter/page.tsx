@@ -1,7 +1,8 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import axios from "axios";
+import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import "@/app/readnewsletter/readnewsletter.css";
 
@@ -31,7 +32,6 @@ export default function ReadNewsletter({
           `${process.env.NEXT_PUBLIC_SERVER}/newsletter/${newsletterId}`
         );
         setNewsletterContent(response.data.newsletter);
-        // console.log("NEWSLETTER REVCEIVED", response.data);
       } catch (err: any) {
         setError(
           err.response?.data ||
@@ -44,45 +44,32 @@ export default function ReadNewsletter({
   }, [newsletterId]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100 mainStart">
-      {/* Navbar */}
-      <header className="bg-white shadow-md">
-        <div className="py-4 px-6 flex">
-          <Link href="/" className="text-xl font-bold text-gray-800 flex-grow">
-            FeedRecap
-          </Link>
-          <nav className="space-x-4 buttonss">
-            <Link href="/signin">
-              <button className="text-gray-800 font-semibold sButton">
-                Sign In
-              </button>
-            </Link>
-            <Link href="/signup">
-              <button className="text-gray-800 font-semibold">Sign Up</button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen bg-black text-white">
+      <Navbar />
 
       {/* Main Content */}
-      <main className="flex-grow py-20 bg-white-200">
-        <div className="max-w-7xl mx-auto px-6">
+      <main className="container mx-auto px-4 py-12">
+        <div className="max-w-4xl mx-auto">
           {error ? (
-            <p className="text-red-600 text-lg">{error}</p>
+            <p className="text-red-500 text-lg">{error}</p>
           ) : newsletterContent ? (
-            <div
-              className="newsletter-content text-gray-600 text-lg"
-              dangerouslySetInnerHTML={{ __html: newsletterContent }}
-            />
+            <div className="space-y-4 rounded-xl border border-gray-800 bg-[#111] p-6">
+              <h2 className="text-2xl font-semibold text-[#7FFFD4] mb-4">
+                Newsletter Content
+              </h2>
+              <div
+                className="prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: newsletterContent }}
+              />
+            </div>
           ) : (
-            <p className="text-gray-600 text-lg">
-              Loading newsletter content...
-            </p>
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#7FFFD4]"></div>
+            </div>
           )}
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );

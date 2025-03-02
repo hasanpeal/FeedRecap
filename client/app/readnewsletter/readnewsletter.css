@@ -1,25 +1,46 @@
-@import url("https://fonts.googleapis.com/css?family=Open+Sans:300,400,700");
-@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-.mainStart {
-  font-family: "Open Sans", sans-serif;
-}
-
-p {
-  line-height: 1.8;
-  word-wrap: break-word;
+.prose {
+  @apply max-w-none;
 }
 
-.newsletter-content {
-  line-height: 1.8;
-  word-wrap: break-word;
+.prose a {
+  @apply text-[#7FFFD4] no-underline hover:underline;
 }
-.newsletter-content h1,
-.newsletter-content h2,
-.newsletter-content h3 {
-  margin-bottom: 1rem;
-  color: #333;
+
+.prose p {
+  @apply text-gray-300;
 }
-.newsletter-content p {
-  margin-bottom: 1.5rem;
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  @apply text-white;
 }
+
+.prose ul,
+.prose ol {
+  @apply text-gray-300;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-[#7FFFD4] bg-black/50;
+}
+
+.prose code {
+  @apply rounded bg-black/50 px-1 py-0.5 text-[#7FFFD4];
+}
+
+.prose pre {
+  @apply bg-black/50;
+}
+
+.prose img {
+  @apply rounded-lg;
+}
+
