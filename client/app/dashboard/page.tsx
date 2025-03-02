@@ -497,6 +497,7 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+  
 
   function formatTime(date: string | number | Date): string {
     const options: Intl.DateTimeFormatOptions = {
