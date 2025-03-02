@@ -11,7 +11,7 @@ import { useEmail } from "@/context/UserContext";
 import Image from "next/image";
 import _ from "lodash";
 import Navbar3 from "@/components/navbar3";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, X } from "lucide-react";
 
 interface Post {
   username: string;
@@ -28,6 +28,11 @@ interface Post {
 interface UserProfile {
   username: string;
   avatar: string;
+}
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
 }
 
 export default function Dashboard() {
@@ -65,6 +70,11 @@ export default function Dashboard() {
   const [loadingProfiles, setLoadingProfiles] = useState<boolean>(true);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(true);
   const profilesContainerRef = useRef<HTMLDivElement>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [userInput, setUserInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const availableCategories = [
     "Politics",
@@ -160,36 +170,6 @@ export default function Dashboard() {
     oscillator.start(audioCtx.currentTime);
     oscillator.stop(audioCtx.currentTime + 0.08); // 80ms short sound
   };
-
-  // const fetchUserProfile = async (username: string): Promise<UserProfile> => {
-  //   let retries = 0;
-  //   const maxRetries = 3;
-
-  //   while (retries < maxRetries) {
-  //     try {
-  //       const response = await axios.get(
-  //         "https://twitter-api45.p.rapidapi.com/screenname.php",
-  //         {
-  //           params: { screenname: username },
-  //           headers: {
-  //             "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
-  //             "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-  //           },
-  //         }
-  //       );
-  //       return { username, avatar: response.data.avatar };
-  //     } catch (error) {
-  //       console.error(`Error fetching profile for ${username}:`, error);
-  //       retries++;
-  //       if (retries === maxRetries) {
-  //         return { username, avatar: "/placeholder.svg" };
-  //       }
-  //       // Wait for a short time before retrying
-  //       await new Promise((resolve) => setTimeout(resolve, 1000));
-  //     }
-  //   }
-  //   return { username, avatar: "/placeholder.svg" };
-  // };
 
   const fetchUserProfile = async (username: string): Promise<UserProfile> => {
     let retries = 0;
@@ -683,6 +663,74 @@ export default function Dashboard() {
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!userInput.trim()) return;
+
+    const newUserMessage: ChatMessage = { role: "user", content: userInput };
+    setChatMessages((prev) => [...prev, newUserMessage]);
+    setUserInput("");
+    setIsTyping(true);
+
+    try {
+      const prompt = `Based on the following tweets, please provide a concise answer to this question: "${userInput}". If you can't answer based on the tweets, please say so. Here are the tweets: ${JSON.stringify(
+        posts
+      )}`;
+
+      const options = {
+        method: "POST",
+        url: "https://deepseek-v31.p.rapidapi.com/",
+        headers: {
+          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
+          "x-rapidapi-host": "deepseek-v31.p.rapidapi.com",
+          "Content-Type": "application/json",
+        },
+        data: {
+          model: "deepseek-v3",
+          messages: [
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+        },
+      };
+
+      const response = await axios.request(options);
+      let aiResponse = response.data.choices[0].message.content;
+
+      // Clean up the AI response
+      aiResponse = aiResponse.replace(/\*\*/g, ""); // Remove all double asterisks
+      aiResponse = aiResponse.replace(/\[|\]/g, ""); // Remove square brackets if present
+
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: aiResponse },
+      ]);
+    } catch (error) {
+      console.error("Error fetching AI response:", error);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Sorry, I couldn't process your request. Please try again.",
+        },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const resetChat = () => {
+    setChatMessages([]);
+  };
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar3 />
@@ -900,214 +948,94 @@ export default function Dashboard() {
             </div>
           )}
 
-          {selectedTab === "settings" && (
-            <div className="settings-content space-y-8 rounded-xl border border-gray-800 bg-[#111] p-6">
-              {/* Feed Type Selection */}
-              <section className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#7FFFD4]">
-                  Feed Type
-                </h2>
-                <div className="flex gap-4">
+          {/* Floating Chat Button */}
+          {wise === "customProfiles" && (
+            <button
+              onClick={() => setIsChatOpen(true)}
+              className="fixed bottom-6 right-6 bg-[#7FFFD4] text-black p-4 rounded-full shadow-lg hover:bg-[#00CED1] transition-colors"
+            >
+              <MessageCircle size={24} />
+            </button>
+          )}
+
+          {/* Chat Modal */}
+          {isChatOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-[#111] rounded-lg w-full max-w-lg mx-4 overflow-hidden">
+                <div className="flex justify-between items-center p-4 border-b border-gray-800">
+                  <h3 className="text-xl font-semibold text-[#7FFFD4]">
+                    Ask FeedRecap AI
+                  </h3>
                   <button
-                    className={`rounded-full px-6 py-2 transition-colors ${
-                      wise === "categorywise"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
-                    }`}
-                    onClick={() => setWise("categorywise")}
+                    onClick={() => setIsChatOpen(false)}
+                    className="text-gray-400 hover:text-white"
                   >
-                    Category-wise
-                  </button>
-                  <button
-                    className={`rounded-full px-6 py-2 transition-colors ${
-                      wise === "customProfiles"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
-                    }`}
-                    onClick={() => setWise("customProfiles")}
-                  >
-                    Custom Profiles
+                    <X size={24} />
                   </button>
                 </div>
-                <button
-                  className="mt-4 rounded-full bg-black px-28 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
-                  onClick={handleFeedTypeUpdate}
-                  disabled={loading}
-                >
-                  {loading ? "Updating..." : "Update Feed Type"}
-                </button>
-              </section>
-
-              {/* Update Categories Section */}
-              <section
-                className={`space-y-4 ${
-                  wise === "customProfiles" ? "opacity-50" : ""
-                }`}
-              >
-                <h2 className="text-xl font-semibold text-[#7FFFD4]">
-                  Update Categories
-                </h2>
-                {wise === "customProfiles" && (
-                  <p className="text-gray-400">
-                    Switch to <strong>Category-wise feed</strong> to update
-                    categories.
+                <div className="p-4">
+                  <p className="text-yellow-400 mb-4">
+                    Warning: Responses will be solely based on your followed profiles
+                    posts from last 24 hours 
                   </p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {availableCategories.map((category) => (
-                    <button
-                      key={category}
-                      className={`rounded-full px-4 py-2 text-sm transition-colors ${
-                        categories.includes(category)
-                          ? "bg-[#7FFFD4] text-black"
-                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
-                      }`}
-                      onClick={() =>
-                        setCategories((prev) =>
-                          prev.includes(category)
-                            ? prev.filter((c) => c !== category)
-                            : [...prev, category]
-                        )
-                      }
-                      disabled={loading || wise === "customProfiles"}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-                {wise === "categorywise" &&
-                  registeredWise === "categorywise" && (
-                    <button
-                      className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
-                      onClick={handleCategoryUpdate}
-                      disabled={loading}
-                    >
-                      {loading ? "Updating..." : "Update Categories"}
-                    </button>
-                  )}
-              </section>
-
-              {/* Manage Followed Profiles Section */}
-              <section
-                className={`space-y-4 ${
-                  wise === "categorywise" ? "opacity-50" : ""
-                }`}
-              >
-                <h2 className="text-xl font-semibold text-[#7FFFD4]">
-                  Manage Followed Profiles
-                </h2>
-                {wise === "categorywise" && (
-                  <p className="text-gray-400">
-                    Switch to <strong>Custom Profiles</strong> to manage
-                    followed profiles.
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {profiles.map((profile) => (
-                    <div
-                      key={profile.username}
-                      className="flex items-center gap-2 rounded-full border border-[#7FFFD4] px-4 py-2 text-sm"
-                    >
-                      {renderAvatar(profile.username, profile.avatar)}
-                      <span>@{profile.username}</span>
-                      <button
-                        className="text-gray-400 hover:text-white"
-                        onClick={() =>
-                          setProfiles((prev) =>
-                            prev.filter((p) => p.username !== profile.username)
-                          )
-                        }
-                        disabled={loading || wise === "categorywise"}
+                  <div
+                    ref={chatContainerRef}
+                    className="chat-messages space-y-4 max-h-96 overflow-y-auto mb-4"
+                  >
+                    {chatMessages.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex ${
+                          message.role === "user"
+                            ? "justify-end"
+                            : "justify-start"
+                        }`}
                       >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                {wise === "customProfiles" && (
-                  <div className="relative mt-4" ref={dropdownRef}>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={newProfile}
-                        onChange={handleSearchInputChange}
-                        placeholder="@username"
-                        className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
-                        disabled={loading}
-                      />
-                      {showDropdown && (
-                        <div className="absolute left-0 right-0 top-full mt-2 rounded-lg border border-gray-800 bg-black">
-                          <ul>
-                            {loadingSuggestions ? (
-                              <li className="p-2 text-gray-400">Loading...</li>
-                            ) : suggestions.length > 0 ? (
-                              suggestions.map((suggestion, index) => (
-                                <li
-                                  key={index}
-                                  className="cursor-pointer p-2 hover:bg-[#7FFFD4]/10"
-                                  onClick={() => handleAddProfile(suggestion)}
-                                >
-                                  @{suggestion}
-                                </li>
-                              ))
-                            ) : (
-                              <li className="p-2 text-gray-400">
-                                No result found
-                              </li>
-                            )}
-                          </ul>
+                        <div
+                          className={`max-w-3/4 rounded-lg p-3 ${
+                            message.role === "user"
+                              ? "bg-[#7FFFD4] text-black"
+                              : "bg-gray-800 text-white"
+                          }`}
+                        >
+                          {message.content}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ))}
+                    {isTyping && (
+                      <div className="flex justify-start">
+                        <div className="bg-gray-800 text-white rounded-lg p-3">
+                          <span className="typing-animation">...</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-                {wise === "customProfiles" &&
-                  registeredWise === "customProfiles" && (
-                    <button
-                      className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
-                      onClick={handleProfileUpdate}
-                      disabled={loading}
-                    >
-                      {loading ? "Updating..." : "Update Profiles"}
-                    </button>
-                  )}
-              </section>
-
-              {/* Update Time Section */}
-              <section className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#7FFFD4]">
-                  Update Preferred Time
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {availableTimes.map((timeOption) => (
-                    <button
-                      key={timeOption}
-                      className={`rounded-full px-4 py-2 text-sm transition-colors ${
-                        time.includes(timeOption)
-                          ? "bg-[#7FFFD4] text-black"
-                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
-                      }`}
-                      onClick={() =>
-                        setTime((prev) =>
-                          prev.includes(timeOption)
-                            ? prev.filter((t) => t !== timeOption)
-                            : [...prev, timeOption]
-                        )
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={userInput}
+                      onChange={(e) => setUserInput(e.target.value)}
+                      onKeyPress={(e) =>
+                        e.key === "Enter" && handleSendMessage()
                       }
-                      disabled={loading}
+                      placeholder="Ask a question..."
+                      className="flex-grow rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
+                    />
+                    <button
+                      onClick={handleSendMessage}
+                      className="rounded-lg bg-[#7FFFD4] px-4 py-2 text-black transition-colors hover:bg-[#00CED1]"
                     >
-                      {timeOption}
+                      Send
                     </button>
-                  ))}
+                    <button
+                      onClick={resetChat}
+                      className="rounded-lg border border-[#7FFFD4] px-4 py-2 text-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                    >
+                      Reset
+                    </button>
+                  </div>
                 </div>
-                <button
-                  className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
-                  onClick={handleTimeUpdate}
-                  disabled={loading}
-                >
-                  {loading ? "Updating..." : "Update Time"}
-                </button>
-              </section>
+              </div>
             </div>
           )}
         </div>
