@@ -392,6 +392,7 @@ export default function Dashboard() {
   };
 
   const handleProfileUpdate = async () => {
+    playSound();
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`,
@@ -412,6 +413,7 @@ export default function Dashboard() {
   };
 
   const handleCategoryUpdate = async () => {
+    playSound();
     setLoading(true);
     try {
       const response = await axios.post(
@@ -493,6 +495,7 @@ export default function Dashboard() {
   };
 
   const handleFeedTypeUpdate = async () => {
+    playSound();
     if (wise === "customProfiles" && profiles.length < 3) {
       showNotification(
         "Please add at least 3 followed profiles to switch to Custom Profiles.",
@@ -664,6 +667,7 @@ export default function Dashboard() {
   };
 
   const handleSendMessage = async () => {
+    playSound();
     if (!userInput.trim()) return;
 
     const newUserMessage: ChatMessage = { role: "user", content: userInput };
@@ -699,13 +703,15 @@ export default function Dashboard() {
       let aiResponse = response.data.choices[0].message.content;
 
       // Clean up the AI response
-      aiResponse = aiResponse.replace(/\*\*/g, ""); // Remove all double asterisks
-      aiResponse = aiResponse.replace(/\[|\]/g, ""); // Remove square brackets if present
-
+      aiResponse = aiResponse.replace(/\*/g, ""); // Remove single asterisks
+      aiResponse = aiResponse.replace(/\[|\]/g, ""); // Remove square brackets
+      aiResponse = aiResponse.replace(/_{1,2}([^_]+)_{1,2}/g, "$1"); // Remove underscores for italic/bold
+      aiResponse = aiResponse.replace(/`([^`]+)`/g, "$1"); // Remove backticks for code
       setChatMessages((prev) => [
         ...prev,
         { role: "assistant", content: aiResponse },
       ]);
+      playSound();
     } catch (error) {
       console.error("Error fetching AI response:", error);
       setChatMessages((prev) => [
@@ -933,6 +939,211 @@ export default function Dashboard() {
             </div>
           )}
 
+          {selectedTab === "settings" && (
+            <div className="settings-content space-y-8 rounded-xl border border-gray-800 bg-[#111] p-6">
+              {/* Feed Type Selection */}
+              <section className="space-y-4">
+                <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                  Feed Type
+                </h2>
+                <div className="flex gap-4">
+                  <button
+                    className={`rounded-full px-6 py-2 transition-colors ${
+                      wise === "categorywise"
+                        ? "bg-[#7FFFD4] text-black"
+                        : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                    }`}
+                    onClick={() => setWise("categorywise")}
+                  >
+                    Category-wise
+                  </button>
+                  <button
+                    className={`rounded-full px-6 py-2 transition-colors ${
+                      wise === "customProfiles"
+                        ? "bg-[#7FFFD4] text-black"
+                        : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                    }`}
+                    onClick={() => setWise("customProfiles")}
+                  >
+                    Custom Profiles
+                  </button>
+                </div>
+                <button
+                  className="mt-4 rounded-full bg-black px-28 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                  onClick={handleFeedTypeUpdate}
+                  disabled={loading}
+                >
+                  {loading ? "Updating..." : "Update Feed Type"}
+                </button>
+              </section>
+
+              {/* Update Categories Section */}
+              <section
+                className={`space-y-4 ${
+                  wise === "customProfiles" ? "opacity-50" : ""
+                }`}
+              >
+                <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                  Update Categories
+                </h2>
+                {wise === "customProfiles" && (
+                  <p className="text-gray-400">
+                    Switch to <strong>Category-wise feed</strong> to update
+                    categories.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {availableCategories.map((category) => (
+                    <button
+                      key={category}
+                      className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                        categories.includes(category)
+                          ? "bg-[#7FFFD4] text-black"
+                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                      }`}
+                      onClick={() =>
+                        setCategories((prev) =>
+                          prev.includes(category)
+                            ? prev.filter((c) => c !== category)
+                            : [...prev, category]
+                        )
+                      }
+                      disabled={loading || wise === "customProfiles"}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+                {wise === "categorywise" &&
+                  registeredWise === "categorywise" && (
+                    <button
+                      className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                      onClick={handleCategoryUpdate}
+                      disabled={loading}
+                    >
+                      {loading ? "Updating..." : "Update Categories"}
+                    </button>
+                  )}
+              </section>
+
+              {/* Manage Followed Profiles Section */}
+              <section
+                className={`space-y-4 ${
+                  wise === "categorywise" ? "opacity-50" : ""
+                }`}
+              >
+                <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                  Manage Followed Profiles
+                </h2>
+                {wise === "categorywise" && (
+                  <p className="text-gray-400">
+                    Switch to <strong>Custom Profiles</strong> to manage
+                    followed profiles.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {profiles.map((profile) => (
+                    <div
+                      key={profile.username}
+                      className="flex items-center gap-2 rounded-full border border-[#7FFFD4] px-4 py-2 text-sm"
+                    >
+                      {renderAvatar(profile.username, profile.avatar)}
+                      <span>@{profile.username}</span>
+                      <button
+                        className="text-gray-400 hover:text-white"
+                        onClick={() =>
+                          setProfiles((prev) =>
+                            prev.filter((p) => p.username !== profile.username)
+                          )
+                        }
+                        disabled={loading || wise === "categorywise"}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {wise === "customProfiles" && (
+                  <div className="relative mt-4">
+                    <input
+                      type="text"
+                      value={newProfile}
+                      onChange={handleSearchInputChange}
+                      placeholder="@username"
+                      className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
+                      disabled={loading}
+                    />
+                    {showDropdown && (
+                      <ul className="absolute left-0 right-0 top-full mt-2 rounded-lg border border-gray-800 bg-black">
+                        {loadingSuggestions ? (
+                          <li className="p-2 text-gray-400">Loading...</li>
+                        ) : suggestions.length > 0 ? (
+                          suggestions.map((suggestion, index) => (
+                            <li
+                              key={index}
+                              className="cursor-pointer p-2 hover:bg-[#7FFFD4]/10"
+                              onClick={() => handleAddProfile(suggestion)}
+                            >
+                              @{suggestion}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="p-2 text-gray-400">No result found</li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                )}
+                {wise === "customProfiles" &&
+                  registeredWise === "customProfiles" && (
+                    <button
+                      className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                      onClick={handleProfileUpdate}
+                      disabled={loading}
+                    >
+                      {loading ? "Updating..." : "Update Profiles"}
+                    </button>
+                  )}
+              </section>
+
+              {/* Update Time Section */}
+              <section className="space-y-4">
+                <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                  Update Preferred Time
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {availableTimes.map((timeOption) => (
+                    <button
+                      key={timeOption}
+                      className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                        time.includes(timeOption)
+                          ? "bg-[#7FFFD4] text-black"
+                          : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                      }`}
+                      onClick={() =>
+                        setTime((prev) =>
+                          prev.includes(timeOption)
+                            ? prev.filter((t) => t !== timeOption)
+                            : [...prev, timeOption]
+                        )
+                      }
+                      disabled={loading}
+                    >
+                      {timeOption}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                  onClick={handleTimeUpdate}
+                  disabled={loading}
+                >
+                  {loading ? "Updating..." : "Update Time"}
+                </button>
+              </section>
+            </div>
+          )}
+
           {selectedTab === "newsletter" && (
             <div className="space-y-4 rounded-xl border border-gray-800 bg-black p-6">
               <h3 className="text-xl font-semibold text-[#7FFFD4]">
@@ -960,8 +1171,8 @@ export default function Dashboard() {
 
           {/* Chat Modal */}
           {isChatOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-[#111] rounded-lg w-full max-w-lg mx-4 overflow-hidden">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] rounded-lg w-full max-w-lg mx-auto overflow-hidden">
                 <div className="flex justify-between items-center p-4 border-b border-gray-800">
                   <h3 className="text-xl font-semibold text-[#7FFFD4]">
                     Ask FeedRecap AI
@@ -974,13 +1185,13 @@ export default function Dashboard() {
                   </button>
                 </div>
                 <div className="p-4">
-                  <p className="text-yellow-400 mb-4">
-                    Warning: Responses will be solely based on your followed profiles
-                    posts from last 24 hours 
+                  <p className="text-yellow-400  text-sm">
+                    Warning: Responses will be based on your followed profiles
+                    posts from last 24 hours
                   </p>
                   <div
                     ref={chatContainerRef}
-                    className="chat-messages space-y-4 max-h-96 overflow-y-auto mb-4"
+                    className="chat-messages space-y-4 max-h-[50vh] overflow-y-auto mb-4"
                   >
                     {chatMessages.map((message, index) => (
                       <div
@@ -992,7 +1203,7 @@ export default function Dashboard() {
                         }`}
                       >
                         <div
-                          className={`max-w-3/4 rounded-lg p-3 ${
+                          className={`max-w-[75%] rounded-lg p-3 ${
                             message.role === "user"
                               ? "bg-[#7FFFD4] text-black"
                               : "bg-gray-800 text-white"
@@ -1010,7 +1221,7 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
                     <input
                       type="text"
                       value={userInput}
@@ -1019,20 +1230,22 @@ export default function Dashboard() {
                         e.key === "Enter" && handleSendMessage()
                       }
                       placeholder="Ask a question..."
-                      className="flex-grow rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
+                      className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
                     />
-                    <button
-                      onClick={handleSendMessage}
-                      className="rounded-lg bg-[#7FFFD4] px-4 py-2 text-black transition-colors hover:bg-[#00CED1]"
-                    >
-                      Send
-                    </button>
-                    <button
-                      onClick={resetChat}
-                      className="rounded-lg border border-[#7FFFD4] px-4 py-2 text-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
-                    >
-                      Reset
-                    </button>
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        onClick={handleSendMessage}
+                        className="flex-1 rounded-lg bg-[#7FFFD4] px-4 py-2 text-black transition-colors hover:bg-[#00CED1]"
+                      >
+                        Send
+                      </button>
+                      <button
+                        onClick={resetChat}
+                        className="flex-1 rounded-lg border border-[#7FFFD4] px-4 py-2 text-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                      >
+                        Reset
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
