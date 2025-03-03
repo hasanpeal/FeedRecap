@@ -147,11 +147,15 @@ export default function Navbar2() {
     };
   }, [menuOpen]);
 
+  function handleReload(){
+    window.location.reload();
+  }
+
   return (
     <header className="bg-black border-b border-gray-800">
       <Toaster />
       <div className="py-4 px-6 flex items-center justify-between max-w-7xl mx-auto">
-        <Link href="/" className="flex items-center">
+        <Link href="/dashboard" className="flex items-center" onClick={handleReload}>
           <span className="text-3xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
               Feed

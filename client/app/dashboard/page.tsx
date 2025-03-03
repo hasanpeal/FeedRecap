@@ -173,7 +173,7 @@ export default function Dashboard() {
 
   const fetchUserProfile = async (username: string): Promise<UserProfile> => {
     let retries = 0;
-    const maxRetries = 3;
+    const maxRetries = 7;
 
     while (retries < maxRetries) {
       try {
