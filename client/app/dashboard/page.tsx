@@ -48,7 +48,7 @@ export default function Dashboard() {
   const [selectedTab, setSelectedTab] = useState("newsfeed");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
-  const [visiblePosts, setVisiblePosts] = useState(10);
+  const [visiblePosts, setVisiblePosts] = useState(20);
   const [showAllPosts, setShowAllPosts] = useState(false);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [newProfile, setNewProfile] = useState("");
@@ -287,6 +287,9 @@ export default function Dashboard() {
             new Date(b.time).getTime() - new Date(a.time).getTime()
         );
 
+        // Don't clear posts here to avoid the "No posts found" flash
+        setPageLoading(false);
+
         const uniqueUsernames: string[] = Array.from(
           new Set(sortedPosts.map((post: any) => post.username))
         );
@@ -451,7 +454,7 @@ export default function Dashboard() {
 
   const toggleShowMore = () => {
     if (showAllPosts) {
-      setVisiblePosts(10);
+      setVisiblePosts(20);
     } else {
       setVisiblePosts(posts.length);
     }
@@ -490,6 +493,75 @@ export default function Dashboard() {
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#7FFFD4] mx-auto mb-4"></div>
           <p className="text-[#7FFFD4]">{message}</p>
         </div>
+      </div>
+    );
+  };
+
+  const SkeletonLoader = () => {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        {/* Navigation Skeleton */}
+        <div className="mb-8 flex items-center justify-between border-b border-gray-800 pb-4">
+          <div className="flex gap-8">
+            <div className="h-8 w-20 rounded-md bg-gray-800"></div>
+            <div className="h-8 w-20 rounded-md bg-gray-800"></div>
+            <div className="h-8 w-20 rounded-md bg-gray-800"></div>
+          </div>
+        </div>
+
+        {/* Filter Skeleton */}
+        <div className="mb-6 flex overflow-x-auto gap-2 px-8">
+          <div className="h-10 w-32 flex-shrink-0 rounded-full bg-gray-800"></div>
+          <div className="h-10 w-28 flex-shrink-0 rounded-full bg-gray-800"></div>
+          <div className="h-10 w-28 flex-shrink-0 rounded-full bg-gray-800"></div>
+          <div className="h-10 w-28 flex-shrink-0 rounded-full bg-gray-800"></div>
+        </div>
+
+        {/* Posts Grid Skeleton */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all"
+            >
+              <div className="mb-3 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gray-800"></div>
+                <div className="space-y-2">
+                  <div className="h-4 w-24 rounded bg-gray-800"></div>
+                  <div className="h-3 w-16 rounded bg-gray-800"></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 w-full rounded bg-gray-800"></div>
+                <div className="h-4 w-full rounded bg-gray-800"></div>
+                <div className="h-4 w-3/4 rounded bg-gray-800"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const PostSkeleton = () => {
+    return (
+      <div className="post-card overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-gray-800"></div>
+            <div className="space-y-2">
+              <div className="h-4 w-24 rounded bg-gray-800"></div>
+              <div className="h-3 w-16 rounded bg-gray-800"></div>
+            </div>
+          </div>
+          <div className="h-6 w-20 rounded-full bg-gray-800"></div>
+        </div>
+        <div className="space-y-2 mb-4">
+          <div className="h-4 w-full rounded bg-gray-800"></div>
+          <div className="h-4 w-full rounded bg-gray-800"></div>
+          <div className="h-4 w-3/4 rounded bg-gray-800"></div>
+        </div>
+        <div className="h-4 w-24 rounded bg-gray-800"></div>
       </div>
     );
   };
@@ -740,8 +812,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar3 />
-      {pageLoading || loadingProfiles || loadingPosts ? (
-        <SpinnerWithMessage message="Loading dashboard..." />
+      {pageLoading ? (
+        <SkeletonLoader />
       ) : (
         <div className="container mx-auto px-4 py-12">
           {notification && (
@@ -812,7 +884,14 @@ export default function Dashboard() {
                       WebkitOverflowScrolling: "touch",
                     }}
                   >
-                    {wise === "categorywise" ? (
+                    {loadingProfiles ? (
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className="inline-flex h-10 w-32 items-center rounded-full border border-gray-800 bg-[#111]"
+                        />
+                      ))
+                    ) : wise === "categorywise" ? (
                       <>
                         <button
                           onClick={() => setSelectedCategory(null)}
@@ -879,51 +958,62 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="post-grid grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredPosts.slice(0, visiblePosts).map((post) => (
-                  <div
-                    key={post.tweet_id}
-                    className="post-card overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30"
-                  >
-                    <div className="post-header mb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {renderAvatar2(post.username, post.avatar || "")}
-                        <div>
-                          <h3 className="font-medium">@{post.username}</h3>
-                          <span className="text-sm text-gray-400">
-                            {formatTime(post.time)}
-                          </span>
-                        </div>
-                      </div>
-                      {wise === "categorywise" && (
-                        <span className="rounded-full bg-[#7FFFD4]/10 px-3 py-1 text-sm text-[#7FFFD4]">
-                          {post.category}
-                        </span>
-                      )}
-                    </div>
-                    {renderPostText(post.text, post.tweet_id)}
-                    <a
-                      href={`https://twitter.com/i/web/status/${post.tweet_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-[#7FFFD4] hover:underline"
+                {loadingPosts ||
+                (filteredPosts.length === 0 && posts.length === 0) ? (
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <PostSkeleton key={index} />
+                  ))
+                ) : filteredPosts.length > 0 ? (
+                  filteredPosts.slice(0, visiblePosts).map((post) => (
+                    <div
+                      key={post.tweet_id}
+                      className="post-card overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30"
                     >
-                      View Post
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                      <div className="post-header mb-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {renderAvatar2(post.username, post.avatar || "")}
+                          <div>
+                            <h3 className="font-medium">@{post.username}</h3>
+                            <span className="text-sm text-gray-400">
+                              {formatTime(post.time)}
+                            </span>
+                          </div>
+                        </div>
+                        {wise === "categorywise" && (
+                          <span className="rounded-full bg-[#7FFFD4]/10 px-3 py-1 text-sm text-[#7FFFD4]">
+                            {post.category}
+                          </span>
+                        )}
+                      </div>
+                      {renderPostText(post.text, post.tweet_id)}
+                      <a
+                        href={`https://twitter.com/i/web/status/${post.tweet_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-[#7FFFD4] hover:underline"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </a>
+                        View Post
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          />
+                        </svg>
+                      </a>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-8">
+                    <p className="text-gray-400">No posts found.</p>
                   </div>
-                ))}
+                )}
               </div>
 
               {posts.length > 10 && (
@@ -1185,7 +1275,7 @@ export default function Dashboard() {
                   </button>
                 </div>
                 <div className="p-4">
-                  <p className="text-yellow-400  text-sm">
+                  <p className="text-yellow-400  text-sm mb-2">
                     Warning: Responses will be based on your followed profiles
                     posts from last 24 hours
                   </p>

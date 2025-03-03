@@ -157,7 +157,7 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
 
         const topTweets = recentTweets
           .sort((a: any, b: any) => b.favorites - a.favorites)
-          .slice(0, 10)
+          .slice(0, 25) // Was 10 before
           .map((tweet: any) => ({
             text: removeLinksFromText(tweet.text),
             likes: tweet.favorites, // Accessing the 'favorites' field for likes
@@ -433,7 +433,7 @@ export async function generateNewsletter(
 11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
 12. Ensure the **bullet points are separated by category** and well-structured.
 13. Here is the format: Summary (heading) then skip one line then summary content then skip one line. Same goes for other section: heading -> Skip one line -> Content -> Skip one line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
-14. MUST: Make sure each heading (bold) and its content has consisted font, size and style.
+14. MUST: Make sure each heading (bold) and its content has consisted font, size and style. Also don't use any any horizontal line.
 Here is the tweet data you are summarizing:
 
 ` +
@@ -1041,7 +1041,7 @@ export async function fetchTweetsForProfiles(
 
       const topTweets = recentTweets
         .sort((a: any, b: any) => b.favorites - a.favorites)
-        .slice(0, 10)
+        .slice(0, 25)
         .map(
           (tweet: {
             text: string;
@@ -1350,7 +1350,7 @@ export async function generateCustomProfileNewsletter(
 8. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
 9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
 10. Here is the format: Summary (heading) then skip one line then summary content then skip one line. Same goes for other section: heading -> Skip one line -> Content -> Skip one line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
-11. MUST: Make sure each heading (bold) and its content has consisted font, size and style.
+11. MUST: Make sure each heading (bold) and its content has consisted font, size and style. Also don't use any any horizontal line.
 Here is the tweet data you are summarizing:
 
 ` +
