@@ -10,10 +10,13 @@ import dbTweet from "./dbTweet";
 import { marked } from "marked";
 import { htmlToText } from "html-to-text";
 import { Newsletter } from "./newsletterModel";
-
+import OpenAI from "openai";
 // Set up SendGrid API
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
-
+const openai = new OpenAI({
+  baseURL: "https://api.deepseek.com",
+  apiKey: process.env.OPENAI,
+});
 // MongoDB Tweet Document Interface
 export interface ITweet extends Document {
   category: string;
@@ -404,66 +407,58 @@ export async function generateNewsletter(
     tweet_id: string;
   }[]
 ): Promise<string | undefined> {
-  const deepseekOptions = {
-    method: "POST",
-    url: "https://deepseek-v31.p.rapidapi.com/",
-    headers: {
-      "x-rapidapi-key": process.env.RAPID_API_KEY || "",
-      "x-rapidapi-host": "deepseek-v31.p.rapidapi.com",
-      "Content-Type": "application/json",
-    },
-    data: {
-      model: "deepseek-v3",
-      messages: [
-        {
-          role: "user",
-          content:
-            `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 14 OF THESE RULES!! (Take as long as you want to process):
-
-1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all categories. Title this section "Summary".
-2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
-3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
-4. **Follow the themes of each category**, ensuring the content feels cohesive and relevant to the category. Each category should feel distinct.
-5. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
-6. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
-7. **Do NOT cite sources**—just summarize the tweets without citations.
-8. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
-9. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
-10. **Format the newsletter as bullet points** for each category. Each bullet point should summarize a key piece of information from the tweets, just as if you were a news reporter covering these topics. Write succinctly and clearly.
-11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
-12. Ensure the **bullet points are separated by category** and well-structured.
-13. Here is the format: Summary (heading) then skip one line then summary content then skip one line. Same goes for other section: heading -> Skip one line -> Content -> Skip one line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
-14. MUST: Make sure each heading (bold) and its content has consisted font, size and style. Also don't use any any horizontal line.
-Here is the tweet data you are summarizing:
-
-` +
-            tweetsByCategory
-              .map(({ category, tweetsByUser }) => {
-                return (
-                  `Category: ${category}\n` +
-                  tweetsByUser
-                    .map(
-                      ({ screenName, tweets }) =>
-                        `Tweets by @${screenName}:\n${tweets.join("\n")}\n\n`
-                    )
-                    .join("")
-                );
-              })
-              .join(""),
-        },
-      ],
-    },
-  };
-
   try {
-    const response = await axios.request(deepseekOptions);
-    let result = response.data.choices[0].message.content;
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      {
+        role: "system",
+        content:
+          "You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 13 OF THESE RULES!! (Take as long as you want to process):\n\n" +
+          "1. **Begin with a concise 'Summary' section** that provides an overall 2-3 line overview of the main themes or highlights across all categories. Title this section 'Summary'.\n" +
+          "2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.\n" +
+          "3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis.\n" +
+          "4. **Follow the themes of each category**, ensuring the content feels cohesive and relevant. Each category should feel distinct.\n" +
+          "5. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.\n" +
+          "6. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.\n" +
+          "7. **Do NOT cite sources**—just summarize the tweets without citations.\n" +
+          "8. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.\n" +
+          "9. **Use emojis often** to add emphasis and excitement to the newsletter.\n" +
+          "10. **Format the newsletter as bullet points** for each category.\n" +
+          "11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.\n" +
+          "12. **Ensure bullet points are separated by category** and well-structured.\n" +
+          "13. **Make sure each heading (bold) and its content has consistent font, size, and style. Also, don't use any horizontal line.**\n\n",
+      },
+      {
+        role: "user",
+        content:
+          "Here is the tweet data you are summarizing:\n\n" +
+          tweetsByCategory
+            .map(({ category, tweetsByUser }) => {
+              return (
+                `Category: ${category}\n` +
+                tweetsByUser
+                  .map(
+                    ({ screenName, tweets }) =>
+                      `Tweets by @${screenName}:\n${tweets.join("\n")}\n\n`
+                  )
+                  .join("")
+              );
+            })
+            .join(""),
+      },
+    ];
+
+    const response = await openai.chat.completions.create({
+      messages,
+      model: "deepseek-chat",
+    });
+
+    let result = response.choices[0].message.content;
 
     // Manually append the top 15 tweets to the end of the newsletter
     const topTweetsText = top15Tweets
       .map(
         (tweet, index) =>
-          `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} - @$${
+          `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} - @${
             tweet.screenName
           } <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
@@ -483,6 +478,7 @@ Here is the tweet data you are summarizing:
     return undefined;
   }
 }
+
 
 
 function removeLinksFromText(text: string): string {
@@ -654,33 +650,89 @@ export async function sendNewsletterEmail(
 }
 
 // First cron job: Fetch new tweets every 20 minutes
-cron.schedule(
-  "*/20 * * * *",
-  async () => {
-    console.log(
-      "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
-    );
+// cron.schedule(
+//   "*/20 * * * *",
+//   async () => {
+//     console.log(
+//       "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
+//     );
 
-    // Fetch and store tweets for all categories
-    await fetchAndStoreTweets([
-      "Politics",
-      "Geopolitics",
-      "Finance",
-      "AI",
-      "Tech",
-      "Crypto",
-      "Meme",
-      "Sports",
-      "Entertainment",
-    ]);
+//     // Fetch and store tweets for all categories
+//     await fetchAndStoreTweets([
+//       "Politics",
+//       "Geopolitics",
+//       "Finance",
+//       "AI",
+//       "Tech",
+//       "Crypto",
+//       "Meme",
+//       "Sports",
+//       "Entertainment",
+//     ]);
 
-    // console.log("✅ [Tweet Fetching Cron]: Tweets have been updated.");
-  },
-  {
-    scheduled: true,
-    timezone: "UTC",
+//     // console.log("✅ [Tweet Fetching Cron]: Tweets have been updated.");
+//   },
+//   {
+//     scheduled: true,
+//     timezone: "UTC",
+//   }
+// );
+
+const fetchTweetsPeriodically = async () => {
+  while (true) {
+    const now = new Date();
+    const minutes = now.getMinutes();
+
+    // Check if the current minute is a multiple of 20 (0, 20, 40)
+    if (minutes % 20 === 0) {
+      console.log(
+        "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
+      );
+
+      await fetchAndStoreTweets([
+        "Politics",
+        "Geopolitics",
+        "Finance",
+        "AI",
+        "Tech",
+        "Crypto",
+        "Meme",
+        "Sports",
+        "Entertainment",
+      ]);
+
+      console.log("✅ [Tweet Fetching]: Tweets updated successfully.");
+
+      console.log(
+        "🔄 [Custom Profiles]: Fetching fresh posts for user profiles..."
+      );
+
+      const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
+
+      for (const user of users) {
+        try {
+          await fetchTweetsForProfiles(
+            user.profiles,
+            user._id as mongoose.Types.ObjectId
+          );
+        } catch (error) {
+          console.error(
+            `❌ [Custom Profiles]: Error fetching posts for ${user.email}:`,
+            error
+          );
+        }
+      }
+
+      console.log("✅ [Custom Profiles]: User profile tweets updated.");
+    }
+
+    // Wait 1 minute before checking again
+    await new Promise((resolve) => setTimeout(resolve, 60 * 1000));
   }
-);
+};
+
+// Start the function
+fetchTweetsPeriodically().catch(console.error);
 
 // Second cron job: Send newsletters to users based on their time preferences
 // cron.schedule(
@@ -730,41 +782,41 @@ cron.schedule(
 //   }
 // );
 
-cron.schedule(
-  "*/20 * * * *", // Every 20 minutes
-  async () => {
-    console.log(
-      "🔄 [Custom Profiles Cron]: Fetching fresh posts for user profiles..."
-    );
+// cron.schedule(
+//   "*/20 * * * *", // Every 20 minutes
+//   async () => {
+//     console.log(
+//       "🔄 [Custom Profiles Cron]: Fetching fresh posts for user profiles..."
+//     );
 
-    const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
+//     const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
 
-    for (const user of users) {
-      try {
-        // console.log(
-        //   `🛠️ [Custom Profiles]: Fetching tweets for ${user.email}...`
-        // );
+//     for (const user of users) {
+//       try {
+//         // console.log(
+//         //   `🛠️ [Custom Profiles]: Fetching tweets for ${user.email}...`
+//         // );
 
-        // Fetch and save posts for the user's custom profiles
-        const { tweetsByProfiles } = await fetchTweetsForProfiles(
-          user.profiles,
-          user._id as mongoose.Types.ObjectId
-        );
+//         // Fetch and save posts for the user's custom profiles
+//         const { tweetsByProfiles } = await fetchTweetsForProfiles(
+//           user.profiles,
+//           user._id as mongoose.Types.ObjectId
+//         );
 
-        // console.log(`✅ [Custom Profiles]: Fetched posts for ${user.email}.`);
-      } catch (error) {
-        console.error(
-          `❌ [Custom Profiles]: Error fetching posts for ${user.email}:`,
-          error
-        );
-      }
-    }
-  },
-  {
-    scheduled: true,
-    timezone: "UTC",
-  }
-);
+//         // console.log(`✅ [Custom Profiles]: Fetched posts for ${user.email}.`);
+//       } catch (error) {
+//         console.error(
+//           `❌ [Custom Profiles]: Error fetching posts for ${user.email}:`,
+//           error
+//         );
+//       }
+//     }
+//   },
+//   {
+//     scheduled: true,
+//     timezone: "UTC",
+//   }
+// );
 
 // cron.schedule(
 //   "0 * * * *", // This cron job runs every hour
@@ -1324,61 +1376,53 @@ export async function generateCustomProfileNewsletter(
     tweet_id: string;
   }[]
 ): Promise<string | undefined> {
-  const deepseekOptions = {
-    method: "POST",
-    url: "https://deepseek-v31.p.rapidapi.com/",
-    headers: {
-      "x-rapidapi-key": process.env.RAPID_API_KEY || "",
-      "x-rapidapi-host": "deepseek-v31.p.rapidapi.com",
-      "Content-Type": "application/json",
-    },
-    data: {
-      model: "deepseek-v3",
-      messages: [
-        {
-          role: "user",
-          content:
-            `You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 11 OF THESE RULES!! (Take as long as you want to process):
-
-1. **Begin with a concise "Summary" section** that provides an overall 2-3 line overview of the main themes or highlights across all tweets. Title this section "Summary".
-2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.
-3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis. For example: 🔥, 💡, 📈, 🚀, 💬, etc.
-4. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.
-5. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.
-6. **Do NOT cite sources**—just summarize the tweets without citations.
-7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.
-8. IMPORTANT: **Use emojis often** to add emphasis and excitement to the newsletter. For example, use 📊 for data points, 🚀 for upward trends, 💡 for ideas, etc.
-9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.
-10. Here is the format: Summary (heading) then skip one line then summary content then skip one line. Same goes for other section: heading -> Skip one line -> Content -> Skip one line. MUST: After each heading, below line should be empty so it creates a gap between heading and its content.
-11. MUST: Make sure each heading (bold) and its content has consisted font, size and style. Also don't use any any horizontal line.
-Here is the tweet data you are summarizing:
-
-` +
-            tweetsByProfiles
-              .map(
-                ({ profile, tweets }) =>
-                  `Tweets by @${profile}:\n${tweets.join("\n")}\n\n`
-              )
-              .join(""),
-        },
-      ],
-    },
-  };
-
   try {
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      {
+        role: "system",
+        content:
+          "You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 11 OF THESE RULES!! (Take as long as you want to process):\n\n" +
+          "1. **Begin with a concise 'Summary' section** that provides an overall 2-3 line overview of the main themes or highlights across all tweets. Title this section 'Summary'.\n" +
+          "2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.\n" +
+          "3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis.\n" +
+          "4. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.\n" +
+          "5. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.\n" +
+          "6. **Do NOT cite sources**—just summarize the tweets without citations.\n" +
+          "7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.\n" +
+          "8. **Use emojis often** to add emphasis and excitement to the newsletter.\n" +
+          "9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.\n" +
+          "10. **Make sure each heading (bold) and its content has consistent font, size, and style. **\n\n",
+      },
+      {
+        role: "user",
+        content:
+          "Here is the tweet data you are summarizing:\n\n" +
+          tweetsByProfiles
+            .map(
+              ({ profile, tweets }) =>
+                `Tweets by @${profile}:\n${tweets.join("\n")}\n\n`
+            )
+            .join(""),
+      },
+    ];
+
+    const response = await openai.chat.completions.create({
+      messages,
+      model: "deepseek-chat",
+    });
+
+    let result = response.choices[0].message.content;
+
     // Validate `top15Tweets` to ensure all objects have a valid `text`
     const validTopTweets = top15Tweets.filter(
       (tweet) => tweet.text && typeof tweet.text === "string"
     );
 
-    const response = await axios.request(deepseekOptions);
-    let result = response.data.choices[0].message.content;
-
     // Append the valid top 15 tweets to the newsletter
     const topTweetsText = validTopTweets
       .map(
         (tweet, index) =>
-          `${index + 1}. ${tweet.text.replace(/\n/g, " ")} - @$${
+          `${index + 1}. ${tweet.text.replace(/\n/g, " ")} - @${
             tweet.screenName
           } <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
