@@ -653,13 +653,13 @@ export async function sendNewsletterEmail(
   }
 }
 
-// First cron job: Fetch new tweets every 4 hours
+// First cron job: Fetch new tweets every 20 minutes
 cron.schedule(
-  "0 */4 * * *",
+  "*/20 * * * *",
   async () => {
-    // console.log(
-    //   "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
-    // );
+    console.log(
+      "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
+    );
 
     // Fetch and store tweets for all categories
     await fetchAndStoreTweets([
@@ -731,11 +731,11 @@ cron.schedule(
 // );
 
 cron.schedule(
-  "0 */4 * * *", // Every 4 hours
+  "*/20 * * * *", // Every 20 minutes
   async () => {
-    // console.log(
-    //   "🔄 [Custom Profiles Cron]: Fetching fresh posts for user profiles..."
-    // );
+    console.log(
+      "🔄 [Custom Profiles Cron]: Fetching fresh posts for user profiles..."
+    );
 
     const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
 
