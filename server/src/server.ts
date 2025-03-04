@@ -204,19 +204,43 @@ app.post("/updateProfiles", async (req, res) => {
   const { email, profiles } = req.body;
 
   try {
+    // Fetch the current user
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(200).json({ code: 1, message: "User not found" });
+    }
+
+    // Get the current profiles
+    const currentProfiles = user.profiles || [];
+
+    // Find newly added profiles
+    const changedProfiles = profiles.filter(
+      (profile: string) => !currentProfiles.includes(profile)
+    );
+
+    // Update the user's profiles in the database
     const updatedUser = await User.findOneAndUpdate(
       { email },
       { profiles },
       { new: true }
     );
 
-    if (updatedUser) {
-      return res
-        .status(200)
-        .json({ code: 0, message: "Profiles updated successfully" });
-    } else {
-      return res.status(200).json({ code: 1, message: "User not found" });
+    // If profiles were changed, fetch new tweets
+    if (changedProfiles.length > 0) {
+      await fetchTweetsForProfiles(
+        changedProfiles,
+        updatedUser?._id as mongoose.Types.ObjectId
+      );
     }
+
+    return res
+      .status(200)
+      .json({
+        code: 0,
+        message: "Profiles updated successfully",
+        changedProfiles,
+      });
   } catch (err) {
     console.error("Error updating profiles:", err);
     return res

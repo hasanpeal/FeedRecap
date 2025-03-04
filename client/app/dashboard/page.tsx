@@ -319,6 +319,7 @@ export default function Dashboard() {
   };
 
   const handleAddProfile = async (suggestion: string) => {
+    playSound();
     if (profiles.some((profile) => profile.username === suggestion)) {
       showNotification("Profile already added.", "error");
       return;
@@ -396,6 +397,9 @@ export default function Dashboard() {
 
   const handleProfileUpdate = async () => {
     playSound();
+    setPageLoading(true);
+    setSelectedTab("newsfeed");
+    setSelectedProfile(null);
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`,
@@ -406,12 +410,16 @@ export default function Dashboard() {
       );
       console.log("code in handleprofileupdate", response.data.code);
       if (response.data.code === 0) {
+        await fetchPosts();
+        console.log(posts);
         showNotification("Profiles updated successfully!", "success");
       } else {
         showNotification("Error updating profiles.", "error");
       }
     } catch (err) {
       showNotification("Error updating profiles.", "error");
+    } finally {
+      setPageLoading(false);
     }
   };
 
