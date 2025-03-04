@@ -96,32 +96,44 @@ async function ensureDatabaseConnections() {
   ]);
 }
 
-async function fetchAvatar(screenName: string): Promise<string | null> {
-  for (let attempt = 0; attempt < 7; attempt++) {
+const fetchAvatar = async (username: string): Promise<string | null> => {
+  let retries = 0;
+  const maxRetries = 7;
+
+  while (retries < maxRetries) {
     try {
       const response = await axios.get(
-        "https://twitter-api45.p.rapidapi.com/user.php",
+        "https://twitter-api45.p.rapidapi.com/screenname.php",
         {
-          params: { screenname: screenName },
+          params: { screenname: username },
           headers: {
-            "x-rapidapi-key": process.env.RAPID_API_KEY || "",
+            "x-rapidapi-key": process.env.RAPID_API_KEY,
             "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
           },
         }
       );
 
-      if (response.data?.user?.avatar) {
-        return response.data.user.avatar;
+      // If we successfully get an avatar, return immediately
+      if (response.data?.avatar) {
+        return response.data.avatar;
       }
+
+      // If we get a response but no avatar, throw an error to trigger a retry
+      throw new Error("No avatar in response");
     } catch (error) {
       console.error(
-        `⚠️ Attempt ${attempt + 1}: Failed to fetch avatar for ${screenName}`
+        `Error fetching avatar for ${username} (Attempt ${retries + 1}):`,
+        error
       );
+      retries++;
+
+      // Wait for a short time before retrying
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
   }
-  return null;
-}
+
+  return null; // Return null if all retries fail
+};
 
 // Helper function to clean up markdown-like symbols (*, **, etc.)
 async function cleanNewsletterText(text: string) {
