@@ -21,6 +21,7 @@ const openai = new OpenAI({
 export interface ITweet extends Document {
   category: string;
   screenName: string;
+  avatar: string,
   tweets: {
     text: string;
     likes: number;
@@ -34,6 +35,7 @@ export interface ITweet extends Document {
 export const tweetSchema: Schema = new mongoose.Schema({
   category: { type: String, required: true },
   screenName: { type: String, required: true },
+  avatar: { type: String, required: false }, // Add avatar field
   tweets: [
     {
       text: { type: String, required: true },
@@ -50,6 +52,7 @@ export const StoredTweets = dbTweet.model<ITweet>("StoredTweets", tweetSchema);
 
 export interface ICustomProfilePost extends Document {
   screenName: string; // Twitter profile's screen name
+  avatar: { type: String; required: false }; // Add avatar field
   tweets: [
     {
       text: { type: String; required: true };
@@ -91,6 +94,33 @@ async function ensureDatabaseConnections() {
       dbTweet.once("error", reject);
     }),
   ]);
+}
+
+async function fetchAvatar(screenName: string): Promise<string | null> {
+  for (let attempt = 0; attempt < 7; attempt++) {
+    try {
+      const response = await axios.get(
+        "https://twitter-api45.p.rapidapi.com/user.php",
+        {
+          params: { screenname: screenName },
+          headers: {
+            "x-rapidapi-key": process.env.RAPID_API_KEY || "",
+            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+          },
+        }
+      );
+
+      if (response.data?.user?.avatar) {
+        return response.data.user.avatar;
+      }
+    } catch (error) {
+      console.error(
+        `⚠️ Attempt ${attempt + 1}: Failed to fetch avatar for ${screenName}`
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+  }
+  return null;
 }
 
 // Helper function to clean up markdown-like symbols (*, **, etc.)
@@ -172,10 +202,17 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
             screenName: screenName,
           }));
 
+        // Fetch avatar (only if it's missing in DB)
+        let storedUser = await StoredTweets.findOne({
+          category,
+          screenName,
+        }).select("avatar");
+        let avatar = storedUser?.avatar || (await fetchAvatar(screenName));
+
         // Store the tweets in MongoDB
         await StoredTweets.findOneAndUpdate(
           { category, screenName },
-          { tweets: topTweets, createdAt: new Date() },
+          { tweets: topTweets, avatar, createdAt: new Date() },
           { upsert: true }
         );
 
@@ -1111,16 +1148,22 @@ export async function fetchTweetsForProfiles(
             screenName: profile,
           })
         );
+      
 
       // console.log(
       //   `✅ [Debug]: Top 10 tweets for ${profile}:`,
       //   JSON.stringify(topTweets, null, 2)
       // );
 
+      let storedUser = await CustomProfilePosts.findOne({
+        screenName: profile,
+      }).select("avatar");
+      let avatar = storedUser?.avatar || (await fetchAvatar(profile));
+
       // Save tweets to the database
       const post = await CustomProfilePosts.findOneAndUpdate(
         { screenName: profile },
-        { tweets: topTweets },
+        { tweets: topTweets, avatar },
         { upsert: true, new: true }
       ).exec();
 
