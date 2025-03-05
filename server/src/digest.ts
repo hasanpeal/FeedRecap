@@ -144,15 +144,8 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
   //   "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
   // );
   const categoryAccounts: { [key: string]: string[] } = {
-    // Politics: ["Politico", "Shellenberger", "Axios", "TheChiefNerd", "CNN"],
-    // Geopolitics: ["Faytuks", "EndgameWWIII", "sentdefender", "Global_Mil_Info"],
-    // Finance: ["financialjuice", "ForexLive", "DeItaone", "WSJ", "SullyCNBC"],
-    // AI: ["pmddomingos", "AndrewYNg", "tegmark", "deepmind", "OpenAI"],
-    // Tech: ["paulgraham", "ycombinator", "jason", "elonmusk", "shl"],
-    // Crypto: ["VitalikButerin", "pierre_crypt0", "APompliano", "aantonop", "ErikVoorhees"],
-    // Meme: ["stoolpresidente", "litcapital", "trustfundterry", "TheoVon"]
     Politics: ["Politico", "Shellenberger", "Axios", "TheChiefNerd"],
-    Geopolitics: ["Faytuks", "EndgameWWIII", "sentdefender", "Global_Mil_Info"],
+    Geopolitics: ["Faytuks", "sentdefender", "Global_Mil_Info"],
     Finance: ["financialjuice", "ForexLive", "DeItaone", "WSJ"],
     AI: ["pmddomingos", "AndrewYNg", "tegmark", "OpenAI"],
     Tech: ["paulgraham", "ycombinator", "jason", "elonmusk"],

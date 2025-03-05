@@ -194,8 +194,6 @@ app.get("/data", async (req, res) => {
         .select("screenName tweets avatar")
         .lean();; // ✅ Include avatar
 
-      console.log("Profile posts", profilePosts[0]);
-
       posts = profilePosts.flatMap((post) =>
         post.tweets.map((tweet) => ({
           username: post.screenName,
@@ -207,7 +205,7 @@ app.get("/data", async (req, res) => {
         }))
       );
     }
-    console.log(posts[0]);
+
     // ✅ Send user details + posts in response
     res.status(200).json({
       user: {

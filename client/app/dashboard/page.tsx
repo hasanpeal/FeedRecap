@@ -344,7 +344,6 @@ const fetchData = async () => {
           profiles: profiles.map((p) => p.username),
         }
       );
-      console.log("code in handleprofileupdate", response.data.code);
       if (response.data.code === 0) {
         setProfiles(
           response.data.profiles.map((profile: string) => {
@@ -366,7 +365,6 @@ const fetchData = async () => {
             new Date(b.time).getTime() - new Date(a.time).getTime()
         );
         setPosts(sortedPosts);
-        console.log(posts);
         showNotification("Profiles updated successfully!", "success");
       } else {
         showNotification("Error updating profiles.", "error");
