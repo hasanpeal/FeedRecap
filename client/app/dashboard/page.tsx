@@ -100,7 +100,6 @@ export default function Dashboard() {
     if (emailContext) {
       localStorage.setItem("email", emailContext);
       fetchData();
-      fetchPosts();
     } else {
       localStorage.removeItem("email");
     }
@@ -111,11 +110,6 @@ export default function Dashboard() {
     setTimezone(detectedTimezone);
   }, []);
 
-  useEffect(() => {
-    if (wise && registeredWise) {
-      fetchPosts();
-    }
-  }, [wise, registeredWise]);
 
   // Add ref for dropdown container
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -137,14 +131,7 @@ export default function Dashboard() {
     };
   }, []);
 
-  const getInitials = (username: string) => {
-    return username
-      .split(/[._-]/)
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  
 
   const playSound = () => {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -214,109 +201,58 @@ export default function Dashboard() {
     return { username, avatar: "/placeholder.svg" };
   };
 
-  const fetchData = async () => {
-    setPageLoading(true);
-    setLoadingProfiles(true);
-    try {
-      const [
-        categoriesRes,
-        timesRes,
-        timezoneRes,
-        newsletterRes,
-        profilesRes,
-        wiseRes,
-      ] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getCategories`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimes`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getTimezone`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getNewsletter`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getProfiles`, {
-          params: { email: emailContext },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_SERVER}/getWise`, {
-          params: { email: emailContext },
-        }),
-      ]);
+const fetchData = async () => {
+  setPageLoading(true);
+  setLoadingProfiles(true);
+  setLoadingPosts(true);
+  try {
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/data`, {
+      params: { email: emailContext },
+    });
 
-      setCategories(categoriesRes.data.categories);
-      setTime(timesRes.data.time);
-      setDbTimezone(timezoneRes.data.timezone);
-      setLatestNewsletter(newsletterRes.data.newsletter);
+    if (response.data.code === 0) {
+      const userData = response.data.user;
+      setCategories(userData.categories);
+      setTime(userData.time);
+      setDbTimezone(userData.timezone);
+      setLatestNewsletter(userData.newsletter);
+      setWise(userData.wise);
+      setRegisteredWise(userData.wise);
 
-      const fetchedProfiles = await Promise.all(
-        profilesRes.data.profiles.map(fetchUserProfile)
+      // ✅ Set profiles correctly since avatars are now provided
+      setProfiles(
+        userData.profiles.map((profile: string) => {
+          // Find the first post that matches the profile username to get the avatar
+          const matchedPost = response.data.posts.find(
+            (post: { username: string }) => post.username === profile
+          );
+
+          return {
+            username: profile,
+            avatar: matchedPost?.avatar || "/placeholder.svg", // ✅ Extract avatar from posts or use placeholder
+          };
+        })
       );
-      setProfiles(fetchedProfiles);
 
-      setWise(wiseRes.data.wise);
-      setRegisteredWise(wiseRes.data.wise);
-    } catch (err) {
-      console.error("Error fetching initial data:", err);
-      showNotification("Error loading initial data.", "error");
-    } finally {
-      setLoadingProfiles(false);
+      // ✅ Set posts correctly
+      const sortedPosts = response.data.posts.sort(
+        (a: Post, b: Post) =>
+          new Date(b.time).getTime() - new Date(a.time).getTime()
+      );
+      setPosts(sortedPosts);
+    } else {
+      showNotification("Error loading data.", "error");
     }
-  };
+  } catch (err) {
+    console.error("Error fetching data:", err);
+    showNotification("Error fetching data.", "error");
+  } finally {
+    setLoadingProfiles(false);
+    setLoadingPosts(false);
+    setPageLoading(false);
+  }
+};
 
-  const fetchPosts = async () => {
-    setLoadingPosts(true);
-    try {
-      const response =
-        wise === "categorywise"
-          ? await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/api/posts`, {
-              params: { email: emailContext },
-            })
-          : await axios.get(
-              `${process.env.NEXT_PUBLIC_SERVER}/api/customPosts`,
-              {
-                params: { email: emailContext },
-              }
-            );
-
-      if (response.data.code === 0) {
-        const sortedPosts = response.data.data.sort(
-          (a: Post, b: Post) =>
-            new Date(b.time).getTime() - new Date(a.time).getTime()
-        );
-
-        // Don't clear posts here to avoid the "No posts found" flash
-        setPageLoading(false);
-
-        const uniqueUsernames: string[] = Array.from(
-          new Set(sortedPosts.map((post: any) => post.username))
-        );
-        const avatarPromises = uniqueUsernames.map(fetchUserProfile);
-
-        const avatars = await Promise.all(avatarPromises);
-        const avatarMap = Object.fromEntries(
-          avatars.map(({ username, avatar }) => [username, avatar])
-        );
-
-        const postsWithAvatars = sortedPosts.map((post: any) => ({
-          ...post,
-          avatar: avatarMap[post.username],
-        }));
-
-        setPosts(postsWithAvatars);
-      } else {
-        showNotification("Error loading posts.", "error");
-      }
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-      showNotification("Error fetching posts.", "error");
-    } finally {
-      setLoadingPosts(false);
-      setPageLoading(false);
-    }
-  };
 
   const handleAddProfile = async (suggestion: string) => {
     playSound();
@@ -410,7 +346,26 @@ export default function Dashboard() {
       );
       console.log("code in handleprofileupdate", response.data.code);
       if (response.data.code === 0) {
-        await fetchPosts();
+        setProfiles(
+          response.data.profiles.map((profile: string) => {
+            // Find the first post that matches the profile username to get the avatar
+            const matchedPost = response.data.posts.find(
+              (post: { username: string }) => post.username === profile
+            );
+
+            return {
+              username: profile,
+              avatar: matchedPost?.avatar || "/placeholder.svg", // ✅ Extract avatar from posts or use placeholder
+            };
+          })
+        );
+
+        // ✅ Set posts correctly
+        const sortedPosts = response.data.posts.sort(
+          (a: Post, b: Post) =>
+            new Date(b.time).getTime() - new Date(a.time).getTime()
+        );
+        setPosts(sortedPosts);
         console.log(posts);
         showNotification("Profiles updated successfully!", "success");
       } else {
@@ -425,7 +380,6 @@ export default function Dashboard() {
 
   const handleCategoryUpdate = async () => {
     playSound();
-    setLoading(true);
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateCategories`,
@@ -434,7 +388,7 @@ export default function Dashboard() {
           categories,
         }
       );
-      setLoading(false);
+      await fetchData();
       if (response.data.code === 0) {
         showNotification("Categories Updated", "success");
       } else showNotification("Server Error", "error");
@@ -445,13 +399,11 @@ export default function Dashboard() {
 
   const handleTimeUpdate = async () => {
     playSound();
-    setLoading(true);
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateTimes`,
         { email: emailContext, time }
       );
-      setLoading(false);
       if (response.data.code === 0) {
         showNotification("Times Updated", "success");
       } else showNotification("Server Error", "error");
@@ -608,7 +560,7 @@ export default function Dashboard() {
 
       if (response.data.code === 0) {
         setRegisteredWise(wise);
-        await fetchPosts();
+        await fetchData();
 
         setTimeout(() => {
           setPageLoading(false);
@@ -703,12 +655,6 @@ export default function Dashboard() {
       );
     }
 
-    const initials = getInitials(username);
-    return (
-      <div className="w-6 h-6 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold text-xs">
-        {initials}
-      </div>
-    );
   };
 
   const renderAvatar2 = (username: string, avatar: string) => {
@@ -728,12 +674,6 @@ export default function Dashboard() {
       );
     }
 
-    const initials = getInitials(username);
-    return (
-      <div className="w-10 h-10 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold">
-        {initials}
-      </div>
-    );
   };
 
   const scrollProfiles = (direction: "left" | "right") => {
@@ -816,6 +756,38 @@ export default function Dashboard() {
         chatContainerRef.current.scrollHeight;
     }
   }, []);
+
+ const formatNewsletter = (newsletter: string | null): string => {
+   if (!newsletter) return "<p>No newsletters available.</p>";
+
+   // Find the "TOP POSTS OF TODAY" section
+   const topPostsIndex = newsletter.indexOf("TOP POSTS OF TODAY:");
+   if (topPostsIndex === -1) return newsletter; // If no top posts section, return as is
+
+   // Split newsletter into before and after "TOP POSTS OF TODAY"
+   const beforeTopPosts = newsletter.slice(0, topPostsIndex);
+   const topPostsSection = newsletter.slice(topPostsIndex);
+
+   // Extract each post that ends with "View Post"
+   const postRegex = /^(.*?View Post)$/gm;
+   const postLines = Array.from(topPostsSection.matchAll(postRegex)).map(
+     (match) => match[0]
+   );
+
+   // Convert to an ordered list format
+   const numberedPosts = postLines
+     .map((line, index) => `<li>${line.trim()}</li>`)
+     .join("");
+
+   // Replace old list with new `<ol>` format
+   return `
+    ${beforeTopPosts}
+    <h3>TOP POSTS OF TODAY:</h3>
+    <ol>
+      ${numberedPosts}
+    </ol>
+  `;
+ };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -979,7 +951,11 @@ export default function Dashboard() {
                     >
                       <div className="post-header mb-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          {renderAvatar2(post.username, post.avatar || "")}
+                          {/* 🔥 Ensure avatar comes from profiles */}
+                          {renderAvatar2(
+                            post.username,
+                            post.avatar || "/placeholder.svg"
+                          )}
                           <div>
                             <h3 className="font-medium">@{post.username}</h3>
                             <span className="text-sm text-gray-400">

@@ -142,6 +142,92 @@ function isAuthenticated(
 }
 
 
+app.get("/data", async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res
+      .status(400)
+      .json({ error: "Email query parameter is required", code: 1 });
+  }
+
+  try {
+    // Fetch user data
+    const user = await User.findOne({ email }).select(
+      "categories time timezone newsletter wise profiles"
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found", code: 1 });
+    }
+
+    let posts: {
+      username: string; avatar: string; // ✅ Include avatar
+      time: Date; likes: number; category: string; text: string; tweet_id: string;
+    }[] | {
+      username: string; avatar: { type: String; required: false; }; // ✅ Include avatar
+      time: { type: Date; required: true; }; likes: { type: Number; required: true; }; text: { type: String; required: true; }; tweet_id: { type: String; required: true; };
+    }[] = [];
+
+    if (user.wise === "categorywise") {
+      // Fetch posts based on category-wise selection
+      const categoryPosts = await StoredTweets.find({
+        category: { $in: user.categories },
+      }).select("screenName createdAt tweets category avatar"); // ✅ Include avatar
+
+      posts = categoryPosts.flatMap((post) =>
+        post.tweets.map((tweet) => ({
+          username: post.screenName,
+          avatar: post.avatar, // ✅ Include avatar
+          time: tweet.createdAt,
+          likes: tweet.likes,
+          category: post.category,
+          text: tweet.text,
+          tweet_id: tweet.tweet_id,
+        }))
+      );
+    } else if (user.wise === "customProfiles") {
+      // Fetch posts based on custom profile-wise selection
+      const profilePosts = await CustomProfilePosts.find({
+        screenName: { $in: user.profiles },
+      })
+        .select("screenName tweets avatar")
+        .lean();; // ✅ Include avatar
+
+      console.log("Profile posts", profilePosts[0]);
+
+      posts = profilePosts.flatMap((post) =>
+        post.tweets.map((tweet) => ({
+          username: post.screenName,
+          avatar: post.avatar, // ✅ Include avatar
+          time: tweet.createdAt,
+          likes: tweet.likes,
+          text: tweet.text,
+          tweet_id: tweet.tweet_id,
+        }))
+      );
+    }
+    console.log(posts[0]);
+    // ✅ Send user details + posts in response
+    res.status(200).json({
+      user: {
+        categories: user.categories,
+        time: user.time,
+        timezone: user.timezone,
+        newsletter: user.newsletter,
+        wise: user.wise,
+        profiles: user.profiles,
+      },
+      posts,
+      code: 0,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching data", code: 1 });
+  }
+});
 // Route to get posts by user-selected categories
 app.get("/api/posts", async (req, res) => {
   // console.log("Posts routes called");
@@ -163,7 +249,7 @@ app.get("/api/posts", async (req, res) => {
 
     // Fetch posts from StoredTweets based on user's selected categories
     const posts = await StoredTweets.find({ category: { $in: selectedCategories } })
-      .select("screenName createdAt tweets category");
+      .select("screenName createdAt tweets category avatar");
 
     // console.log("Posts coming from server", posts)
     // Format the data to return an array of tweets with necessary fields
@@ -174,6 +260,7 @@ app.get("/api/posts", async (req, res) => {
         likes: tweet.likes,
         category: post.category,
         text: tweet.text,
+        avatar: post.avatar,
         tweet_id: tweet.tweet_id,
       }));
     });
@@ -234,13 +321,29 @@ app.post("/updateProfiles", async (req, res) => {
       );
     }
 
-    return res
-      .status(200)
-      .json({
-        code: 0,
-        message: "Profiles updated successfully",
-        changedProfiles,
-      });
+    // ✅ Fetch updated posts for the user
+    const profilePosts = await CustomProfilePosts.find({
+      screenName: { $in: updatedUser?.profiles },
+    }).select("screenName tweets avatar");
+
+    const posts = profilePosts.flatMap((post) =>
+      post.tweets.map((tweet) => ({
+        username: post.screenName,
+        avatar: post.avatar || "/placeholder.svg", // ✅ Ensure avatar is included
+        time: tweet.createdAt,
+        likes: tweet.likes,
+        text: tweet.text,
+        tweet_id: tweet.tweet_id,
+      }))
+    );
+
+    return res.status(200).json({
+      code: 0,
+      message: "Profiles updated successfully",
+      changedProfiles,
+      profiles: updatedUser?.profiles,
+      posts, // ✅ Send the updated posts
+    });
   } catch (err) {
     console.error("Error updating profiles:", err);
     return res
@@ -311,9 +414,7 @@ app.post("/updateFeedType", async (req, res) => {
     }
 
     // Trigger appropriate fetching logic
-    if (wise === "categorywise") {
-      await fetchAndStoreTweets(updatedUser.categories); // Fetch tweets for selected categories
-    } else if (wise === "customProfiles") {
+    if (wise === "customProfiles") {
       await fetchTweetsForProfiles(
         updatedUser.profiles,
         updatedUser._id as mongoose.Types.ObjectId
@@ -395,7 +496,7 @@ app.get("/api/customPosts", async (req, res) => {
     // Fetch posts from CustomProfilePosts based on user's selected custom profiles
     const posts = await CustomProfilePosts.find({
       screenName: { $in: selectedProfiles },
-    }).select("screenName tweets");
+    }).select("screenName tweets avatar");
 
     // Format the data to return an array of tweets with necessary fields
     const formattedPosts = posts.flatMap((post) =>
@@ -404,6 +505,7 @@ app.get("/api/customPosts", async (req, res) => {
         time: tweet.createdAt, // Use the `createdAt` from the tweet object
         likes: tweet.likes,
         text: tweet.text,
+        avatar: post.avatar,
         tweet_id: tweet.tweet_id,
       }))
     );

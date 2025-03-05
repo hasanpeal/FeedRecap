@@ -66,6 +66,7 @@ export interface ICustomProfilePost extends Document {
 
 const CustomProfilePostSchema: Schema = new Schema({
   screenName: { type: String, required: true },
+  avatar: { type: String, required: false }, // Add avatar field
   tweets: [
     {
       text: { type: String, required: true },
@@ -126,9 +127,6 @@ const fetchAvatar = async (username: string): Promise<string | null> => {
         error
       );
       retries++;
-
-      // Wait for a short time before retrying
-      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 
