@@ -123,3 +123,49 @@
   animation: typing 1s infinite;
 }
 
+/* Ensure ordered lists (numbered lists) render properly */
+ol {
+  list-style-type: decimal !important;
+  padding-left: 0.05rem !important;
+  margin-left: 1.5rem !important;
+}
+
+li {
+  display: list-item !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Override Tailwind's prose styling if it's interfering */
+.prose ol {
+  list-style-type: decimal !important;
+}
+
+
+/* Override Tailwind prose to prevent it from stripping link styles */
+.prose a {
+  color: #7FFFD4 !important;
+  text-decoration: underline !important;
+  font-weight: 500 !important;
+}
+
+/* Ensure the "View Post" inside <em> (if wrapped in <em>) is clickable */
+em  {
+  color: #7FFFD4 !important;
+  text-decoration: underline !important;
+}
+
+/* If Tailwind prose is interfering */
+.prose hr {
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+hr {
+  margin-top: 1rem !important;  /* Add space above */
+  margin-bottom: 1rem !important;  /* Add space below */
+  border-color: #7FFFD4 !important;  /* Optional: Match theme */
+  border-width: 1px !important;  /* Keep it thin */
+}
+
+.navbar Link {
+  text-decoration: none !important;
+}
