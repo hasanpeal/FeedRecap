@@ -75,7 +75,10 @@ export default function Dashboard() {
   const [isTyping, setIsTyping] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const [newlatestNewsletter, setNewLatestNewsletter] = useState<string | null>(null);
+  const [newlatestNewsletter, setNewLatestNewsletter] = useState<string | null>(
+    null
+  );
+  const [updatingFeed, setUpdatingFeed] = useState(false);
 
   const availableCategories = [
     "Politics",
@@ -97,12 +100,15 @@ export default function Dashboard() {
     }
   }, [setEmailContext]);
 
-  useEffect(()=> {
-    setNewLatestNewsletter(latestNewsletter?.replace(
-      "TOP POSTS OF TODAY:",
-      "<p>&nbsp;</p><strong>TOP POSTS OF TODAY:</strong>"
-    ) || "");
-  }, [latestNewsletter])
+  useEffect(() => {
+    setNewLatestNewsletter(
+      latestNewsletter?.replace(
+        "TOP POSTS OF TODAY:",
+        "<p>&nbsp;</p><strong>TOP POSTS OF TODAY:</strong>"
+      ) || ""
+    );
+  }, [latestNewsletter]);
+
 
   useEffect(() => {
     if (emailContext) {
@@ -117,7 +123,6 @@ export default function Dashboard() {
     const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setTimezone(detectedTimezone);
   }, []);
-
 
   // Add ref for dropdown container
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -138,8 +143,6 @@ export default function Dashboard() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  
 
   const playSound = () => {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -206,152 +209,30 @@ export default function Dashboard() {
     return { username, avatar: "/placeholder.svg" };
   };
 
-const fetchData = async () => {
-  setPageLoading(true);
-  setLoadingProfiles(true);
-  setLoadingPosts(true);
-  try {
-    const response = await axios.get(`${process.env.NEXT_PUBLIC_SERVER}/data`, {
-      params: { email: emailContext },
-    });
-
-    if (response.data.code === 0) {
-      const userData = response.data.user;
-      setCategories(userData.categories);
-      setTime(userData.time);
-      setDbTimezone(userData.timezone);
-      setLatestNewsletter(userData.newsletter);
-      setWise(userData.wise);
-      setRegisteredWise(userData.wise);
-
-      // ✅ Set profiles correctly since avatars are now provided
-      setProfiles(
-        userData.profiles.map((profile: string) => {
-          // Find the first post that matches the profile username to get the avatar
-          const matchedPost = response.data.posts.find(
-            (post: { username: string }) => post.username === profile
-          );
-
-          return {
-            username: profile,
-            avatar: matchedPost?.avatar || "/placeholder.svg", // ✅ Extract avatar from posts or use placeholder
-          };
-        })
-      );
-
-      // ✅ Set posts correctly
-      const sortedPosts = response.data.posts.sort(
-        (a: Post, b: Post) =>
-          new Date(b.time).getTime() - new Date(a.time).getTime()
-      );
-      setPosts(sortedPosts);
-    } else {
-      showNotification("Error loading data.", "error");
-    }
-  } catch (err) {
-    console.error("Error fetching data:", err);
-    showNotification("Error fetching data.", "error");
-  } finally {
-    setLoadingProfiles(false);
-    setLoadingPosts(false);
-    setPageLoading(false);
-  }
-};
-
-
-  const handleAddProfile = async (suggestion: string) => {
-    playSound();
-    if (profiles.some((profile) => profile.username === suggestion)) {
-      showNotification("Profile already added.", "error");
-      return;
-    }
-
-    const newProfile = await fetchUserProfile(suggestion);
-    setProfiles((prev) => [...prev, newProfile]);
-    setNewProfile("");
-    setShowDropdown(false);
-  };
-
-  const fetchSuggestions = async (keyword: string): Promise<string[]> => {
+  const fetchData = async () => {
+    setPageLoading(true);
+    setLoadingProfiles(true);
+    setLoadingPosts(true);
     try {
       const response = await axios.get(
-        "https://twitter-api45.p.rapidapi.com/search.php",
+        `${process.env.NEXT_PUBLIC_SERVER}/data`,
         {
-          params: { query: keyword, search_type: "People" },
-          headers: {
-            "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
-            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-          },
+          params: { email: emailContext },
         }
       );
 
-      if (response.data && response.data.timeline) {
-        return response.data.timeline
-          .filter((item: any) => item.screen_name)
-          .slice(0, 6)
-          .map((item: any) => item.screen_name);
-      } else {
-        console.warn("No suggestions found for keyword:", keyword);
-        return [];
-      }
-    } catch (err) {
-      console.error("Error fetching suggestions:", err);
-      return [];
-    }
-  };
-
-  const debouncedSearch = useCallback(
-    _.debounce(async (keyword: string) => {
-      try {
-        if (cache[keyword]) {
-          setSuggestions(cache[keyword]);
-        } else {
-          const fetchedSuggestions = await fetchSuggestions(keyword);
-          setSuggestions(fetchedSuggestions);
-          setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
-        }
-      } catch (error) {
-        console.error("Error fetching suggestions:", error);
-        setSuggestions([]);
-      } finally {
-        setLoadingSuggestions(false);
-      }
-
-      setShowDropdown(true);
-    }, 300),
-    []
-  );
-
-  const handleSearchInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.target.value;
-    setNewProfile(input);
-
-    setLoadingSuggestions(true);
-    if (input.trim().length > 0) {
-      debouncedSearch(input);
-    } else {
-      setSuggestions([]);
-      setShowDropdown(false);
-      setLoadingSuggestions(false);
-    }
-  };
-
-  const handleProfileUpdate = async () => {
-    playSound();
-    setPageLoading(true);
-    setSelectedTab("newsfeed");
-    setSelectedProfile(null);
-    try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`,
-        {
-          email: emailContext,
-          profiles: profiles.map((p) => p.username),
-        }
-      );
       if (response.data.code === 0) {
+        const userData = response.data.user;
+        setCategories(userData.categories);
+        setTime(userData.time);
+        setDbTimezone(userData.timezone);
+        setLatestNewsletter(userData.newsletter);
+        setWise(userData.wise);
+        setRegisteredWise(userData.wise);
+
+        // ✅ Set profiles correctly since avatars are now provided
         setProfiles(
-          response.data.profiles.map((profile: string) => {
+          userData.profiles.map((profile: string) => {
             // Find the first post that matches the profile username to get the avatar
             const matchedPost = response.data.posts.find(
               (post: { username: string }) => post.username === profile
@@ -370,6 +251,147 @@ const fetchData = async () => {
             new Date(b.time).getTime() - new Date(a.time).getTime()
         );
         setPosts(sortedPosts);
+      } else {
+        showNotification("Error loading data.", "error");
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      showNotification("Error fetching data.", "error");
+    } finally {
+      setLoadingProfiles(false);
+      setLoadingPosts(false);
+      setPageLoading(false);
+    }
+  };
+
+  const handleAddProfile = async (suggestion: string) => {
+    playSound();
+    if (profiles.some((profile) => profile.username === suggestion)) {
+      showNotification("Profile already added.", "error");
+      return;
+    }
+
+    // Add optimistic UI update
+    const tempProfile = { username: suggestion, avatar: "/placeholder.svg" };
+    setProfiles((prev) => [...prev, tempProfile]);
+    setNewProfile("");
+    setShowDropdown(false);
+
+    // Fetch actual profile data in background
+    try {
+      const newProfile = await fetchUserProfile(suggestion);
+      // Replace the temporary profile with the actual one
+      setProfiles((prev) =>
+        prev.map((p) => (p.username === suggestion ? newProfile : p))
+      );
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      // Profile already added with placeholder, so no need to handle error specifically
+    }
+  };
+
+  const fetchSuggestions = async (keyword: string): Promise<string[]> => {
+    try {
+      const response = await axios.get(
+        "https://twitter-api45.p.rapidapi.com/search.php",
+        {
+          params: { query: keyword, search_type: "People" },
+          headers: {
+            "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
+            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+          },
+        }
+      );
+
+      if (response.data && response.data.timeline) {
+        return response.data.timeline
+          .filter((item: any) => item.screen_name)
+          .slice(0, 5) // Changed from 6 to 4
+          .map((item: any) => item.screen_name);
+      } else {
+        console.warn("No suggestions found for keyword:", keyword);
+        return [];
+      }
+    } catch (err) {
+      console.error("Error fetching suggestions:", err);
+      return [];
+    }
+  };
+
+  const debouncedSearch = useCallback(
+    _.debounce(async (keyword: string) => {
+      try {
+        if (cache[keyword]) {
+          setSuggestions(cache[keyword]);
+          setLoadingSuggestions(false);
+        } else {
+          const fetchedSuggestions = await fetchSuggestions(keyword);
+          setSuggestions(fetchedSuggestions);
+          setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
+        }
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+        setSuggestions([]);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+
+      setShowDropdown(true);
+    }, 200), // Changed from 300ms to 150ms
+    [cache]
+  );
+
+  const handleSearchInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.target.value;
+    setNewProfile(input);
+
+    setLoadingSuggestions(true);
+    if (input.trim().length > 0) {
+      debouncedSearch(input);
+    } else {
+      setSuggestions([]);
+      setShowDropdown(false);
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const handleProfileUpdate = async () => {
+    playSound();
+    setSelectedTab("newsfeed");
+    setSelectedProfile(null);
+
+    // Show updating notification instead of full page loading
+    setUpdatingFeed(true);
+
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`,
+        {
+          email: emailContext,
+          profiles: profiles.map((p) => p.username),
+        }
+      );
+      if (response.data.code === 0) {
+        setProfiles(
+          response.data.profiles.map((profile: string) => {
+            // Find the first post that matches the profile username to get the avatar
+            const matchedPost = response.data.posts.find(
+              (post: { username: string }) => post.username === profile
+            );
+
+            return {
+              username: profile,
+              avatar: matchedPost?.avatar || "/placeholder.svg",
+            };
+          })
+        );
+
+        // Set posts correctly
+        const sortedPosts = response.data.posts.sort(
+          (a: Post, b: Post) =>
+            new Date(b.time).getTime() - new Date(a.time).getTime()
+        );
+        setPosts(sortedPosts);
         showNotification("Profiles updated successfully!", "success");
       } else {
         showNotification("Error updating profiles.", "error");
@@ -377,7 +399,7 @@ const fetchData = async () => {
     } catch (err) {
       showNotification("Error updating profiles.", "error");
     } finally {
-      setPageLoading(false);
+      setUpdatingFeed(false);
     }
   };
 
@@ -547,8 +569,10 @@ const fetchData = async () => {
       return;
     }
 
-    setPageLoading(true);
+    // Show updating notification instead of full page loading
+    setUpdatingFeed(true);
     setSelectedTab("newsfeed");
+
     try {
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateFeedType`,
@@ -564,6 +588,7 @@ const fetchData = async () => {
       if (response.data.code === 0) {
         setRegisteredWise(wise);
         await fetchData();
+        showNotification("Feed type updated successfully!", "success");
       } else {
         showNotification("Error updating feed type.", "error");
       }
@@ -571,6 +596,7 @@ const fetchData = async () => {
       console.error("Error updating feed type:", err);
       showNotification("Error updating feed type.", "error");
     } finally {
+      setUpdatingFeed(false);
       setLoading(false);
     }
   };
@@ -652,7 +678,12 @@ const fetchData = async () => {
         />
       );
     }
-
+    const initials = getInitials(username);
+    return (
+      <div className="w-6 h-6 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold text-xs">
+        {initials}
+      </div>
+    );
   };
 
   const renderAvatar2 = (username: string, avatar: string) => {
@@ -671,7 +702,12 @@ const fetchData = async () => {
         />
       );
     }
-
+    const initials = getInitials(username);
+    return (
+      <div className="w-10 h-10 bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold">
+        {initials}
+      </div>
+    );
   };
 
   const scrollProfiles = (direction: "left" | "right") => {
@@ -755,41 +791,55 @@ const fetchData = async () => {
     }
   }, []);
 
- const formatNewsletter = (newsletter: string | null): string => {
-   if (!newsletter) return "<p>No newsletters available.</p>";
+   const getInitials = (username: string) => {
+     return username
+       .split(/[._-]/)
+       .map((part) => part[0])
+       .join("")
+       .toUpperCase()
+       .slice(0, 2);
+   };
 
-   // Find the "TOP POSTS OF TODAY" section
-   const topPostsIndex = newsletter.indexOf("TOP POSTS OF TODAY:");
-   if (topPostsIndex === -1) return newsletter; // If no top posts section, return as is
+  const formatNewsletter = (newsletter: string | null): string => {
+    if (!newsletter) return "<p>No newsletters available.</p>";
 
-   // Split newsletter into before and after "TOP POSTS OF TODAY"
-   const beforeTopPosts = newsletter.slice(0, topPostsIndex);
-   const topPostsSection = newsletter.slice(topPostsIndex);
+    // Find the "TOP POSTS OF TODAY" section
+    const topPostsIndex = newsletter.indexOf("TOP POSTS OF TODAY:");
+    if (topPostsIndex === -1) return newsletter; // If no top posts section, return as is
 
-   // Extract each post that ends with "View Post"
-   const postRegex = /^(.*?View Post)$/gm;
-   const postLines = Array.from(topPostsSection.matchAll(postRegex)).map(
-     (match) => match[0]
-   );
+    // Split newsletter into before and after "TOP POSTS OF TODAY"
+    const beforeTopPosts = newsletter.slice(0, topPostsIndex);
+    const topPostsSection = newsletter.slice(topPostsIndex);
 
-   // Convert to an ordered list format
-   const numberedPosts = postLines
-     .map((line, index) => `<li>${line.trim()}</li>`)
-     .join("");
+    // Extract each post that ends with "View Post"
+    const postRegex = /^(.*?View Post)$/gm;
+    const postLines = Array.from(topPostsSection.matchAll(postRegex)).map(
+      (match) => match[0]
+    );
 
-   // Replace old list with new `<ol>` format
-   return `
+    // Convert to an ordered list format
+    const numberedPosts = postLines
+      .map((line, index) => `<li>${line.trim()}</li>`)
+      .join("");
+
+    // Replace old list with new `<ol>` format
+    return `
     ${beforeTopPosts}
     <h3>TOP POSTS OF TODAY:</h3>
     <ol>
       ${numberedPosts}
     </ol>
   `;
- };
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Navbar3 />
+      {updatingFeed && (
+        <div className="fixed top-0 left-0 right-0 bg-[#7FFFD4] text-black py-2 px-4 text-center z-50">
+          Updating dashboard...
+        </div>
+      )}
+      {!updatingFeed && <Navbar3 />}
       {pageLoading ? (
         <SkeletonLoader />
       ) : (
@@ -907,22 +957,30 @@ const fetchData = async () => {
                         >
                           All Profiles
                         </button>
-                        {profiles.map((profile) => (
-                          <button
-                            key={profile.username}
-                            onClick={() => setSelectedProfile(profile.username)}
-                            className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap max-w-[200px] ${
-                              selectedProfile === profile.username
-                                ? "bg-[#7FFFD4] text-black"
-                                : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
-                            }`}
-                          >
-                            {renderAvatar(profile.username, profile.avatar)}
-                            <span className="ml-2 truncate">
-                              @{profile.username}
-                            </span>
-                          </button>
-                        ))}
+                        {profiles
+                          .filter((profile) =>
+                            posts.some(
+                              (post) => post.username === profile.username
+                            )
+                          )
+                          .map((profile) => (
+                            <button
+                              key={profile.username}
+                              onClick={() =>
+                                setSelectedProfile(profile.username)
+                              }
+                              className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap max-w-[200px] ${
+                                selectedProfile === profile.username
+                                  ? "bg-[#7FFFD4] text-black"
+                                  : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
+                              }`}
+                            >
+                              {renderAvatar(profile.username, profile.avatar)}
+                              <span className="ml-2 truncate">
+                                @{profile.username}
+                              </span>
+                            </button>
+                          ))}
                       </>
                     )}
                   </div>
@@ -1146,7 +1204,21 @@ const fetchData = async () => {
                       disabled={loading}
                     />
                     {showDropdown && (
-                      <ul className="absolute left-0 right-0 top-full mt-2 rounded-lg border border-gray-800 bg-black">
+                      <div
+                        ref={dropdownRef}
+                        className="absolute left-0 right-0 top-full mt-2 rounded-lg border border-gray-800 bg-black"
+                      >
+                        <div className="flex justify-between items-center p-2 border-b border-gray-700">
+                          <span className="text-sm text-gray-400">
+                            Suggestions
+                          </span>
+                          <button
+                            onClick={() => setShowDropdown(false)}
+                            className="text-gray-400 hover:text-white"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
                         {loadingSuggestions ? (
                           <li className="p-2 text-gray-400">Loading...</li>
                         ) : suggestions.length > 0 ? (
@@ -1162,7 +1234,7 @@ const fetchData = async () => {
                         ) : (
                           <li className="p-2 text-gray-400">No result found</li>
                         )}
-                      </ul>
+                      </div>
                     )}
                   </div>
                 )}

@@ -1212,7 +1212,7 @@ export async function fetchAndStoreTweetsForProfiles(
         .sort((a: any, b: any) => b.favorites - a.favorites)
         .slice(0, 25)
         .map((tweet: any) => ({
-          text: tweet.text,
+          text: removeLinksFromText(tweet.text),
           likes: tweet.favorites,
           tweet_id: tweet.tweet_id,
           createdAt: moment(
@@ -1307,7 +1307,6 @@ export async function getStoredTweetsForUser(
     );
   }
 
-  // ✅ Ensure at most 1 top-liked tweet per account
   const top15Tweets = selectTopTweetsPerAccount(allTweetsWithLikes, 15);
 
   return { tweetsByProfiles, top15Tweets };

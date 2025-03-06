@@ -99,13 +99,20 @@ useEffect(() => {
       {/* Hero Section */}
       <main className="flex flex-col items-center justify-center text-center py-24 px-4">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
-            Stay Informed and Save Time
+          {/* FeedRecap Logo */}
+
+          {/* Main Heading */}
+          <h1 className="text-5xl font-bold mb-6 text-white">
+            Never Miss What Matters on X
           </h1>
-          <p className="text-xl mb-10 text-gray-300 max-w-3xl mx-auto">
-            FeedRecap gives you daily curated tweets and summaries of current
-            events across politics, finance, tech, AI, and more
-          </p>
+
+          {/* Subheading */}
+          <h2 className="text-2xl text-white mb-8">
+            FeedRecap delivers the top X posts you care about—straight to your
+            inbox.
+          </h2>
+
+          {/* Buttons */}
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/signup">
               <button className="bg-gradient-to-r from-[#7FFFD4] to-[#00CED1] text-black font-medium px-8 py-3 rounded-full shadow-lg hover:shadow-[#7FFFD4]/20 transition-all duration-300 w-full sm:w-auto">
@@ -117,6 +124,28 @@ useEffect(() => {
                 Sign In
               </button>
             </Link>
+          </div>
+
+          {/* Information Section */}
+          <div className="mt-10 text-gray-300 space-y-4  mx-auto">
+            <p className="text-[#7FFFD4] font-semibold text-xl">
+              ∞ Stay in the loop without the noise
+            </p>
+            <p className="text-white text-xl">
+              FeedRecap analyzes X for you, summarizing the biggest events,
+              updates, and posts from the accounts you follow or topics you
+              love. Get AI-powered daily newsletters (up to 3x a day) with
+              bite-sized recaps and direct links to the must-see posts—curated
+              just for you.
+            </p>
+
+            <p className="text-[#7FFFD4] font-semibold text-xl">
+              ☑ Take control of your feed
+            </p>
+            <p className="text-white text-xl">
+              Log into FeedRecap and explore a custom newsfeed of the latest top
+              posts, free from X’s algorithm clutter.
+            </p>
           </div>
         </div>
       </main>
@@ -163,11 +192,11 @@ useEffect(() => {
                 1
               </div>
               <h3 className="text-2xl font-semibold text-white mb-3">
-                Create Your Account
+                Sign Up & Customize
               </h3>
               <p className="text-gray-400">
-                Create your account and pick the categories and times that fit
-                your schedule and select your preferred categories and times
+                Create your account, pick your topics (like tech or politics),
+                and set delivery times that match your routine
               </p>
             </div>
             <div className="bg-[#111] p-8 rounded-xl border border-gray-800 hover:border-[#7FFFD4]/30 transition-all">
@@ -175,11 +204,11 @@ useEffect(() => {
                 2
               </div>
               <h3 className="text-2xl font-semibold text-white mb-3">
-                AI Curation
+                AI Gets to Work
               </h3>
               <p className="text-gray-400">
-                Our AI-powered engine curates the top tweets based on your
-                preferences and delivers them straight to your inbox
+                Our AI scans X, curating the top posts based on your preferences
+                and sending them straight to your inbox
               </p>
             </div>
             <div className="bg-[#111] p-8 rounded-xl border border-gray-800 hover:border-[#7FFFD4]/30 transition-all">
@@ -187,11 +216,11 @@ useEffect(() => {
                 3
               </div>
               <h3 className="text-2xl font-semibold text-white mb-3">
-                Stay Informed
+                Stay in Control
               </h3>
               <p className="text-gray-400">
-                View your newsletters on your dashboard, adjust preferences
-                anytime, and see how many newsletters you&apos;ve received
+                Check newsletters on your dashboard, tweak settings anytime, and
+                track what’s landed—all in one spot
               </p>
             </div>
           </div>
@@ -238,11 +267,11 @@ useEffect(() => {
                 </svg>
               </div>
               <h3 className="text-2xl font-semibold text-white mb-3">
-                Curated Content
+                Curated Brilliance
               </h3>
               <p className="text-gray-400">
-                Receive the most relevant tweets from trusted accounts,
-                customized to your selected categories and times
+                Get the most relevant X posts from your favorite sources,
+                tailored to your interests and schedule
               </p>
             </div>
             <div className="bg-[#111] p-8 rounded-xl border border-gray-800 hover:border-[#7FFFD4]/30 transition-all">
@@ -263,11 +292,11 @@ useEffect(() => {
                 </svg>
               </div>
               <h3 className="text-2xl font-semibold text-white mb-3">
-                Personalized Dashboard
+                Your Command Center
               </h3>
               <p className="text-gray-400">
-                Manage your preferences, see the latest newsletters, and track
-                how many you&apos;ve received—right from your personal dashboard
+                Adjust preferences, browse newsletters, and see your history on
+                a sleek, personalized dashboard
               </p>
             </div>
             <div className="bg-[#111] p-8 rounded-xl border border-gray-800 hover:border-[#7FFFD4]/30 transition-all">
@@ -288,12 +317,11 @@ useEffect(() => {
                 </svg>
               </div>
               <h3 className="text-2xl font-semibold text-white mb-3">
-                Seamless Scheduling
+                Perfect Timing
               </h3>
               <p className="text-gray-400">
-                Choose when you want your newsletters delivered—morning,
-                afternoon, or night—so you always stay informed when it&apos;s
-                convenient for you
+                Pick morning, afternoon, or night delivery—stay informed when it
+                works for you
               </p>
             </div>
           </div>

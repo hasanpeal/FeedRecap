@@ -311,14 +311,18 @@ app.post("/updateProfiles", async (req, res) => {
       { new: true }
     );
 
-    // If profiles were changed, fetch new tweets
-    if (changedProfiles.length > 0) {
-      await fetchAndStoreTweetsForProfiles(
-        changedProfiles,
-        updatedUser?._id as mongoose.Types.ObjectId
-      );
-    }
+    // // If profiles were changed, fetch new tweets
+    // if (changedProfiles.length > 0) {
+    //   await fetchAndStoreTweetsForProfiles(
+    //     changedProfiles,
+    //     updatedUser?._id as mongoose.Types.ObjectId
+    //   );
+    // }
 
+    await fetchAndStoreTweetsForProfiles(
+      updatedUser?.profiles || [],
+      updatedUser?._id as mongoose.Types.ObjectId
+    );
     // ✅ Fetch updated posts for the user
     const profilePosts = await CustomProfilePosts.find({
       screenName: { $in: updatedUser?.profiles },
