@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "start": "TZ='America/New_York' nodemon --config nodemon.json --verbose"
+    "prestart": "npm run build",
+    "build": "tsc",
+    "start": "TZ='America/New_York' node ./dist/server.js"
   },
   "keywords": [],
   "author": "",

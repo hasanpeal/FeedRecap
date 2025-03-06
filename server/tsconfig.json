@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "outDir": "./dist", // Ensure compiled files go to 'dist'
+    "rootDir": "./src", // Ensure TS source files are read from 'src'
     /* Visit https://aka.ms/tsconfig to read more about this file */
 
     /* Projects */

@@ -503,7 +503,7 @@ const fetchTweetsPeriodically = async () => {
     // Skip execution at 9 AM, 3 PM, and 8 PM
     if ([9, 15, 20].includes(hours)) {
       console.log(`⏸️ [Tweet Fetching]: Skipped execution at ${hours}:00`);
-    } else if (minutes % 20 === 0) {
+    } else if (minutes % 30 === 0) {
       console.log(
         "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
       );
