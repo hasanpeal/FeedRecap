@@ -25,7 +25,7 @@ const NUM_PARALLEL = 5;
 export interface ITweet extends Document {
   category: string;
   screenName: string;
-  avatar: string,
+  avatar: string;
   tweets: {
     text: string;
     likes: number;
@@ -122,7 +122,6 @@ const fetchAvatar = async (username: string): Promise<string | null> => {
       if (response.data?.avatar) {
         return response.data.avatar;
       }
-
     } catch (error) {
       console.error(
         `Error fetching avatar for ${username} (Attempt ${retries + 1}):`,
@@ -327,8 +326,6 @@ export async function generateNewsletter(
   }
 }
 
-
-
 function removeLinksFromText(text: string): string {
   return text.replace(/https?:\/\/\S+/g, "").trim(); // Removes all links starting with http/https
 }
@@ -506,7 +503,7 @@ const fetchTweetsPeriodically = async () => {
     // Skip execution at 9 AM, 3 PM, and 8 PM
     if ([9, 15, 20].includes(hours)) {
       console.log(`⏸️ [Tweet Fetching]: Skipped execution at ${hours}:00`);
-    } else if (minutes % 30 === 0) {
+    } else if (minutes % 20 === 0) {
       console.log(
         "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
       );
@@ -524,15 +521,13 @@ const fetchTweetsPeriodically = async () => {
         "Entertainment",
       ];
 
-      for (const category of categories) {
-        try {
-          await fetchAndStoreTweets([category]);
-        } catch (error) {
-          console.error(
-            `❌ [Error] Fetching tweets for category "${category}" failed:`,
-            error
-          );
-        }
+      try {
+        await fetchAndStoreTweets(categories);
+      } catch (error) {
+        console.error(
+          `❌ [Error] Fetching tweets for category "${categories}" failed:`,
+          error
+        );
       }
 
       console.log("✅ [Tweet Fetching]: All categories updated successfully.");
@@ -623,13 +618,11 @@ const fetchTweetsPeriodically = async () => {
 
 fetchTweetsPeriodically().catch(console.error);
 
-
 // Helper function to validate email
 function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
-
 
 // Function to process newsletters for all users at a specific time slot
 async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
@@ -641,7 +634,9 @@ async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
       return;
     }
 
-    console.log(`📋 [Debug] Found ${users.length} users for time slot: ${timeSlot}`);
+    console.log(
+      `📋 [Debug] Found ${users.length} users for time slot: ${timeSlot}`
+    );
 
     // Process users in batches of 5 parallel requests
     for (let i = 0; i < users.length; i += NUM_PARALLEL) {
@@ -651,12 +646,16 @@ async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
         batch.map(async (user) => {
           try {
             if (!isValidEmail(user.email)) {
-              console.log(`⚠️ [Debug] Skipping user with invalid email: ${user.email}`);
+              console.log(
+                `⚠️ [Debug] Skipping user with invalid email: ${user.email}`
+              );
               return;
             }
 
             if (!user.time || user.time.length === 0) {
-              console.log(`⚠️ [Debug] Skipping user with no time preferences: ${user.email}`);
+              console.log(
+                `⚠️ [Debug] Skipping user with no time preferences: ${user.email}`
+              );
               return;
             }
 
@@ -664,14 +663,21 @@ async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
 
             let newsletter = null;
             if (user.wise === "categorywise") {
-              const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(user.categories);
-              newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+              const { tweetsByCategory, top15Tweets } =
+                await fetchTweetsForCategories(user.categories);
+              newsletter = await generateNewsletter(
+                tweetsByCategory,
+                top15Tweets
+              );
             } else if (user.wise === "customProfiles") {
               const { tweetsByProfiles, top15Tweets } =
                 await getStoredTweetsForUser(
                   user._id as mongoose.Types.ObjectId
                 );
-              newsletter = await generateCustomProfileNewsletter(tweetsByProfiles, top15Tweets);
+              newsletter = await generateCustomProfileNewsletter(
+                tweetsByProfiles,
+                top15Tweets
+              );
             }
 
             if (newsletter) {
@@ -679,14 +685,22 @@ async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
               console.log(`✅ [Debug] Newsletter sent to: ${user.email}`);
             }
           } catch (error) {
-            console.error(`❌ [Debug] Error processing newsletter for ${user.email}:`, error);
+            console.error(
+              `❌ [Debug] Error processing newsletter for ${user.email}:`,
+              error
+            );
           }
         })
       );
     }
-    console.log(`✅ [Debug] Completed newsletter processing for time slot: ${timeSlot}`);
+    console.log(
+      `✅ [Debug] Completed newsletter processing for time slot: ${timeSlot}`
+    );
   } catch (error) {
-    console.error(`❌ [Debug] Error processing newsletters for time slot: ${timeSlot}`, error);
+    console.error(
+      `❌ [Debug] Error processing newsletters for time slot: ${timeSlot}`,
+      error
+    );
   }
 }
 
@@ -703,7 +717,9 @@ function runContinuousScheduler() {
 
     for (const [timeSlot, scheduledTime] of Object.entries(scheduleTimes)) {
       if (currentTime === scheduledTime) {
-        console.log(`🎯 [Debug] Time matched for ${timeSlot}. Processing newsletters...`);
+        console.log(
+          `🎯 [Debug] Time matched for ${timeSlot}. Processing newsletters...`
+        );
         await processNewslettersForTimeSlot(timeSlot);
       }
     }
@@ -797,11 +813,15 @@ export async function fetchAndStoreTweetsForProfiles(
       //   `📊 [Filtered]: ${recentTweets.length} tweets found in the last 24 hours for @${profile}`
       // );
 
+      // if (!recentTweets.length) {
+      //   console.warn(
+      //     `⚠️ No recent tweets found for @${profile}. Skipping storage.`
+      //   );
+      //   continue;
+      // }
+
       if (!recentTweets.length) {
-        console.warn(
-          `⚠️ No recent tweets found for @${profile}. Skipping storage.`
-        );
-        continue;
+        throw new Error(`No tweets found for @${profile}`);
       }
 
       const topTweets = recentTweets
@@ -843,9 +863,7 @@ export async function fetchAndStoreTweetsForProfiles(
         );
       }
     } catch (err) {
-      console.error(
-        `❌ [Error]: Fetching tweets failed for ${profile}`
-      );
+      console.error(`❌ [Error]: Fetching tweets failed for ${profile}`);
     }
   }
 }
@@ -1048,7 +1066,6 @@ export async function generateCustomProfileNewsletter(
     return undefined;
   }
 }
-
 
 // async function testProfileswiseByEmail(userEmail: string) {
 //   try {
