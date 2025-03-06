@@ -150,7 +150,7 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
     Geopolitics: ["Faytuks", "sentdefender", "Global_Mil_Info"],
     Finance: ["financialjuice", "ForexLive", "DeItaone", "WSJ"],
     AI: ["pmddomingos", "AndrewYNg", "tegmark", "OpenAI"],
-    Tech: ["paulgraham", "ycombinator", "jason", "elonmusk"],
+    Tech: ["ycombinator", "jason", "elonmusk"],
     Crypto: ["VitalikButerin", "pierre_crypt0", "APompliano", "ErikVoorhees"],
     Meme: ["stoolpresidente", "litcapital", "trustfundterry", "TheoVon"],
     Sports: ["SportsCenter", "WojESPN", "BleacherReport", "TheAthletic"],
