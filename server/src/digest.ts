@@ -721,72 +721,62 @@ export async function sendNewsletterEmail(
 //   }
 // );
 
-const fetchTweetsPeriodically = async () => {
-  while (true) {
-    const now = new Date();
-    const minutes = now.getMinutes();
+const CATEGORY_BATCH_SIZE = 5;
+const USER_BATCH_SIZE = 5;
 
-    // Check if the current minute is a multiple of 20 (0, 20, 40)
-    if (minutes % 20 === 0) {
-      console.log(
-        "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
-      );
+async function fetchFreshCategories() {
+  console.log("🔄 [Tweet Fetching]: Fetching fresh tweets for all categories...");
 
-      const categories = [
-        "Politics",
-        "Geopolitics",
-        "Finance",
-        "AI",
-        "Tech",
-        "Crypto",
-        "Meme",
-        "Sports",
-        "Entertainment",
-      ];
+  const categories = [
+    "Politics",
+    "Geopolitics",
+    "Finance",
+    "AI",
+    "Tech",
+    "Crypto",
+    "Meme",
+    "Sports",
+    "Entertainment",
+  ];
 
-      // Split into chunks of 5 categories per batch
-      const CATEGORY_BATCH_SIZE = 5;
-      for (let i = 0; i < categories.length; i += CATEGORY_BATCH_SIZE) {
-        const categoryBatch = categories.slice(i, i + CATEGORY_BATCH_SIZE);
+  for (let i = 0; i < categories.length; i += CATEGORY_BATCH_SIZE) {
+    const categoryBatch = categories.slice(i, i + CATEGORY_BATCH_SIZE);
 
-        await Promise.all(
-          categoryBatch.map((category) => fetchAndStoreTweets([category]))
-        );
-      }
-
-      console.log("✅ [Tweet Fetching]: Tweets updated successfully.");
-
-      console.log(
-        "🔄 [Custom Profiles]: Fetching fresh posts for user profiles..."
-      );
-
-      const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
-
-      // Process users in parallel batches of 5
-      const USER_BATCH_SIZE = 5;
-      for (let i = 0; i < users.length; i += USER_BATCH_SIZE) {
-        const userBatch = users.slice(i, i + USER_BATCH_SIZE);
-
-        await Promise.all(
-          userBatch.map((user) =>
-            fetchAndStoreTweetsForProfiles(
-              user.profiles,
-              user._id as mongoose.Types.ObjectId
-            )
-          )
-        );
-      }
-
-      console.log("✅ [Custom Profiles]: User profile tweets updated.");
-    }
-
-    // Wait 1 minute before checking again
-    await new Promise((resolve) => setTimeout(resolve, 60 * 1000));
+    await Promise.all(categoryBatch.map((category) => fetchAndStoreTweets([category])));
   }
-};
 
-// Start the function
-fetchTweetsPeriodically().catch(console.error);
+  console.log("✅ [Tweet Fetching]: Tweets updated successfully.");
+}
+
+async function fetchFreshProfiles() {
+  console.log("🔄 [Custom Profiles]: Fetching fresh posts for user profiles...");
+
+  const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
+
+  for (let i = 0; i < users.length; i += USER_BATCH_SIZE) {
+    const userBatch = users.slice(i, i + USER_BATCH_SIZE);
+
+    await Promise.all(
+      userBatch.map((user) =>
+        fetchAndStoreTweetsForProfiles(user.profiles, user._id as mongoose.Types.ObjectId)
+      )
+    );
+  }
+
+  console.log("✅ [Custom Profiles]: User profile tweets updated.");
+}
+
+// Set interval to run every 20 minutes
+setInterval(async () => {
+  const now = new Date();
+  const minutes = now.getMinutes();
+
+  if (minutes % 20 === 0) {
+    console.log(`⏰ [Debug] Time matched: Fetching tweets at ${now.toLocaleTimeString()}`);
+    await fetchFreshCategories();
+    await fetchFreshProfiles();
+  }
+}, 60 * 1000); // Runs every minute, checking if it's a multiple of 20
 
 // Second cron job: Send newsletters to users based on their time preferences
 // cron.schedule(
