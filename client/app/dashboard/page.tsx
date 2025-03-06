@@ -75,6 +75,7 @@ export default function Dashboard() {
   const [isTyping, setIsTyping] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [newlatestNewsletter, setNewLatestNewsletter] = useState<string | null>(null);
 
   const availableCategories = [
     "Politics",
@@ -95,6 +96,13 @@ export default function Dashboard() {
       setEmailContext(savedEmail);
     }
   }, [setEmailContext]);
+
+  useEffect(()=> {
+    setNewLatestNewsletter(latestNewsletter?.replace(
+      "TOP POSTS OF TODAY:",
+      "<p>&nbsp;</p><strong>TOP POSTS OF TODAY:</strong>"
+    ) || "");
+  }, [latestNewsletter])
 
   useEffect(() => {
     if (emailContext) {
@@ -1217,7 +1225,7 @@ const fetchData = async () => {
                 className="prose prose-invert max-w-none"
                 dangerouslySetInnerHTML={{
                   __html:
-                    latestNewsletter || "<p>No newsletters available.</p>",
+                    newlatestNewsletter || "<p>No newsletters available.</p>",
                 }}
               />
             </div>
