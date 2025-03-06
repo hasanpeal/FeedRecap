@@ -721,62 +721,61 @@ export async function sendNewsletterEmail(
 //   }
 // );
 
-const CATEGORY_BATCH_SIZE = 5;
-const USER_BATCH_SIZE = 5;
+const fetchTweetsPeriodically = async () => {
+  while (true) {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
 
-async function fetchFreshCategories() {
-  console.log("🔄 [Tweet Fetching]: Fetching fresh tweets for all categories...");
+    // Skip execution at 9 AM, 3 PM, and 8 PM
+    if ([9, 15, 20].includes(hours)) {
+      console.log(`⏸️ [Tweet Fetching]: Skipped execution at ${hours}:00`);
+    } else if (minutes % 30 === 0) {
+      console.log(
+        "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
+      );
 
-  const categories = [
-    "Politics",
-    "Geopolitics",
-    "Finance",
-    "AI",
-    "Tech",
-    "Crypto",
-    "Meme",
-    "Sports",
-    "Entertainment",
-  ];
+      await fetchAndStoreTweets([
+        "Politics",
+        "Geopolitics",
+        "Finance",
+        "AI",
+        "Tech",
+        "Crypto",
+        "Meme",
+        "Sports",
+        "Entertainment",
+      ]);
 
-  for (let i = 0; i < categories.length; i += CATEGORY_BATCH_SIZE) {
-    const categoryBatch = categories.slice(i, i + CATEGORY_BATCH_SIZE);
+      console.log("✅ [Tweet Fetching]: Tweets updated successfully.");
 
-    await Promise.all(categoryBatch.map((category) => fetchAndStoreTweets([category])));
+      console.log(
+        "🔄 [Custom Profiles]: Fetching fresh posts for user profiles..."
+      );
+
+      const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
+
+      for (const user of users) {
+        try {
+          await fetchAndStoreTweetsForProfiles(
+            user.profiles,
+            user._id as mongoose.Types.ObjectId
+          );
+        } catch (error) {
+          console.error(
+            `❌ [Custom Profiles]: Error fetching posts for ${user.email}:`,
+            error
+          );
+        }
+      }
+
+      console.log("✅ [Custom Profiles]: User profile tweets updated.");
+    }
+
+    // Wait 1 minute before checking again
+    await new Promise((resolve) => setTimeout(resolve, 60 * 1000));
   }
-
-  console.log("✅ [Tweet Fetching]: Tweets updated successfully.");
-}
-
-async function fetchFreshProfiles() {
-  console.log("🔄 [Custom Profiles]: Fetching fresh posts for user profiles...");
-
-  const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
-
-  for (let i = 0; i < users.length; i += USER_BATCH_SIZE) {
-    const userBatch = users.slice(i, i + USER_BATCH_SIZE);
-
-    await Promise.all(
-      userBatch.map((user) =>
-        fetchAndStoreTweetsForProfiles(user.profiles, user._id as mongoose.Types.ObjectId)
-      )
-    );
-  }
-
-  console.log("✅ [Custom Profiles]: User profile tweets updated.");
-}
-
-// Set interval to run every 20 minutes
-setInterval(async () => {
-  const now = new Date();
-  const minutes = now.getMinutes();
-
-  if (minutes % 20 === 0) {
-    console.log(`⏰ [Debug] Time matched: Fetching tweets at ${now.toLocaleTimeString()}`);
-    await fetchFreshCategories();
-    await fetchFreshProfiles();
-  }
-}, 60 * 1000); // Runs every minute, checking if it's a multiple of 20
+};
 
 // Second cron job: Send newsletters to users based on their time preferences
 // cron.schedule(
@@ -1104,7 +1103,7 @@ function runContinuousScheduler() {
   const scheduleTimes = {
     Morning: "09:00", // 9 AM Eastern
     Afternoon: "15:00", // 3 PM Eastern
-    Night: "20:25", // 8 PM Eastern
+    Night: "20:00", // 8 PM Eastern
   };
 
   setInterval(async () => {
@@ -1264,20 +1263,30 @@ export async function getStoredTweetsForUser(
       `📂 [Retrieving Tweets]: Fetching stored tweets for user: ${userId}`
     );
 
-    // ✅ Fetch user & get their referenced posts
-    const user = await User.findById(userId).populate("posts").exec();
-    if (!user || !user.posts.length) {
-      console.warn(`⚠️ No stored tweets found for user: ${userId}`);
+    // ✅ Fetch user to get preferred profiles
+    const user = await User.findById(userId).exec();
+    if (!user || !user.profiles.length) {
+      console.warn(`⚠️ No preferred profiles found for user: ${userId}`);
       return { tweetsByProfiles, top15Tweets: [] };
     }
 
-    for (const post of user.posts as any[]) {
+    // ✅ Fetch posts from `CustomProfilePosts` that match user's preferred profiles
+    const posts = await CustomProfilePosts.find({
+      screenName: { $in: user.profiles },
+    }).exec();
+
+    if (!posts.length) {
+      console.warn(`⚠️ No stored tweets found for user’s profiles.`);
+      return { tweetsByProfiles, top15Tweets: [] };
+    }
+
+    for (const post of posts) {
       if (!post.tweets.length) continue;
 
       const topTweets = post.tweets
-        .sort((a: { likes: number; }, b: { likes: number; }) => b.likes - a.likes)
+        .sort((a, b) => Number(b.likes) - Number(a.likes))
         .slice(0, 25)
-        .map((tweet: { text: { toString: () => any; }; likes: any; tweet_id: { toString: () => any; }; }) => ({
+        .map((tweet: { text: any; likes: any; tweet_id: any }) => ({
           text: tweet.text.toString(),
           likes: Number(tweet.likes),
           tweet_id: tweet.tweet_id.toString(),
@@ -1286,7 +1295,7 @@ export async function getStoredTweetsForUser(
 
       tweetsByProfiles.push({
         profile: post.screenName,
-        tweets: topTweets.map((tweet: { text: any; }) => tweet.text),
+        tweets: topTweets.map((tweet) => tweet.text),
       });
 
       allTweetsWithLikes.push(...topTweets);
@@ -1297,6 +1306,7 @@ export async function getStoredTweetsForUser(
     );
   }
 
+  // ✅ Ensure at most 1 top-liked tweet per account
   const top15Tweets = selectTopTweetsPerAccount(allTweetsWithLikes, 15);
 
   return { tweetsByProfiles, top15Tweets };
