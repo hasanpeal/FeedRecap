@@ -312,17 +312,13 @@ app.post("/updateProfiles", async (req, res) => {
     );
 
     // // If profiles were changed, fetch new tweets
-    // if (changedProfiles.length > 0) {
-    //   await fetchAndStoreTweetsForProfiles(
-    //     changedProfiles,
-    //     updatedUser?._id as mongoose.Types.ObjectId
-    //   );
-    // }
+    if (changedProfiles.length > 0) {
+      console.log("Checked by changedProfiles")
+      await fetchAndStoreTweetsForProfiles(
+        changedProfiles
+      );
+    }
 
-    await fetchAndStoreTweetsForProfiles(
-      updatedUser?.profiles || [],
-      updatedUser?._id as mongoose.Types.ObjectId
-    );
     // ✅ Fetch updated posts for the user
     const profilePosts = await CustomProfilePosts.find({
       screenName: { $in: updatedUser?.profiles },
@@ -331,7 +327,7 @@ app.post("/updateProfiles", async (req, res) => {
     const posts = profilePosts.flatMap((post) =>
       post.tweets.map((tweet) => ({
         username: post.screenName,
-        avatar: post.avatar || "/placeholder.svg", // ✅ Ensure avatar is included
+        avatar: post.avatar || "/placeholder.svg",
         time: tweet.createdAt,
         likes: tweet.likes,
         text: tweet.text,
@@ -418,8 +414,7 @@ app.post("/updateFeedType", async (req, res) => {
     // Trigger appropriate fetching logic
     if (wise === "customProfiles") {
       await fetchAndStoreTweetsForProfiles(
-        updatedUser.profiles,
-        updatedUser._id as mongoose.Types.ObjectId
+        updatedUser.profiles
       ); // Fetch tweets for followed profiles
     }
 

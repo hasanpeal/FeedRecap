@@ -511,7 +511,8 @@ const fetchTweetsPeriodically = async () => {
         "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
       );
 
-      await fetchAndStoreTweets([
+      // Process categories sequentially (one at a time)
+      const categories: string[] = [
         "Politics",
         "Geopolitics",
         "Finance",
@@ -521,27 +522,94 @@ const fetchTweetsPeriodically = async () => {
         "Meme",
         "Sports",
         "Entertainment",
-      ]);
+      ];
 
-      console.log("✅ [Tweet Fetching]: Tweets updated successfully.");
+      for (const category of categories) {
+        try {
+          await fetchAndStoreTweets([category]);
+        } catch (error) {
+          console.error(
+            `❌ [Error] Fetching tweets for category "${category}" failed:`,
+            error
+          );
+        }
+      }
+
+      console.log("✅ [Tweet Fetching]: All categories updated successfully.");
 
       console.log(
         "🔄 [Custom Profiles]: Fetching fresh posts for user profiles..."
       );
 
-      const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
+      // Fetch all users with custom profiles
+      const users = await User.find({ wise: "customProfiles" }).exec();
 
+      // Extract unique profiles from all users
+      const uniqueProfiles = new Set<string>();
       for (const user of users) {
-        try {
-          await fetchAndStoreTweetsForProfiles(
-            user.profiles,
-            user._id as mongoose.Types.ObjectId
+        user.profiles.forEach((profile: string) => uniqueProfiles.add(profile));
+      }
+
+      const profilesArray: string[] = Array.from(uniqueProfiles);
+      console.log(
+        `📋 [Custom Profiles]: Found ${profilesArray.length} unique profiles.`
+      );
+
+      // Process 5 profiles at a time with error handling
+      const PROFILE_BATCH_SIZE = 5;
+      for (let i = 0; i < profilesArray.length; i += PROFILE_BATCH_SIZE) {
+        const batch: string[] = profilesArray.slice(i, i + PROFILE_BATCH_SIZE);
+        console.log(
+          `🚀 [Custom Profiles]: Fetching batch ${
+            i / PROFILE_BATCH_SIZE + 1
+          }...`
+        );
+
+        // Store failed profiles
+        let failedProfiles: string[] = [];
+
+        // Attempt to fetch profiles
+        const results = await Promise.allSettled([
+          fetchAndStoreTweetsForProfiles(batch),
+        ]);
+
+        // Check for failed requests
+        results.forEach((result, index) => {
+          if (result.status === "rejected") {
+            console.error(
+              `❌ [Error] Fetching tweets failed for profiles: ${batch}`,
+              result.reason
+            );
+            failedProfiles.push(...batch);
+          }
+        });
+
+        // Wait 1 second before starting the next batch
+        if (i + PROFILE_BATCH_SIZE < profilesArray.length) {
+          console.log(`⏳ [Custom Profiles]: Waiting 1s before next batch...`);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+
+        // Retry fetching failed profiles once
+        if (failedProfiles.length > 0) {
+          console.log(
+            `🔄 [Retry]: Retrying failed profiles: ${failedProfiles.join(", ")}`
           );
-        } catch (error) {
-          console.error(
-            `❌ [Custom Profiles]: Error fetching posts for ${user.email}:`,
-            error
-          );
+
+          const retryResults = await Promise.allSettled([
+            fetchAndStoreTweetsForProfiles(failedProfiles),
+          ]);
+
+          retryResults.forEach((retryResult) => {
+            if (retryResult.status === "rejected") {
+              console.error(
+                `❌ [Final Error] Retrying failed for profiles: ${failedProfiles}`,
+                retryResult.reason
+              );
+            }
+          });
+
+          console.log(`✅ [Retry]: Completed retry attempt.`);
         }
       }
 
@@ -687,8 +755,7 @@ cron.schedule("0 */6 * * *", () => {
 });
 
 export async function fetchAndStoreTweetsForProfiles(
-  profiles: string[],
-  userId: mongoose.Types.ObjectId
+  profiles: string[]
 ): Promise<void> {
   if (!profiles.length) {
     console.warn(`⚠️ No profiles provided for fetching tweets.`);
@@ -710,6 +777,11 @@ export async function fetchAndStoreTweetsForProfiles(
         }
       );
 
+      // console.log(
+      //   `📥 [API Response]: First tweet for @${profile}:`,
+      //   response.data.timeline[0]
+      // );
+
       const now = moment();
       const past24Hours = now.subtract(24, "hours");
 
@@ -720,6 +792,17 @@ export async function fetchAndStoreTweetsForProfiles(
         );
         return tweetTime.isAfter(past24Hours);
       });
+
+      // console.log(
+      //   `📊 [Filtered]: ${recentTweets.length} tweets found in the last 24 hours for @${profile}`
+      // );
+
+      if (!recentTweets.length) {
+        console.warn(
+          `⚠️ No recent tweets found for @${profile}. Skipping storage.`
+        );
+        continue;
+      }
 
       const topTweets = recentTweets
         .sort((a: any, b: any) => b.favorites - a.favorites)
@@ -734,6 +817,10 @@ export async function fetchAndStoreTweetsForProfiles(
           ).toDate(),
         }));
 
+      // console.log(
+      //   `📌 [Top Tweets]: Storing ${topTweets.length} tweets for @${profile}`
+      // );
+
       let storedUser = await CustomProfilePosts.findOne({
         screenName: profile,
       }).select("avatar");
@@ -742,19 +829,19 @@ export async function fetchAndStoreTweetsForProfiles(
       // ✅ Store tweets in MongoDB
       const post = await CustomProfilePosts.findOneAndUpdate(
         { screenName: profile },
-        { tweets: topTweets, avatar, createdAt: new Date() },
-        { upsert: true, new: true }
-      );
+        { $set: { tweets: topTweets, avatar, createdAt: new Date() } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      ).exec();
 
-      if (post) {
-        const user = await User.findById(userId).exec();
-        if (user && !user.posts.includes(post._id as mongoose.Types.ObjectId)) {
-          user.posts.push(post._id as mongoose.Types.ObjectId);
-          await user.save();
-        }
+      if (!post) {
+        console.error(
+          `❌ [Error]: MongoDB failed to save tweets for @${profile}`
+        );
+      } else {
+        console.log(
+          `✅ [Stored]: Successfully saved ${topTweets.length} tweets for @${profile}`
+        );
       }
-
-      console.log(`✅ [Stored]: Tweets updated for @${profile}`);
     } catch (err) {
       console.error(
         `❌ [Error]: Fetching tweets failed for ${profile}`

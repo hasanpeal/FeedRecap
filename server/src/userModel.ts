@@ -11,9 +11,8 @@ interface IUser extends Document {
   categories: string[];
   timezone: string;
   totalnewsletter: number;
-  wise: "categorywise" | "customProfiles"; // New field for feed type
-  profiles: string[]; // New field for custom profiles
-  posts: mongoose.Types.ObjectId[]; // References to CustomProfilePosts
+  wise: "categorywise" | "customProfiles"; 
+  profiles: string[]; 
 }
 
 const UserSchema: Schema = new Schema({
@@ -48,9 +47,8 @@ const UserSchema: Schema = new Schema({
     type: String,
     enum: ["categorywise", "customProfiles"],
     default: "categorywise",
-  }, // New field
-  profiles: { type: [String], default: [] }, // New field
-  posts: [{ type: mongoose.Schema.Types.ObjectId, ref: "CustomProfilePosts" }], // Reference to custom profile posts
+  },
+  profiles: { type: [String], default: [] },
 });
 
 const User = db.model<IUser>("User", UserSchema);
