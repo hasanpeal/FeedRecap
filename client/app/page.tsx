@@ -448,11 +448,12 @@ useEffect(() => {
             Our Mission
           </h2>
           <p className="text-xl mb-10 text-gray-300">
-            Our mission is to simplify the way you consume news. By curating top
-            tweets from trusted sources, we help you stay informed about what
-            matters to you—without wasting time scrolling. We aim to deliver
-            valuable, personalized content that keeps you connected to the
-            topics you care about most.
+            The news landscape is changing—X is where it breaks first. Our
+            mission is to make sense of it all, curating top posts from your
+            favorite sources to keep you dialed into what matters most.
+            FeedRecap cuts through the noise, skips the scroll, and delivers
+            personalized updates that fit your life. We are here to keep you
+            connected, without the chaos
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/signup">
