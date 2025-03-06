@@ -25,7 +25,7 @@ import {
   ITweet,
   tweetSchema,
   StoredTweets,
-  fetchTweetsForProfiles,
+  fetchAndStoreTweetsForProfiles,
   generateCustomProfileNewsletter,
   CustomProfilePosts,
   fetchAndStoreTweets,
@@ -313,7 +313,7 @@ app.post("/updateProfiles", async (req, res) => {
 
     // If profiles were changed, fetch new tweets
     if (changedProfiles.length > 0) {
-      await fetchTweetsForProfiles(
+      await fetchAndStoreTweetsForProfiles(
         changedProfiles,
         updatedUser?._id as mongoose.Types.ObjectId
       );
@@ -413,7 +413,7 @@ app.post("/updateFeedType", async (req, res) => {
 
     // Trigger appropriate fetching logic
     if (wise === "customProfiles") {
-      await fetchTweetsForProfiles(
+      await fetchAndStoreTweetsForProfiles(
         updatedUser.profiles,
         updatedUser._id as mongoose.Types.ObjectId
       ); // Fetch tweets for followed profiles
@@ -664,122 +664,122 @@ app.get("/isNewUser", async (req, res) => {
 //   }
 // });
 
-app.post("/updateUserPreferences", async (req, res) => {
-  const { email, categories, time, timezone, wise, profiles } = req.body;
+// app.post("/updateUserPreferences", async (req, res) => {
+//   const { email, categories, time, timezone, wise, profiles } = req.body;
 
-  try {
-    // console.log(email, categories, time, timezone, wise, profiles);
+//   try {
+//     // console.log(email, categories, time, timezone, wise, profiles);
 
-    // Define fields to update dynamically
-    const updateFields: any = {
-      time, // Update time preferences
-      timezone, // Update timezone
-      wise, // Update feed type (categorywise or customProfiles)
-      isNewUser: false, // Mark user as no longer new
-    };
+//     // Define fields to update dynamically
+//     const updateFields: any = {
+//       time, // Update time preferences
+//       timezone, // Update timezone
+//       wise, // Update feed type (categorywise or customProfiles)
+//       isNewUser: false, // Mark user as no longer new
+//     };
 
-    // Handle categorywise and customProfiles cases
-    if (wise === "categorywise") {
-      updateFields.categories = categories || []; // Update categories
-      updateFields.profiles = []; // Clear profiles if switching to categorywise
-    } else if (wise === "customProfiles") {
-      updateFields.profiles = profiles || []; // Update profiles
-      updateFields.categories = []; // Clear categories if switching to customProfiles
-    }
+//     // Handle categorywise and customProfiles cases
+//     if (wise === "categorywise") {
+//       updateFields.categories = categories || []; // Update categories
+//       updateFields.profiles = []; // Clear profiles if switching to categorywise
+//     } else if (wise === "customProfiles") {
+//       updateFields.profiles = profiles || []; // Update profiles
+//       updateFields.categories = []; // Clear categories if switching to customProfiles
+//     }
 
-    // Update user preferences in the database
-    const updatedUser = await User.findOneAndUpdate(
-      { email },
-      updateFields,
-      { new: true } // Return the updated document
-    );
+//     // Update user preferences in the database
+//     const updatedUser = await User.findOneAndUpdate(
+//       { email },
+//       updateFields,
+//       { new: true } // Return the updated document
+//     );
 
-    // console.log(updatedUser);
+//     // console.log(updatedUser);
 
-    if (updatedUser) {
-      // Asynchronous operation to generate and send the newsletter
-      if (wise === "categorywise") {
-        (async () => {
-          try {
-            // Fetch the latest tweets based on the updated categories
-            const { tweetsByCategory, top15Tweets } =
-              await fetchTweetsForCategories(categories);
+//     if (updatedUser) {
+//       // Asynchronous operation to generate and send the newsletter
+//       if (wise === "categorywise") {
+//         (async () => {
+//           try {
+//             // Fetch the latest tweets based on the updated categories
+//             const { tweetsByCategory, top15Tweets } =
+//               await fetchTweetsForCategories(categories);
 
-            // Generate the newsletter
-            const newsletter = await generateNewsletter(
-              tweetsByCategory,
-              top15Tweets
-            );
+//             // Generate the newsletter
+//             const newsletter = await generateNewsletter(
+//               tweetsByCategory,
+//               top15Tweets
+//             );
 
-            if (newsletter) {
-              // Send the generated newsletter to the updated user
-              await sendNewsletterEmail(updatedUser, newsletter);
-              // console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
-            } else {
-              console.error(
-                `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
-              );
-            }
-          } catch (err) {
-            console.error(
-              `❌ [Error]: Error generating or sending newsletter for ${email}:`,
-              err
-            );
-          }
-        })(); // Immediately invoked async function
-      }
+//             if (newsletter) {
+//               // Send the generated newsletter to the updated user
+//               await sendNewsletterEmail(updatedUser, newsletter);
+//               // console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
+//             } else {
+//               console.error(
+//                 `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
+//               );
+//             }
+//           } catch (err) {
+//             console.error(
+//               `❌ [Error]: Error generating or sending newsletter for ${email}:`,
+//               err
+//             );
+//           }
+//         })(); // Immediately invoked async function
+//       }
 
-      // Leave customProfiles implementation to you
-      if (wise === "customProfiles") {
-        (async () => {
-          try {
-            // Fetch the latest tweets for the selected profiles
-            const { tweetsByProfiles, top15Tweets } =
-              await fetchTweetsForProfiles(
-                profiles,
-                updatedUser._id as mongoose.Types.ObjectId
-              );
+//       // Leave customProfiles implementation to you
+//       if (wise === "customProfiles") {
+//         (async () => {
+//           try {
+//             // Fetch the latest tweets for the selected profiles
+//             const { tweetsByProfiles, top15Tweets } =
+//               await fetchTweetsForProfiles(
+//                 profiles,
+//                 updatedUser._id as mongoose.Types.ObjectId
+//               );
 
-            // Generate the newsletter for custom profiles
-            const newsletter = await generateCustomProfileNewsletter(
-              tweetsByProfiles,
-              top15Tweets
-            );
+//             // Generate the newsletter for custom profiles
+//             const newsletter = await generateCustomProfileNewsletter(
+//               tweetsByProfiles,
+//               top15Tweets
+//             );
 
-            if (newsletter) {
-              // Send the generated newsletter to the updated user
-              await sendNewsletterEmail(updatedUser, newsletter);
-              // console.log(
-              //   `✅ [Newsletter Sent]: Custom profiles newsletter sent to ${email}`
-              // );
-            } else {
-              console.error(
-                `❌ [Newsletter Generation Error]: Failed to generate custom profiles newsletter for ${email}`
-              );
-            }
-          } catch (err) {
-            console.error(
-              `❌ [Error]: Error generating or sending custom profiles newsletter for ${email}:`,
-              err
-            );
-          }
-        })(); // Immediately invoked async function
-      }
+//             if (newsletter) {
+//               // Send the generated newsletter to the updated user
+//               await sendNewsletterEmail(updatedUser, newsletter);
+//               // console.log(
+//               //   `✅ [Newsletter Sent]: Custom profiles newsletter sent to ${email}`
+//               // );
+//             } else {
+//               console.error(
+//                 `❌ [Newsletter Generation Error]: Failed to generate custom profiles newsletter for ${email}`
+//               );
+//             }
+//           } catch (err) {
+//             console.error(
+//               `❌ [Error]: Error generating or sending custom profiles newsletter for ${email}:`,
+//               err
+//             );
+//           }
+//         })(); // Immediately invoked async function
+//       }
 
 
-      return res
-        .status(200)
-        .json({ code: 0, message: "User preferences updated successfully" });
-    } else {
-      return res.status(200).json({ code: 1, message: "User not found" });
-    }
-  } catch (err) {
-    console.error("Error updating user preferences:", err);
-    return res
-      .status(500)
-      .json({ code: 1, message: "Error updating user preferences" });
-  }
-});
+//       return res
+//         .status(200)
+//         .json({ code: 0, message: "User preferences updated successfully" });
+//     } else {
+//       return res.status(200).json({ code: 1, message: "User not found" });
+//     }
+//   } catch (err) {
+//     console.error("Error updating user preferences:", err);
+//     return res
+//       .status(500)
+//       .json({ code: 1, message: "Error updating user preferences" });
+//   }
+// });
 
 
 // Register route

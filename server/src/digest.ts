@@ -124,8 +124,6 @@ const fetchAvatar = async (username: string): Promise<string | null> => {
         return response.data.avatar;
       }
 
-      // If we get a response but no avatar, throw an error to trigger a retry
-      throw new Error("No avatar in response");
     } catch (error) {
       console.error(
         `Error fetching avatar for ${username} (Attempt ${retries + 1}):`,
@@ -734,7 +732,7 @@ const fetchTweetsPeriodically = async () => {
         "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
       );
 
-      await fetchAndStoreTweets([
+      const categories = [
         "Politics",
         "Geopolitics",
         "Finance",
@@ -744,7 +742,17 @@ const fetchTweetsPeriodically = async () => {
         "Meme",
         "Sports",
         "Entertainment",
-      ]);
+      ];
+
+      // Split into chunks of 5 categories per batch
+      const CATEGORY_BATCH_SIZE = 5;
+      for (let i = 0; i < categories.length; i += CATEGORY_BATCH_SIZE) {
+        const categoryBatch = categories.slice(i, i + CATEGORY_BATCH_SIZE);
+
+        await Promise.all(
+          categoryBatch.map((category) => fetchAndStoreTweets([category]))
+        );
+      }
 
       console.log("✅ [Tweet Fetching]: Tweets updated successfully.");
 
@@ -754,18 +762,19 @@ const fetchTweetsPeriodically = async () => {
 
       const users = await User.find({ wise: "customProfiles" }).exec(); // Get users using custom profiles
 
-      for (const user of users) {
-        try {
-          await fetchTweetsForProfiles(
-            user.profiles,
-            user._id as mongoose.Types.ObjectId
-          );
-        } catch (error) {
-          console.error(
-            `❌ [Custom Profiles]: Error fetching posts for ${user.email}:`,
-            error
-          );
-        }
+      // Process users in parallel batches of 5
+      const USER_BATCH_SIZE = 5;
+      for (let i = 0; i < users.length; i += USER_BATCH_SIZE) {
+        const userBatch = users.slice(i, i + USER_BATCH_SIZE);
+
+        await Promise.all(
+          userBatch.map((user) =>
+            fetchAndStoreTweetsForProfiles(
+              user.profiles,
+              user._id as mongoose.Types.ObjectId
+            )
+          )
+        );
       }
 
       console.log("✅ [Custom Profiles]: User profile tweets updated.");
@@ -1077,7 +1086,10 @@ async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
               const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(user.categories);
               newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
             } else if (user.wise === "customProfiles") {
-              const { tweetsByProfiles, top15Tweets } = await fetchTweetsForProfiles(user.profiles, user._id as mongoose.Types.ObjectId);
+              const { tweetsByProfiles, top15Tweets } =
+                await getStoredTweetsForUser(
+                  user._id as mongoose.Types.ObjectId
+                );
               newsletter = await generateCustomProfileNewsletter(tweetsByProfiles, top15Tweets);
             }
 
@@ -1161,29 +1173,18 @@ cron.schedule("0 */6 * * *", () => {
   sendDigest();
 });
 
-export async function fetchTweetsForProfiles(
+export async function fetchAndStoreTweetsForProfiles(
   profiles: string[],
   userId: mongoose.Types.ObjectId
-): Promise<{
-  tweetsByProfiles: { profile: string; tweets: string[] }[];
-  top15Tweets: {
-    screenName: string;
-    text: string; // Use `text` as the key for tweet content
-    likes: number;
-    tweet_id: string;
-  }[];
-}> {
-  const tweetsByProfiles: { profile: string; tweets: string[] }[] = [];
-  const allTweetsWithLikes: {
-    screenName: string;
-    text: string;
-    likes: number;
-    tweet_id: string;
-  }[] = [];
+): Promise<void> {
+  if (!profiles.length) {
+    console.warn(`⚠️ No profiles provided for fetching tweets.`);
+    return;
+  }
 
   for (const profile of profiles) {
     try {
-      // console.log(`🔄 [Debug]: Fetching tweets for profile: ${profile}`);
+      console.log(`🔄 [Fetching Fresh Tweets]: Fetching tweets for ${profile}`);
 
       const response = await axios.get(
         "https://twitter-api45.p.rapidapi.com/timeline.php",
@@ -1196,18 +1197,10 @@ export async function fetchTweetsForProfiles(
         }
       );
 
-      // console.log(
-      //   `✅ [Debug]: API response for ${profile}:`,
-      //   JSON.stringify(response.data, null, 2)
-      // );
-
-      const tweets = response.data.timeline;
-
-      // Filter and process tweets
       const now = moment();
       const past24Hours = now.subtract(24, "hours");
 
-      const recentTweets = tweets.filter((tweet: any) => {
+      const recentTweets = response.data.timeline.filter((tweet: any) => {
         const tweetTime = moment(
           tweet.created_at,
           "ddd MMM DD HH:mm:ss Z YYYY"
@@ -1218,89 +1211,150 @@ export async function fetchTweetsForProfiles(
       const topTweets = recentTweets
         .sort((a: any, b: any) => b.favorites - a.favorites)
         .slice(0, 25)
-        .map(
-          (tweet: {
-            text: string;
-            favorites: number;
-            tweet_id: string;
-            created_at: string;
-          }) => ({
-            text: removeLinksFromText(tweet.text),
-            likes: tweet.favorites,
-            tweet_id: tweet.tweet_id,
-            createdAt: moment(
-              tweet.created_at,
-              "ddd MMM DD HH:mm:ss Z YYYY"
-            ).toDate(),
-            screenName: profile,
-          })
-        );
-      
-
-      // console.log(
-      //   `✅ [Debug]: Top 10 tweets for ${profile}:`,
-      //   JSON.stringify(topTweets, null, 2)
-      // );
+        .map((tweet: any) => ({
+          text: tweet.text,
+          likes: tweet.favorites,
+          tweet_id: tweet.tweet_id,
+          createdAt: moment(
+            tweet.created_at,
+            "ddd MMM DD HH:mm:ss Z YYYY"
+          ).toDate(),
+        }));
 
       let storedUser = await CustomProfilePosts.findOne({
         screenName: profile,
       }).select("avatar");
       let avatar = storedUser?.avatar || (await fetchAvatar(profile));
 
-      // Save tweets to the database
+      // ✅ Store tweets in MongoDB
       const post = await CustomProfilePosts.findOneAndUpdate(
         { screenName: profile },
-        { tweets: topTweets, avatar },
+        { tweets: topTweets, avatar, createdAt: new Date() },
         { upsert: true, new: true }
-      ).exec();
+      );
 
       if (post) {
         const user = await User.findById(userId).exec();
-        if (user) {
-          if (!user.posts.includes(post._id as mongoose.Types.ObjectId)) {
-            user.posts.push(post._id as mongoose.Types.ObjectId);
-            await user.save();
-            // console.log(
-            //   `✅ [Updated User]: Added post reference for @${profile} to user ${user.email}`
-            // );
-          }
+        if (user && !user.posts.includes(post._id as mongoose.Types.ObjectId)) {
+          user.posts.push(post._id as mongoose.Types.ObjectId);
+          await user.save();
         }
       }
 
+      console.log(`✅ [Stored]: Tweets updated for @${profile}`);
+    } catch (err) {
+      console.error(
+        `❌ [Error]: Fetching tweets failed for ${profile}`
+      );
+    }
+  }
+}
+
+export async function getStoredTweetsForUser(
+  userId: mongoose.Types.ObjectId
+): Promise<{
+  tweetsByProfiles: { profile: string; tweets: string[] }[];
+  top15Tweets: {
+    screenName: string;
+    text: string;
+    likes: number;
+    tweet_id: string;
+  }[];
+}> {
+  const tweetsByProfiles: { profile: string; tweets: string[] }[] = [];
+  const allTweetsWithLikes: {
+    screenName: string;
+    text: string;
+    likes: number;
+    tweet_id: string;
+  }[] = [];
+
+  try {
+    console.log(
+      `📂 [Retrieving Tweets]: Fetching stored tweets for user: ${userId}`
+    );
+
+    // ✅ Fetch user & get their referenced posts
+    const user = await User.findById(userId).populate("posts").exec();
+    if (!user || !user.posts.length) {
+      console.warn(`⚠️ No stored tweets found for user: ${userId}`);
+      return { tweetsByProfiles, top15Tweets: [] };
+    }
+
+    for (const post of user.posts as any[]) {
+      if (!post.tweets.length) continue;
+
+      const topTweets = post.tweets
+        .sort((a: { likes: number; }, b: { likes: number; }) => b.likes - a.likes)
+        .slice(0, 25)
+        .map((tweet: { text: { toString: () => any; }; likes: any; tweet_id: { toString: () => any; }; }) => ({
+          text: tweet.text.toString(),
+          likes: Number(tweet.likes),
+          tweet_id: tweet.tweet_id.toString(),
+          screenName: post.screenName, // Use screenName from post
+        }));
+
       tweetsByProfiles.push({
-        profile,
-        tweets: topTweets.map((tweet: { text: string }) => tweet.text),
+        profile: post.screenName,
+        tweets: topTweets.map((tweet: { text: any; }) => tweet.text),
       });
 
       allTweetsWithLikes.push(...topTweets);
-    } catch (err: any) {
-      if (err.response) {
-        console.error(
-          `❌ [Error]: API Error for ${profile}:`,
-          JSON.stringify(err.response.data, null, 2)
-        );
-      } else {
-        console.error(
-          `❌ [Error]: Request failed for ${profile}:`,
-          err.message
-        );
-      }
-      continue; // Skip to the next profile
     }
+  } catch (err) {
+    console.error(
+      `❌ [Error]: Retrieving stored tweets failed for user: ${userId}`
+    );
   }
 
-  const top15Tweets = allTweetsWithLikes
-    .sort((a, b) => b.likes - a.likes)
-    .slice(0, 15);
-
-  // console.log(
-  //   `✅ [Debug]: Top 15 tweets across all profiles:`,
-  //   JSON.stringify(top15Tweets, null, 2)
-  // );
+  // ✅ Ensure at most 1 top-liked tweet per account
+  const top15Tweets = selectTopTweetsPerAccount(allTweetsWithLikes, 15);
 
   return { tweetsByProfiles, top15Tweets };
 }
 
+function selectTopTweetsPerAccount(
+  allTweetsWithLikes: {
+    screenName: string;
+    text: string;
+    likes: number;
+    tweet_id: string;
+  }[],
+  limit: number
+): {
+  screenName: string;
+  text: string;
+  likes: number;
+  tweet_id: string;
+}[] {
+  const topTweetsMap = new Map<
+    string,
+    { text: string; likes: number; tweet_id: string }
+  >();
+
+  allTweetsWithLikes.forEach((tweet) => {
+    if (
+      !topTweetsMap.has(tweet.screenName) ||
+      tweet.likes > topTweetsMap.get(tweet.screenName)!.likes
+    ) {
+      topTweetsMap.set(tweet.screenName, {
+        text: tweet.text,
+        likes: tweet.likes,
+        tweet_id: tweet.tweet_id,
+      });
+    }
+  });
+
+  return Array.from(topTweetsMap.entries())
+    .map(([screenName, tweet]) => ({
+      screenName,
+      text: tweet.text,
+      likes: tweet.likes,
+      tweet_id: tweet.tweet_id,
+    }))
+    .sort((a, b) => b.likes - a.likes)
+    .slice(0, limit);
+}
 // export async function generateCustomProfileNewsletter(
 //   tweetsByProfiles: {
 //     profile: string;
