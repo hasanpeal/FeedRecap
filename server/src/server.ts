@@ -799,6 +799,21 @@ app.post("/register", async (req, res) => {
     });
     await newUser.save();
     res.status(200).send({ code: 0, message: "User registered successfully" });
+    const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories([
+      "Politics",
+      "Geopolitics",
+      "Finance",
+      "AI",
+      "Tech",
+      "Crypto",
+      "Meme",
+      "Sports",
+      "Entertainment",
+    ]);
+    const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+    if (newsletter) {
+      await sendNewsletterEmail(newUser, newsletter);
+    }
   } catch (err) {
     res.status(200).send({ code: 1, message: "Error registering user" });
   }

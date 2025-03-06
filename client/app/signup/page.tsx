@@ -155,7 +155,7 @@ const Signup: React.FC = () => {
 
       if (generatedOtp === otp.join("")) {
         try {
-          setLoad(true);
+          // setLoad(true);
           const result = await axios.post(
             `${process.env.NEXT_PUBLIC_SERVER}/register`,
             {

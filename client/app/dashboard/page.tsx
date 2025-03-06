@@ -190,9 +190,6 @@ export default function Dashboard() {
         if (retries >= maxRetries) {
           return { username, avatar: "/placeholder.svg" };
         }
-
-        // Wait for a short time before retrying
-        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -559,11 +556,6 @@ const fetchData = async () => {
       if (response.data.code === 0) {
         setRegisteredWise(wise);
         await fetchData();
-
-        setTimeout(() => {
-          setPageLoading(false);
-          showNotification("Dashboard updated with new feed type", "success");
-        }, 5000);
       } else {
         showNotification("Error updating feed type.", "error");
       }
@@ -1027,7 +1019,7 @@ const fetchData = async () => {
                     }`}
                     onClick={() => setWise("categorywise")}
                   >
-                    Category-wise
+                    Categories
                   </button>
                   <button
                     className={`rounded-full px-6 py-2 transition-colors ${
@@ -1037,7 +1029,7 @@ const fetchData = async () => {
                     }`}
                     onClick={() => setWise("customProfiles")}
                   >
-                    Custom Profiles
+                    Profiles
                   </button>
                 </div>
                 <button

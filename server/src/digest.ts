@@ -11,12 +11,17 @@ import { marked } from "marked";
 import { htmlToText } from "html-to-text";
 import { Newsletter } from "./newsletterModel";
 import OpenAI from "openai";
+import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
+
 // Set up SendGrid API
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 const openai = new OpenAI({
   baseURL: "https://api.deepseek.com",
   apiKey: process.env.OPENAI,
 });
+
+const NUM_WORKERS = 5; // Run 5 workers in parallel
+
 // MongoDB Tweet Document Interface
 export interface ITweet extends Document {
   category: string;
@@ -932,109 +937,213 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
-// Function to process newsletters for all users at a specific time slot
-async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
-  console.log(`⏰ [Debug] Processing newsletters for time slot: ${timeSlot}`);
+// // Function to process newsletters for all users at a specific time slot
+// async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
+//   console.log(`⏰ [Debug] Processing newsletters for time slot: ${timeSlot}`);
+//   try {
+//     // Fetch all users with the specified time preference
+//     const users = await User.find({ time: timeSlot }).exec();
+//     console.log(users);
+//     if (users.length === 0) {
+//       console.log(`📭 [Debug] No users found for time slot: ${timeSlot}`);
+//       return;
+//     }
+
+//     console.log(
+//       `📋 [Debug] Found ${users.length} users for time slot: ${timeSlot}`
+//     );
+
+//     for (const user of users) {
+//       // Validate email
+//       if (!isValidEmail(user.email)) {
+//         console.log(
+//           `⚠️ [Debug] Skipping user with invalid email: ${user.email}`
+//         );
+//         continue;
+//       }
+
+//       // Check if the user has valid time preferences
+//       if (!user.time || user.time.length === 0) {
+//         console.log(
+//           `⚠️ [Debug] Skipping user with no time preferences: ${user.email}`
+//         );
+//         continue;
+//       }
+
+//       console.log(`📧 [Debug] Generating newsletter for: ${user.email}`);
+//       try {
+//         if (user.wise === "categorywise") {
+//           // Fetch tweets for user's categories and generate the newsletter
+//           const { tweetsByCategory, top15Tweets } =
+//             await fetchTweetsForCategories(user.categories);
+//           const newsletter = await generateNewsletter(
+//             tweetsByCategory,
+//             top15Tweets
+//           );
+//           if (newsletter) {
+//             await sendNewsletterEmail(user, newsletter);
+//           }
+//         } else if (user.wise === "customProfiles") {
+//           // Fetch tweets for custom profiles and generate the newsletter
+//           const { tweetsByProfiles, top15Tweets } =
+//             await fetchTweetsForProfiles(
+//               user.profiles,
+//               user._id as mongoose.Types.ObjectId
+//             );
+//           const newsletter = await generateCustomProfileNewsletter(
+//             tweetsByProfiles,
+//             top15Tweets
+//           );
+//           if (newsletter) {
+//             await sendNewsletterEmail(user, newsletter);
+//           }
+//         }
+//         console.log(`✅ [Debug] Newsletter sent to: ${user.email}`);
+//       } catch (error) {
+//         console.error(
+//           `❌ [Debug] Error processing newsletter for ${user.email}:`,
+//           error
+//         );
+//       }
+//     }
+//   } catch (error) {
+//     console.error(
+//       `❌ [Debug] Error processing newsletters for time slot: ${timeSlot}`,
+//       error
+//     );
+//   }
+// }
+
+// // Scheduler function
+// function runContinuousScheduler() {
+//   // console.log("🚀 [Debug] Starting continuous scheduler...");
+//   const scheduleTimes = {
+//     Morning: "09:00", // 9 AM Eastern
+//     Afternoon: "15:00", // 3 PM Eastern
+//     Night: "20:00", // 8 PM Eastern
+//   };
+
+//   setInterval(async () => {
+//     const currentTime = moment().tz("America/New_York").format("HH:mm");
+//     // console.log(`⏱️ [Debug] Current time: ${currentTime} Eastern`);
+
+//     for (const [timeSlot, scheduledTime] of Object.entries(scheduleTimes)) {
+//       if (currentTime === scheduledTime) {
+//         console.log(
+//           `🎯 [Debug] Time matched for ${timeSlot}. Processing newsletters...`
+//         );
+//         await processNewslettersForTimeSlot(timeSlot);
+//       }
+//     }
+//   }, 60 * 1000); // Check every minute
+// }
+
+// // Start the scheduler
+// runContinuousScheduler();
+
+// Function to process newsletters (Worker Logic)
+async function processNewsletter(user: any) {
   try {
-    // Fetch all users with the specified time preference
+    if (!isValidEmail(user.email)) {
+      console.log(`⚠️ [Worker]: Skipping user with invalid email: ${user.email}`);
+      return;
+    }
+
+    if (!user.time || user.time.length === 0) {
+      console.log(`⚠️ [Worker]: Skipping user with no time preferences: ${user.email}`);
+      return;
+    }
+
+    console.log(`📧 [Worker]: Generating newsletter for: ${user.email}`);
+
+    let newsletter = null;
+    if (user.wise === "categorywise") {
+      const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(user.categories);
+      newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+    } else if (user.wise === "customProfiles") {
+      const { tweetsByProfiles, top15Tweets } = await fetchTweetsForProfiles(user.profiles, user._id);
+      newsletter = await generateCustomProfileNewsletter(tweetsByProfiles, top15Tweets);
+    }
+
+    if (newsletter) {
+      await sendNewsletterEmail(user, newsletter);
+      console.log(`✅ [Worker]: Newsletter sent to ${user.email}`);
+    }
+  } catch (error) {
+    console.error(`❌ [Worker]: Error processing newsletter for ${user.email}:`, error);
+  }
+}
+
+// If running inside a worker thread, process a batch of users
+if (!isMainThread) {
+  const users = workerData;
+  Promise.all(users.map(processNewsletter)).then(() => {
+    parentPort?.postMessage("done");
+  });
+}
+
+// Function to distribute users into worker threads (Parallel Processing)
+async function processNewslettersForTimeSlot(timeSlot: string) {
+  console.log(`⏰ [Debug] Processing newsletters for time slot: ${timeSlot}`);
+
+  try {
     const users = await User.find({ time: timeSlot }).exec();
-    console.log(users);
     if (users.length === 0) {
       console.log(`📭 [Debug] No users found for time slot: ${timeSlot}`);
       return;
     }
 
-    console.log(
-      `📋 [Debug] Found ${users.length} users for time slot: ${timeSlot}`
-    );
-
-    for (const user of users) {
-      // Validate email
-      if (!isValidEmail(user.email)) {
-        console.log(
-          `⚠️ [Debug] Skipping user with invalid email: ${user.email}`
-        );
-        continue;
-      }
-
-      // Check if the user has valid time preferences
-      if (!user.time || user.time.length === 0) {
-        console.log(
-          `⚠️ [Debug] Skipping user with no time preferences: ${user.email}`
-        );
-        continue;
-      }
-
-      console.log(`📧 [Debug] Generating newsletter for: ${user.email}`);
-      try {
-        if (user.wise === "categorywise") {
-          // Fetch tweets for user's categories and generate the newsletter
-          const { tweetsByCategory, top15Tweets } =
-            await fetchTweetsForCategories(user.categories);
-          const newsletter = await generateNewsletter(
-            tweetsByCategory,
-            top15Tweets
-          );
-          if (newsletter) {
-            await sendNewsletterEmail(user, newsletter);
-          }
-        } else if (user.wise === "customProfiles") {
-          // Fetch tweets for custom profiles and generate the newsletter
-          const { tweetsByProfiles, top15Tweets } =
-            await fetchTweetsForProfiles(
-              user.profiles,
-              user._id as mongoose.Types.ObjectId
-            );
-          const newsletter = await generateCustomProfileNewsletter(
-            tweetsByProfiles,
-            top15Tweets
-          );
-          if (newsletter) {
-            await sendNewsletterEmail(user, newsletter);
-          }
-        }
-        console.log(`✅ [Debug] Newsletter sent to: ${user.email}`);
-      } catch (error) {
-        console.error(
-          `❌ [Debug] Error processing newsletter for ${user.email}:`,
-          error
-        );
-      }
+    // Split users into batches of 5
+    const batchSize = NUM_WORKERS;
+    const batches: any[][] = [];
+    for (let i = 0; i < users.length; i += batchSize) {
+      batches.push(users.slice(i, i + batchSize));
     }
-  } catch (error) {
-    console.error(
-      `❌ [Debug] Error processing newsletters for time slot: ${timeSlot}`,
-      error
+
+    console.log(`📋 [Debug] Found ${users.length} users, processing in ${batches.length} batches`);
+
+    // Process each batch in parallel using worker threads
+    await Promise.all(
+      batches.map(
+        (batch) =>
+          new Promise((resolve, reject) => {
+            const worker = new Worker(__filename, { workerData: batch });
+            worker.on("message", resolve);
+            worker.on("error", reject);
+          })
+      )
     );
+
+    console.log(`✅ [Debug] All newsletters sent for time slot: ${timeSlot}`);
+  } catch (error) {
+    console.error(`❌ [Debug] Error processing newsletters for ${timeSlot}`, error);
   }
 }
 
-// Scheduler function
+// Scheduler Function to Trigger Newsletter Sending
 function runContinuousScheduler() {
-  // console.log("🚀 [Debug] Starting continuous scheduler...");
   const scheduleTimes = {
-    Morning: "09:00", // 9 AM Eastern
-    Afternoon: "15:00", // 3 PM Eastern
-    Night: "20:00", // 8 PM Eastern
+    Morning: "09:00",
+    Afternoon: "15:00",
+    Night: "20:00",
   };
 
   setInterval(async () => {
     const currentTime = moment().tz("America/New_York").format("HH:mm");
-    // console.log(`⏱️ [Debug] Current time: ${currentTime} Eastern`);
 
     for (const [timeSlot, scheduledTime] of Object.entries(scheduleTimes)) {
       if (currentTime === scheduledTime) {
-        console.log(
-          `🎯 [Debug] Time matched for ${timeSlot}. Processing newsletters...`
-        );
+        console.log(`🎯 [Debug] Time matched for ${timeSlot}. Processing newsletters...`);
         await processNewslettersForTimeSlot(timeSlot);
       }
     }
-  }, 60 * 1000); // Check every minute
+  }, 60 * 1000);
 }
 
 // Start the scheduler
-runContinuousScheduler();
+if (isMainThread) {
+  runContinuousScheduler();
+}
 
 const sendDigest = async () => {
   const totalUsers = await User.countDocuments({});
