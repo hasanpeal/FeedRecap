@@ -166,13 +166,26 @@ app.get("/data", async (req, res) => {
       return res.status(404).json({ error: "User not found", code: 1 });
     }
 
-    let posts: {
-      username: string; avatar: string; // ✅ Include avatar
-      time: Date; likes: number; category: string; text: string; tweet_id: string;
-    }[] | {
-      username: string; avatar: { type: String; required: false; }; // ✅ Include avatar
-      time: { type: Date; required: true; }; likes: { type: Number; required: true; }; text: { type: String; required: true; }; tweet_id: { type: String; required: true; };
-    }[] = [];
+    let posts:
+      | {
+          username: string;
+          avatar: string; 
+          time: Date;
+          likes: number;
+          category: string;
+          text: string;
+          tweet_id: string;
+          mediaThumbnail?: string;
+        }[]
+      | {
+          username: string;
+          avatar: { type: String; required: false }; 
+          time: { type: Date; required: true };
+          likes: { type: Number; required: true };
+          text: { type: String; required: true };
+          tweet_id: { type: String; required: true };
+          mediaThumbnail?: {type: String; required: false};
+        }[] = [];
 
     if (user.wise === "categorywise") {
       // Fetch posts based on category-wise selection
@@ -189,6 +202,7 @@ app.get("/data", async (req, res) => {
           category: post.category,
           text: tweet.text,
           tweet_id: tweet.tweet_id,
+          mediaThumbnail: tweet.mediaThumbnail || undefined,
         }))
       );
     } else if (user.wise === "customProfiles") {
@@ -207,6 +221,7 @@ app.get("/data", async (req, res) => {
           likes: tweet.likes,
           text: tweet.text,
           tweet_id: tweet.tweet_id,
+          mediaThumbnail: tweet.mediaThumbnail || null,
         }))
       );
     }
@@ -337,6 +352,7 @@ app.post("/updateProfiles", async (req, res) => {
         likes: tweet.likes,
         text: tweet.text,
         tweet_id: tweet.tweet_id,
+        mediaThumbnail: tweet.mediaThumbnail || null,
       }))
     );
 
@@ -345,7 +361,7 @@ app.post("/updateProfiles", async (req, res) => {
       message: "Profiles updated successfully",
       changedProfiles,
       profiles: updatedUser?.profiles,
-      posts, // ✅ Send the updated posts
+      posts, 
     });
   } catch (err) {
     console.error("Error updating profiles:", err);
