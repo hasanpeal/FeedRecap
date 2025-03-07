@@ -1014,7 +1014,16 @@ export default function Dashboard() {
                       </div>
                       {renderPostText(post.text, post.tweet_id)}
                       <a
-                        href={`https://twitter.com/i/web/status/${post.tweet_id}`}
+                        href={`twitter://status?id=${post.tweet_id}`} // Deep link for mobile
+                        onClick={(e) => {
+                          if (
+                            /Mobi|Android|iPhone/i.test(navigator.userAgent)
+                          ) {
+                            // Prevent default browser behavior on mobile
+                            e.preventDefault();
+                            window.location.href = `twitter://status?id=${post.tweet_id}`;
+                          }
+                        }}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 text-sm text-[#7FFFD4] hover:underline"
