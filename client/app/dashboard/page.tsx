@@ -1014,18 +1014,29 @@ export default function Dashboard() {
                       </div>
                       {renderPostText(post.text, post.tweet_id)}
                       <a
-                        href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser link
+                        href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
                         onClick={(e) => {
                           e.preventDefault();
-                          const xAppLink = `twitter://status?id=${post.tweet_id}`; // X App deep link
+                          const tweetId = post.tweet_id;
+                          const isMobile = /Mobi|Android|iPhone/i.test(
+                            navigator.userAgent
+                          );
 
-                          // Open X app first
-                          window.location.href = xAppLink;
+                          if (isMobile) {
+                            // Try opening in X app directly (NO confirmation prompt)
+                            window.location.href = `twitter://status?id=${tweetId}`;
 
-                          // If the app is not installed, fallback to browser after a delay
-                          setTimeout(() => {
-                            window.open(`https://twitter.com/i/web/status/${post.tweet_id}`, '_blank');
-                          }, 500);
+                            // If app is not installed, open in browser after a short delay
+                            setTimeout(() => {
+                              window.location.href = `https://twitter.com/i/web/status/${tweetId}`;
+                            }, 500);
+                          } else {
+                            // Desktop: Always open in a new tab
+                            window.open(
+                              `https://twitter.com/i/web/status/${tweetId}`,
+                              "_blank"
+                            );
+                          }
                         }}
                         target="_blank"
                         rel="noopener noreferrer"
