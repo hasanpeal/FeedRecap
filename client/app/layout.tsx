@@ -21,10 +21,10 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="light">
       <head>
-        <title>FeedRecap</title>
+        <title>FeedRecap - AI Powered X Newsletters</title>
         <meta
           name="description"
-          content="FeedRecap is the ultimate AI-powered platform for discovering curated top tweets and insights from X. Effortlessly stay informed with personalized newsletters covering trending topics like Politics, Financial Markets, Sports, Technology, and more. Designed for professionals, enthusiasts, and news seekers, FeedRecap transforms your X experience by delivering meaningful updates directly to your inbox at your preferred time. Explore trending tweets, track engagement with a user-friendly dashboard, and enjoy curated content without endless scrolling. Perfect for busy individuals seeking accurate, timely, and organized social media insights. Join FeedRecap today to redefine the way you consume news and social trends."
+          content="FeedRecap curates top X posts with AI, delivering personalized newsletters curated from your preferred X accounts. Stay informed without endless scrolling 🚀"
         />
         <meta
           name="keywords"
