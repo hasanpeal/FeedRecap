@@ -12,7 +12,6 @@ import Image from "next/image";
 import _ from "lodash";
 import Navbar3 from "@/components/navbar3";
 import { ChevronLeft, ChevronRight, MessageCircle, X } from "lucide-react";
-
 interface Post {
   username: string;
   time: string;
@@ -730,31 +729,19 @@ export default function Dashboard() {
     setIsTyping(true);
 
     try {
-      const prompt = `Based on the following tweets, please provide a concise answer to this question: "${userInput}". If you can't answer based on the tweets, please say so. Here are the tweets: ${JSON.stringify(
-        posts
-      )}`;
-
-      const options = {
+      const response = await fetch("/api/deepseek", {
         method: "POST",
-        url: "https://deepseek-v31.p.rapidapi.com/",
         headers: {
-          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
-          "x-rapidapi-host": "deepseek-v31.p.rapidapi.com",
           "Content-Type": "application/json",
         },
-        data: {
-          model: "deepseek-v3",
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-        },
-      };
+        body: JSON.stringify({ userInput, posts }),
+      });
 
-      const response = await axios.request(options);
-      let aiResponse = response.data.choices[0].message.content;
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Failed to fetch response");
+
+      let aiResponse = data.aiResponse;
 
       // Clean up the AI response
       aiResponse = aiResponse.replace(/\*/g, ""); // Remove single asterisks
