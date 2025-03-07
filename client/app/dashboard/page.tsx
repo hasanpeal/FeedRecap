@@ -1014,15 +1014,25 @@ export default function Dashboard() {
                       </div>
                       {renderPostText(post.text, post.tweet_id)}
                       <a
-                        href={`twitter://status?id=${post.tweet_id}`} // Deep link for mobile
+                        href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
                         onClick={(e) => {
-                          if (
-                            /Mobi|Android|iPhone/i.test(navigator.userAgent)
-                          ) {
-                            // Prevent default browser behavior on mobile
-                            e.preventDefault();
-                            window.location.href = `twitter://status?id=${post.tweet_id}`;
-                          }
+                          e.preventDefault();
+                          const xAppLink = `twitter://status?id=${post.tweet_id}`; // X App deep link
+
+                          // Open X app first
+                          const newTab = window.open(xAppLink, "_blank");
+
+                          // If X app is NOT installed, fallback to browser in new tab
+                          setTimeout(() => {
+                            if (newTab) {
+                              newTab.location.href = `https://twitter.com/i/web/status/${post.tweet_id}`;
+                            } else {
+                              window.open(
+                                `https://twitter.com/i/web/status/${post.tweet_id}`,
+                                "_blank"
+                              );
+                            }
+                          }, 100);
                         }}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -1047,7 +1057,7 @@ export default function Dashboard() {
                   ))
                 ) : (
                   <div className="col-span-full text-center py-8">
-                    <p className="text-gray-400">No posts found.</p>
+                    <p className="text-gray-400">No posts found</p>
                   </div>
                 )}
               </div>
