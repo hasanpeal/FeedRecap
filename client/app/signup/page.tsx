@@ -201,7 +201,7 @@ const Signup: React.FC = () => {
   return (
     <div className="min-h-screen bg-black">
       <Navbar />
-      <div className="container mx-auto px-4 py-32">
+      <div className="container mx-auto px-4 py-10 md:py-32">
         <div className="max-w-md mx-auto">
           <Toaster />
           <div className="bg-[#111] rounded-xl border border-gray-800 p-8 shadow-xl">

@@ -385,7 +385,7 @@ export default function Signin() {
   return (
     <div className="min-h-screen bg-black">
       <Navbar2 />
-      <div className="container mx-auto px-4 py-32">
+      <div className="container mx-auto px-4 py-10 md:py-32">
         <div className="max-w-md mx-auto">
           <div className="bg-[#111] rounded-xl border border-gray-800 p-8 shadow-xl">
             <h1 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">

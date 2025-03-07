@@ -47,19 +47,19 @@ export default function Home() {
   </ul>
 `;
 
-const [displayText, setDisplayText] = useState("");
-const [index, setIndex] = useState(0);
+  const [displayText, setDisplayText] = useState("");
+  const [index, setIndex] = useState(0);
 
-useEffect(() => {
-  if (index < newsletterText.length) {
-    const timeout = setTimeout(() => {
-      setDisplayText((prev) => prev + newsletterText[index]);
-      setIndex(index + 1);
-    }, 2); // Adjust speed for typing effect
+  useEffect(() => {
+    if (index < newsletterText.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText((prev) => prev + newsletterText[index]);
+        setIndex(index + 1);
+      }, 2); // Adjust speed for typing effect
 
-    return () => clearTimeout(timeout);
-  }
-}, [index]);
+      return () => clearTimeout(timeout);
+    }
+  }, [index]);
 
   React.useEffect(() => {
     const storage = async () => {
@@ -97,23 +97,23 @@ useEffect(() => {
       <Navbar />
 
       {/* Hero Section */}
-      <main className="flex flex-col items-center justify-center text-center py-24 px-4">
+      <main className="flex flex-col items-center justify-center text-center sm:py-24 py-10  px-4">
         <div className="max-w-4xl mx-auto">
           {/* FeedRecap Logo */}
 
           {/* Main Heading */}
-          <h1 className="text-5xl font-bold mb-6 text-white">
+          <h1 className="text-3xl sm:text-5xl font-bold mb-6 text-white">
             Never Miss What Matters on X
           </h1>
 
           {/* Subheading */}
-          <h2 className="text-2xl text-white mb-8">
+          <h2 className="text-lg sm:text-2xl text-white mb-8 mx-2 sm:mx-0">
             FeedRecap delivers the top X posts you care about—straight to your
-            inbox.
+            inbox
           </h2>
 
           {/* Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mx-4 sm:mx-0">
             <Link href="/signup">
               <button className="bg-gradient-to-r from-[#7FFFD4] to-[#00CED1] text-black font-medium px-8 py-3 rounded-full shadow-lg hover:shadow-[#7FFFD4]/20 transition-all duration-300 w-full sm:w-auto">
                 Get Started
@@ -127,24 +127,24 @@ useEffect(() => {
           </div>
 
           {/* Information Section */}
-          <div className="mt-10 text-gray-300 space-y-4  mx-auto">
+          <div className="mt-10 text-gray-300 space-y-4  mx-2 sm:mx-auto">
             <p className="text-[#7FFFD4] font-semibold text-xl">
               ∞ Stay in the loop without the noise
             </p>
-            <p className="text-white text-xl">
+            <p className="text-white sm:text-xl">
               FeedRecap analyzes X for you, summarizing the biggest events,
               updates, and posts from the accounts you follow or topics you
               love. Get AI-powered daily newsletters (up to 3x a day) with
               bite-sized recaps and direct links to the must-see posts—curated
-              just for you.
+              just for you
             </p>
 
             <p className="text-[#7FFFD4] font-semibold text-xl">
               ☑ Take control of your feed
             </p>
-            <p className="text-white text-xl">
+            <p className="text-white sm:text-xl">
               Log into FeedRecap and explore a custom newsfeed of the latest top
-              posts, free from X’s algorithm clutter.
+              posts, free from X’s algorithm clutter
             </p>
           </div>
         </div>
@@ -447,7 +447,7 @@ useEffect(() => {
           <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
             Our Mission
           </h2>
-          <p className="text-xl mb-10 text-gray-300">
+          <p className="text-md sm:text-xl mb-10 text-gray-300">
             The news landscape is changing—X is where it breaks first. Our
             mission is to make sense of it all, curating top posts from your
             favorite sources to keep you dialed into what matters most.

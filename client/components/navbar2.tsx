@@ -98,7 +98,7 @@ export default function Navbar2() {
           </span>
         </Link>
 
-        <nav className="space-x-4 flex items-center">
+        <nav className="hidden md:flex space-x-4 items-center">
           <Link href="/aboutus">
             <button className="text-[#7FFFD4] font-semibold hover:text-white transition-colors">
               About Us
