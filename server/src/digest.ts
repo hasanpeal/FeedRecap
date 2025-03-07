@@ -259,7 +259,7 @@ export async function generateNewsletter(
       {
         role: "system",
         content:
-          "You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 13 OF THESE RULES!! (Take as long as you want to process):\n\n" +
+          "You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 15 OF THESE RULES!! (Take as long as you want to process):\n\n" +
           "1. **Begin with a concise 'Summary' section** that provides an overall 2-3 line overview of the main themes or highlights across all categories. Title this section 'Summary'.\n" +
           "2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.\n" +
           "3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis.\n" +
@@ -272,7 +272,9 @@ export async function generateNewsletter(
           "10. **Format the newsletter as bullet points** for each category.\n" +
           "11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.\n" +
           "12. **Ensure bullet points are separated by category** and well-structured.\n" +
-          "13. **Make sure each heading (bold) and its content has consistent font, size, and style. Also, don't use any horizontal line.**\n\n",
+          "13. Instead of `this weeks' say 'todays'. Instead of 'tweet' say 'post'. Instead of twitter say 'X'. Don't say the word 'whirlwind' \n" +
+          "14. Make sure you don't purely sounds like AI, you must sound as humanly as possible \n" +
+          "15. **Make sure each heading (bold) and its content has consistent font, size, and style. **\n\n",
       },
       {
         role: "user",
@@ -305,7 +307,7 @@ export async function generateNewsletter(
     const topTweetsText = top15Tweets
       .map(
         (tweet, index) =>
-          `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} - @${
+          `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} @${
             tweet.screenName
           } <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
@@ -363,7 +365,7 @@ export async function fetchTweetsForCategories(
           allTweetsWithLikes.push({
             screenName: tweetRecord.screenName,
             category: tweetRecord.category,
-            tweet: tweet.text,
+            tweet: tweet.text.slice(0, 300),
             likes: tweet.likes,
             tweet_id: tweet.tweet_id, // Ensure tweet_id is included
           });
@@ -916,7 +918,7 @@ export async function getStoredTweetsForUser(
         .sort((a, b) => Number(b.likes) - Number(a.likes))
         .slice(0, 25)
         .map((tweet: { text: any; likes: any; tweet_id: any }) => ({
-          text: tweet.text.toString(),
+          text: tweet.text.toString().slice(0, 300),
           likes: Number(tweet.likes),
           tweet_id: tweet.tweet_id.toString(),
           screenName: post.screenName, // Use screenName from post
@@ -1005,14 +1007,16 @@ export async function generateCustomProfileNewsletter(
           "You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 11 OF THESE RULES!! (Take as long as you want to process):\n\n" +
           "1. **Begin with a concise 'Summary' section** that provides an overall 2-3 line overview of the main themes or highlights across all tweets. Title this section 'Summary'.\n" +
           "2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.\n" +
-          "3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis.\n" +
+          "3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 1 relevant emojis.\n" +
           "4. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.\n" +
           "5. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.\n" +
           "6. **Do NOT cite sources**—just summarize the tweets without citations.\n" +
           "7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.\n" +
           "8. **Use emojis often** to add emphasis and excitement to the newsletter.\n" +
           "9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.\n" +
-          "10. **Make sure each heading (bold) and its content has consistent font, size, and style. **\n\n",
+          "10. Instead of `this weeks' say 'todays'. Instead of 'tweet' say 'post'. Instead of twitter say 'X'. Don't say the word 'whirlwind' \n" +
+          "11. Make sure you don't purely sounds like AI, you must sound as humanly as possible \n" +
+          "12. **Make sure each heading (bold) and its content has consistent font, size, and style. **\n\n",
       },
       {
         role: "user",
@@ -1043,7 +1047,7 @@ export async function generateCustomProfileNewsletter(
     const topTweetsText = validTopTweets
       .map(
         (tweet, index) =>
-          `${index + 1}. ${tweet.text.replace(/\n/g, " ")} - @${
+          `${index + 1}. ${tweet.text.replace(/\n/g, " ")} @${
             tweet.screenName
           } <a href="https://x.com/${tweet.screenName}/status/${
             tweet.tweet_id
@@ -1067,103 +1071,102 @@ export async function generateCustomProfileNewsletter(
   }
 }
 
-// async function testProfileswiseByEmail(userEmail: string) {
-//   try {
-//     // Step 1: Fetch the user by email
-//     const user = await User.findOne({ email: userEmail }).exec();
-//     if (!user) {
-//       console.error(`❌ [Test]: User with email ${userEmail} not found.`);
-//       return;
-//     }
+async function testProfileswiseByEmail(userEmail: string) {
+  try {
+    // Step 1: Fetch the user by email
+    const user = await User.findOne({ email: userEmail }).exec();
+    if (!user) {
+      console.error(`❌ [Test]: User with email ${userEmail} not found.`);
+      return;
+    }
 
-//     console.log("✅ [Test]: User fetched:", user.email);
+    console.log("✅ [Test]: User fetched:", user.email);
 
-//     // Step 2: Check if the user is using "customProfiles"
-//     if (user.wise !== "customProfiles") {
-//       console.error(
-//         `❌ [Test]: User ${user.email} is not using customProfiles. Current mode: ${user.wise}`
-//       );
-//       return;
-//     }
+    // Step 2: Check if the user is using "customProfiles"
+    if (user.wise !== "customProfiles") {
+      console.error(
+        `❌ [Test]: User ${user.email} is not using customProfiles. Current mode: ${user.wise}`
+      );
+      return;
+    }
 
-//     if (!user.profiles || user.profiles.length === 0) {
-//       console.error(
-//         `❌ [Test]: User ${user.email} has no profiles configured.`
-//       );
-//       return;
-//     }
+    if (!user.profiles || user.profiles.length === 0) {
+      console.error(
+        `❌ [Test]: User ${user.email} has no profiles configured.`
+      );
+      return;
+    }
 
-//     console.log(
-//       `✅ [Test]: User ${user.email} has profiles configured:`,
-//       user.profiles
-//     );
+    console.log(
+      `✅ [Test]: User ${user.email} has profiles configured:`,
+      user.profiles
+    );
 
-//     // Step 3: Fetch tweets for the profiles
-//     const { tweetsByProfiles, top15Tweets } = await fetchTweetsForProfiles(
-//       user.profiles,
-//       user._id as mongoose.Types.ObjectId
-//     );
+    // Step 3: Fetch tweets for the profiles
+    const { tweetsByProfiles, top15Tweets } = await getStoredTweetsForUser(
+      user._id as mongoose.Types.ObjectId
+    );
 
-//     console.log(`✅ [Test]: Fetched tweets for profiles:`, tweetsByProfiles);
-//     console.log(`✅ [Test]: Top 15 tweets:`, top15Tweets);
+    console.log(`✅ [Test]: Fetched tweets for profiles:`, tweetsByProfiles);
+    console.log(`✅ [Test]: Top 15 tweets:`, top15Tweets);
 
-//     // Step 4: Generate the newsletter
-//     const newsletter = await generateCustomProfileNewsletter(
-//       tweetsByProfiles,
-//       top15Tweets
-//     );
+    // Step 4: Generate the newsletter
+    const newsletter = await generateCustomProfileNewsletter(
+      tweetsByProfiles,
+      top15Tweets
+    );
 
-//     if (!newsletter) {
-//       console.error(`❌ [Test]: Failed to generate the newsletter.`);
-//       return;
-//     }
+    if (!newsletter) {
+      console.error(`❌ [Test]: Failed to generate the newsletter.`);
+      return;
+    }
 
-//     console.log(`✅ [Test]: Newsletter generated successfully.`);
-//     console.log(newsletter);
-//     await sendNewsletterEmail(user, newsletter);
-//     console.log(
-//       `✅ [Test]: Newsletter saved for user ${user.email}.`
-//     );
-//   } catch (error) {
-//     console.error("❌ [Test]: An error occurred during the test:", error);
-//   }
-// }
+    console.log(`✅ [Test]: Newsletter generated successfully.`);
+    console.log(newsletter);
+    await sendNewsletterEmail(user, newsletter);
+    console.log(
+      `✅ [Test]: Newsletter saved for user ${user.email}.`
+    );
+  } catch (error) {
+    console.error("❌ [Test]: An error occurred during the test:", error);
+  }
+}
 
-// // Call the function with a test user email
-// testProfileswiseByEmail("pealh0320@gmail.com");
+// Call the function with a test user email
+testProfileswiseByEmail("pealh0320@gmail.com");
 
-// async function testNewsletter() {
-//   try {
-//     // Fetch the user
-//     const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
-//     if (!user) {
-//       console.error("❌ User not found with email: pealh0320@gmail.com");
-//       return;
-//     }
+async function testNewsletter() {
+  try {
+    // Fetch the user
+    const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
+    if (!user) {
+      console.error("❌ User not found with email: pealh0320@gmail.com");
+      return;
+    }
 
-//     // Define categories for the test (based on user preferences)
-//     const categories = ["Politics", "Geopolitics", "Finance", "AI"];
+    // Define categories for the test (based on user preferences)
+    const categories = ["Politics", "Geopolitics", "Finance", "AI"];
 
-//     // Fetch tweets for the categories
-//     const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
-//       categories
-//     );
+    // Fetch tweets for the categories
+    const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
+      categories
+    );
 
-//     // Generate the newsletter
-//     const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+    // Generate the newsletter
+    const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
 
-//     if (!newsletter) {
-//       console.error("❌ Failed to generate newsletter.");
-//       return;
-//     }
+    if (!newsletter) {
+      console.error("❌ Failed to generate newsletter.");
+      return;
+    }
 
-//     // Send the newsletter
-//     await sendNewsletterEmail(user, newsletter);
+    // Send the newsletter
+    await sendNewsletterEmail(user, newsletter);
 
-//     console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
-//   } catch (error) {
-//     console.error("❌ Error during test:", error);
-//   }
-// }
+    console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
+  } catch (error) {
+    console.error("❌ Error during test:", error);
+  }
+}
 
-// testNewsletter();
+testNewsletter();
