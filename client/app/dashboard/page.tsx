@@ -830,7 +830,7 @@ export default function Dashboard() {
       {pageLoading ? (
         <SkeletonLoader />
       ) : (
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-4 py-4 pb-16 sm:py-12">
           {notification && (
             <div
               className={`fixed top-4 right-4 p-4 rounded-lg ${
@@ -1014,25 +1014,18 @@ export default function Dashboard() {
                       </div>
                       {renderPostText(post.text, post.tweet_id)}
                       <a
-                        href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
+                        href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser link
                         onClick={(e) => {
                           e.preventDefault();
                           const xAppLink = `twitter://status?id=${post.tweet_id}`; // X App deep link
 
                           // Open X app first
-                          const newTab = window.open(xAppLink, "_blank");
+                          window.location.href = xAppLink;
 
-                          // If X app is NOT installed, fallback to browser in new tab
+                          // If the app is not installed, fallback to browser after a delay
                           setTimeout(() => {
-                            if (newTab) {
-                              newTab.location.href = `https://twitter.com/i/web/status/${post.tweet_id}`;
-                            } else {
-                              window.open(
-                                `https://twitter.com/i/web/status/${post.tweet_id}`,
-                                "_blank"
-                              );
-                            }
-                          }, 100);
+                            window.open(`https://twitter.com/i/web/status/${post.tweet_id}`, '_blank');
+                          }, 500);
                         }}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -1057,7 +1050,7 @@ export default function Dashboard() {
                   ))
                 ) : (
                   <div className="col-span-full text-center py-8">
-                    <p className="text-gray-400">No posts found</p>
+                    <p className="text-gray-400">No posts found.</p>
                   </div>
                 )}
               </div>
