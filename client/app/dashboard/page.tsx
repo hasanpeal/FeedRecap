@@ -23,6 +23,7 @@ interface Post {
   avatar?: string;
   isExpanded?: boolean;
   mediaThumbnail?: string;
+  video?: string;
 }
 
 interface UserProfile {
@@ -48,8 +49,8 @@ export default function Dashboard() {
   const [selectedTab, setSelectedTab] = useState("newsfeed");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
-  const [visiblePosts, setVisiblePosts] = useState(20);
-  const [showAllPosts, setShowAllPosts] = useState(false);
+  // const [visiblePosts, setVisiblePosts] = useState(20);
+  // const [showAllPosts, setShowAllPosts] = useState(false);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [newProfile, setNewProfile] = useState("");
   const [wise, setWise] = useState<"categorywise" | "customProfiles">(
@@ -108,7 +109,6 @@ export default function Dashboard() {
       ) || ""
     );
   }, [latestNewsletter]);
-
 
   useEffect(() => {
     if (emailContext) {
@@ -306,7 +306,7 @@ export default function Dashboard() {
       if (response.data && response.data.timeline) {
         return response.data.timeline
           .filter((item: any) => item.screen_name)
-          .slice(0, 5) // Changed from 6 to 4
+          .slice(0, 4) // Changed from 6 to 4
           .map((item: any) => item.screen_name);
       } else {
         console.warn("No suggestions found for keyword:", keyword);
@@ -337,7 +337,7 @@ export default function Dashboard() {
       }
 
       setShowDropdown(true);
-    }, 200), // Changed from 300ms to 150ms
+    }, 300), // Changed from 300ms to 150ms
     [cache]
   );
 
@@ -437,14 +437,14 @@ export default function Dashboard() {
     }
   };
 
-  const toggleShowMore = () => {
-    if (showAllPosts) {
-      setVisiblePosts(20);
-    } else {
-      setVisiblePosts(posts.length);
-    }
-    setShowAllPosts(!showAllPosts);
-  };
+  // const toggleShowMore = () => {
+  //   if (showAllPosts) {
+  //     setVisiblePosts(20);
+  //   } else {
+  //     setVisiblePosts(posts.length);
+  //   }
+  //   setShowAllPosts(!showAllPosts);
+  // };
 
   const filteredPosts = posts.filter(
     (post) =>
@@ -779,14 +779,14 @@ export default function Dashboard() {
     }
   }, []);
 
-   const getInitials = (username: string) => {
-     return username
-       .split(/[._-]/)
-       .map((part) => part[0])
-       .join("")
-       .toUpperCase()
-       .slice(0, 2);
-   };
+  const getInitials = (username: string) => {
+    return username
+      .split(/[._-]/)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const formatNewsletter = (newsletter: string | null): string => {
     if (!newsletter) return "<p>No newsletters available.</p>";
@@ -819,6 +819,81 @@ export default function Dashboard() {
     </ol>
   `;
   };
+
+  // Add a new function to handle video intersection observation
+  const useVideoIntersectionObserver = () => {
+    useEffect(() => {
+      const videoElements = document.querySelectorAll(".post-video");
+
+      if (!videoElements.length) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const video = entry.target as HTMLVideoElement;
+
+            if (!entry.isIntersecting && !video.paused) {
+              // Pause video when it's out of view
+              video.pause();
+            }
+          });
+        },
+        {
+          root: null, // viewport
+          rootMargin: "0px",
+          threshold: 0.2, // 20% visibility required
+        }
+      );
+
+      // Observe all video elements
+      videoElements.forEach((video) => {
+        observer.observe(video);
+      });
+
+      // Cleanup
+      return () => {
+        videoElements.forEach((video) => {
+          observer.unobserve(video);
+        });
+      };
+    }, [posts]); // Re-run when posts change
+  };
+
+  const renderMedia = (post: Post) => {
+    if (post.video) {
+      return (
+        <div className="mb-4 mt-2 rounded-lg overflow-hidden">
+          <div className="video-container relative w-full aspect-video rounded-lg">
+            <video
+              src={post.video}
+              className="w-500 h-500 object-contain rounded-lg border border-gray-800 post-video"
+              controls
+              preload="metadata"
+            >
+              Your browser does not support the video tag
+            </video>
+          </div>
+        </div>
+      );
+    } else if (post.mediaThumbnail) {
+      return (
+        <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
+          <Image
+            src={post.mediaThumbnail || "/placeholder.svg"}
+            alt="Tweet media"
+            width={500}
+            height={240}
+            className="object-cover rounded-lg"
+            // style={{ maxHeight: "240px", width: "auto" }}
+          />
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  useVideoIntersectionObserver();
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -989,7 +1064,7 @@ export default function Dashboard() {
                     <PostSkeleton key={index} />
                   ))
                 ) : filteredPosts.length > 0 ? (
-                  filteredPosts.slice(0, visiblePosts).map((post) => (
+                  filteredPosts.map((post) => ( // Slice (0,20) was here
                     <div
                       key={post.tweet_id}
                       className="post-card break-inside-avoid mb-4 overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30"
@@ -1015,7 +1090,7 @@ export default function Dashboard() {
                         )}
                       </div>
                       {renderPostText(post.text, post.tweet_id)}
-                      {post.mediaThumbnail && (
+                      {/* {post.mediaThumbnail && (
                         <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
                           <Image
                             src={post.mediaThumbnail || "/placeholder.svg"}
@@ -1026,7 +1101,8 @@ export default function Dashboard() {
                             // style={{ maxHeight: "240px", width: "auto" }}
                           />
                         </div>
-                      )}
+                      )} */}
+                      {renderMedia(post)}
                       <a
                         href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
                         onClick={(e) => {
@@ -1080,7 +1156,7 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {posts.length > 10 && (
+              {/* {posts.length > 10 && (
                 <div className="mt-8 flex justify-center">
                   <button
                     className="rounded-full bg-[#7FFFD4] px-6 py-2 text-black transition-opacity hover:opacity-90"
@@ -1089,7 +1165,7 @@ export default function Dashboard() {
                     {showAllPosts ? "Show Less" : "Show More"}
                   </button>
                 </div>
-              )}
+              )} */}
             </div>
           )}
 

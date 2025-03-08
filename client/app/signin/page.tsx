@@ -73,7 +73,6 @@ export default function Signin() {
       const capturedEmail = params.get("email");
       if (code) {
         if (Number.parseInt(code) === 0) {
-          setLoading2(true);
           setEmailContext(capturedEmail || "");
           router.push("/dashboard");
         } else {
