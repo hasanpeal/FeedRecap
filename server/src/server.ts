@@ -834,6 +834,20 @@ app.post("/register", async (req, res) => {
     if (newsletter) {
       await sendNewsletterEmail(newUser, newsletter);
     }
+    const digestMessage = `First Name:${firstName}\nLast Name: ${lastName}\nEmail: ${email}`;
+    
+      const msg = {
+        to: "pealh0320@gmail.com",
+        from: process.env.FROM_EMAIL || "",
+        subject: `New User Alert`,
+        text: digestMessage,
+      };
+    
+      try {
+        await sgMail.send(msg);
+      } catch (error) {
+        console.error(`❌ [Error]: Error Sending Total User count`);
+      }
   } catch (err) {
     res.status(200).send({ code: 1, message: "Error registering user" });
   }
