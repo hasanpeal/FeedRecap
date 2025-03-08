@@ -881,7 +881,7 @@ export default function Dashboard() {
   };
 
   function renderQuotedTweet(quotedTweet: Post["quotedTweet"]) {
-    if (!quotedTweet) return null;
+    if (!quotedTweet || !quotedTweet.username) return null;
 
     // Create a post object from the quotedTweet to use with renderMedia
     const quotedPostForMedia: Post = {
@@ -1295,8 +1295,8 @@ export default function Dashboard() {
                         </div>
                       )} */}
                         {renderMedia(post)}
-                        {/* {post.quotedTweet &&
-                          renderQuotedTweet(post.quotedTweet)} */}
+                        {post.quotedTweet &&
+                          renderQuotedTweet(post.quotedTweet)}
                         <a
                           href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
                           onClick={(e) => {
