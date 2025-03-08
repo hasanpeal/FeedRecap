@@ -190,7 +190,7 @@ export default function Navbar2() {
           ref={dropdownRef}
           className={`${
             menuOpen ? "block bg-black" : "hidden"
-          } md:flex md:bg-transparent md:shadow-none flex-col md:flex-row items-center md:space-x-4 space-y-2 md:space-y-0 p-4 md:p-0 rounded md:rounded-none shadow md:shadow-none`}
+          } md:flex md:bg-transparent md:shadow-none flex-col md:flex-row items-center md:space-x-7 space-y-2 md:space-y-0 p-4 md:p-0 rounded md:rounded-none shadow md:shadow-none`}
         >
           <button
             className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"

@@ -128,6 +128,7 @@ app.get("/data", async (req, res) => {
                 category: post.category,
                 text: tweet.text,
                 tweet_id: tweet.tweet_id,
+                mediaThumbnail: tweet.mediaThumbnail || undefined,
             })));
         }
         else if (user.wise === "customProfiles") {
@@ -145,6 +146,7 @@ app.get("/data", async (req, res) => {
                 likes: tweet.likes,
                 text: tweet.text,
                 tweet_id: tweet.tweet_id,
+                mediaThumbnail: tweet.mediaThumbnail || null,
             })));
         }
         // ✅ Send user details + posts in response
@@ -250,13 +252,14 @@ app.post("/updateProfiles", async (req, res) => {
             likes: tweet.likes,
             text: tweet.text,
             tweet_id: tweet.tweet_id,
+            mediaThumbnail: tweet.mediaThumbnail || null,
         })));
         return res.status(200).json({
             code: 0,
             message: "Profiles updated successfully",
             changedProfiles,
             profiles: updatedUser?.profiles,
-            posts, // ✅ Send the updated posts
+            posts,
         });
     }
     catch (err) {

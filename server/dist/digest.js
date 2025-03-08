@@ -52,17 +52,18 @@ const openai = new openai_1.default({
     apiKey: process.env.OPENAI,
 });
 const NUM_PARALLEL = 5;
-// Tweet Schema
+// Tweet Schema for cagegory posts
 exports.tweetSchema = new mongoose_1.default.Schema({
     category: { type: String, required: true },
     screenName: { type: String, required: true },
-    avatar: { type: String, required: false }, // Add avatar field
+    avatar: { type: String, required: false },
     tweets: [
         {
             text: { type: String, required: true },
             likes: { type: Number, required: true },
             tweet_id: { type: String, required: true },
-            createdAt: { type: Date, required: true }, // Store the tweet's creation time
+            createdAt: { type: Date, required: true },
+            mediaThumbnail: { type: String, required: false },
         },
     ],
     createdAt: { type: Date, default: Date.now },
@@ -71,13 +72,14 @@ exports.tweetSchema = new mongoose_1.default.Schema({
 exports.StoredTweets = dbTweet_1.default.model("StoredTweets", exports.tweetSchema);
 const CustomProfilePostSchema = new mongoose_1.Schema({
     screenName: { type: String, required: true },
-    avatar: { type: String, required: false }, // Add avatar field
+    avatar: { type: String, required: false },
     tweets: [
         {
             text: { type: String, required: true },
             likes: { type: Number, required: true },
             tweet_id: { type: String, required: true },
-            createdAt: { type: Date, required: true }, // Add `createdAt` for each tweet
+            createdAt: { type: Date, required: true },
+            mediaThumbnail: { type: String, required: false },
         },
     ],
     createdAt: { type: Date, default: Date.now },
@@ -95,6 +97,18 @@ async function ensureDatabaseConnections() {
             dbTweet_1.default.once("error", reject);
         }),
     ]);
+}
+// Thumbnail extract
+function extractMediaThumbnail(tweet) {
+    if (tweet.media) {
+        if (tweet.media.photo && tweet.media.photo.length > 0) {
+            return tweet.media.photo[0].media_url_https; // ✅ First photo
+        }
+        if (tweet.media.video && tweet.media.video.length > 0) {
+            return tweet.media.video[0].media_url_https; // ✅ First video thumbnail
+        }
+    }
+    return null; // No media found
 }
 const fetchAvatar = async (username) => {
     let retries = 0;
@@ -173,6 +187,7 @@ async function fetchAndStoreTweets(categories) {
                     likes: tweet.favorites, // Accessing the 'favorites' field for likes
                     tweet_id: tweet.tweet_id,
                     createdAt: (0, moment_timezone_1.default)(tweet.created_at, "ddd MMM DD HH:mm:ss Z YYYY").toDate(), // Use tweet creation time
+                    mediaThumbnail: extractMediaThumbnail(tweet),
                     screenName: screenName,
                 }));
                 // Fetch avatar (only if it's missing in DB)
@@ -609,6 +624,7 @@ async function fetchAndStoreTweetsForProfiles(profiles) {
                 likes: tweet.favorites,
                 tweet_id: tweet.tweet_id,
                 createdAt: (0, moment_timezone_1.default)(tweet.created_at, "ddd MMM DD HH:mm:ss Z YYYY").toDate(),
+                mediaThumbnail: extractMediaThumbnail(tweet),
             }));
             // console.log(
             //   `📌 [Top Tweets]: Storing ${topTweets.length} tweets for @${profile}`
@@ -748,70 +764,84 @@ async function generateCustomProfileNewsletter(tweetsByProfiles, top15Tweets) {
         return undefined;
     }
 }
-async function testProfileswiseByEmail(userEmail) {
-    try {
-        // Step 1: Fetch the user by email
-        const user = await userModel_1.User.findOne({ email: userEmail }).exec();
-        if (!user) {
-            console.error(`❌ [Test]: User with email ${userEmail} not found.`);
-            return;
-        }
-        console.log("✅ [Test]: User fetched:", user.email);
-        // Step 2: Check if the user is using "customProfiles"
-        if (user.wise !== "customProfiles") {
-            console.error(`❌ [Test]: User ${user.email} is not using customProfiles. Current mode: ${user.wise}`);
-            return;
-        }
-        if (!user.profiles || user.profiles.length === 0) {
-            console.error(`❌ [Test]: User ${user.email} has no profiles configured.`);
-            return;
-        }
-        console.log(`✅ [Test]: User ${user.email} has profiles configured:`, user.profiles);
-        // Step 3: Fetch tweets for the profiles
-        const { tweetsByProfiles, top15Tweets } = await getStoredTweetsForUser(user._id);
-        console.log(`✅ [Test]: Fetched tweets for profiles:`, tweetsByProfiles);
-        console.log(`✅ [Test]: Top 15 tweets:`, top15Tweets);
-        // Step 4: Generate the newsletter
-        const newsletter = await generateCustomProfileNewsletter(tweetsByProfiles, top15Tweets);
-        if (!newsletter) {
-            console.error(`❌ [Test]: Failed to generate the newsletter.`);
-            return;
-        }
-        console.log(`✅ [Test]: Newsletter generated successfully.`);
-        console.log(newsletter);
-        await sendNewsletterEmail(user, newsletter);
-        console.log(`✅ [Test]: Newsletter saved for user ${user.email}.`);
-    }
-    catch (error) {
-        console.error("❌ [Test]: An error occurred during the test:", error);
-    }
-}
-// Call the function with a test user email
-testProfileswiseByEmail("pealh0320@gmail.com");
-async function testNewsletter() {
-    try {
-        // Fetch the user
-        const user = await userModel_1.User.findOne({ email: "pealh0320@gmail.com" }).exec();
-        if (!user) {
-            console.error("❌ User not found with email: pealh0320@gmail.com");
-            return;
-        }
-        // Define categories for the test (based on user preferences)
-        const categories = ["Politics", "Geopolitics", "Finance", "AI"];
-        // Fetch tweets for the categories
-        const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(categories);
-        // Generate the newsletter
-        const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
-        if (!newsletter) {
-            console.error("❌ Failed to generate newsletter.");
-            return;
-        }
-        // Send the newsletter
-        await sendNewsletterEmail(user, newsletter);
-        console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
-    }
-    catch (error) {
-        console.error("❌ Error during test:", error);
-    }
-}
-testNewsletter();
+// async function testProfileswiseByEmail(userEmail: string) {
+//   try {
+//     // Step 1: Fetch the user by email
+//     const user = await User.findOne({ email: userEmail }).exec();
+//     if (!user) {
+//       console.error(`❌ [Test]: User with email ${userEmail} not found.`);
+//       return;
+//     }
+//     console.log("✅ [Test]: User fetched:", user.email);
+//     // Step 2: Check if the user is using "customProfiles"
+//     if (user.wise !== "customProfiles") {
+//       console.error(
+//         `❌ [Test]: User ${user.email} is not using customProfiles. Current mode: ${user.wise}`
+//       );
+//       return;
+//     }
+//     if (!user.profiles || user.profiles.length === 0) {
+//       console.error(
+//         `❌ [Test]: User ${user.email} has no profiles configured.`
+//       );
+//       return;
+//     }
+//     console.log(
+//       `✅ [Test]: User ${user.email} has profiles configured:`,
+//       user.profiles
+//     );
+//     // Step 3: Fetch tweets for the profiles
+//     const { tweetsByProfiles, top15Tweets } = await getStoredTweetsForUser(
+//       user._id as mongoose.Types.ObjectId
+//     );
+//     console.log(`✅ [Test]: Fetched tweets for profiles:`, tweetsByProfiles);
+//     console.log(`✅ [Test]: Top 15 tweets:`, top15Tweets);
+//     // Step 4: Generate the newsletter
+//     const newsletter = await generateCustomProfileNewsletter(
+//       tweetsByProfiles,
+//       top15Tweets
+//     );
+//     if (!newsletter) {
+//       console.error(`❌ [Test]: Failed to generate the newsletter.`);
+//       return;
+//     }
+//     console.log(`✅ [Test]: Newsletter generated successfully.`);
+//     console.log(newsletter);
+//     await sendNewsletterEmail(user, newsletter);
+//     console.log(
+//       `✅ [Test]: Newsletter saved for user ${user.email}.`
+//     );
+//   } catch (error) {
+//     console.error("❌ [Test]: An error occurred during the test:", error);
+//   }
+// }
+// // Call the function with a test user email
+// testProfileswiseByEmail("pealh0320@gmail.com");
+// async function testNewsletter() {
+//   try {
+//     // Fetch the user
+//     const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
+//     if (!user) {
+//       console.error("❌ User not found with email: pealh0320@gmail.com");
+//       return;
+//     }
+//     // Define categories for the test (based on user preferences)
+//     const categories = ["Politics", "Geopolitics", "Finance", "AI"];
+//     // Fetch tweets for the categories
+//     const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
+//       categories
+//     );
+//     // Generate the newsletter
+//     const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+//     if (!newsletter) {
+//       console.error("❌ Failed to generate newsletter.");
+//       return;
+//     }
+//     // Send the newsletter
+//     await sendNewsletterEmail(user, newsletter);
+//     console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
+//   } catch (error) {
+//     console.error("❌ Error during test:", error);
+//   }
+// }
+// testNewsletter();

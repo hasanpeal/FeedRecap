@@ -22,6 +22,7 @@ interface Post {
   thumbnailUrl?: string;
   avatar?: string;
   isExpanded?: boolean;
+  mediaThumbnail?: string;
 }
 
 interface UserProfile {
@@ -830,7 +831,7 @@ export default function Dashboard() {
       {pageLoading ? (
         <SkeletonLoader />
       ) : (
-        <div className="container mx-auto px-4 py-4 pb-16 sm:py-12">
+        <div className="container mx-auto px-4 py-4 pb-16 ">
           {notification && (
             <div
               className={`fixed top-4 right-4 p-4 rounded-lg ${
@@ -844,8 +845,8 @@ export default function Dashboard() {
           )}
 
           {/* Navigation */}
-          <nav className="mb-8 flex items-center justify-between border-b border-gray-800 pb-4">
-            <div className="flex gap-8">
+          <nav className="mb-8 flex items-center justify-center border-b border-gray-800 pb-4">
+            <div className="flex gap-8 sm:gap-14">
               <button
                 onClick={() => setSelectedTab("newsfeed")}
                 className={`text-lg transition-colors ${
@@ -980,7 +981,8 @@ export default function Dashboard() {
                   <ChevronRight className="h-5 w-5 text-[#7FFFD4]" />
                 </button>
               </div>
-              <div className="post-grid grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="masonry-grid columns-1 md:columns-2 lg:columns-3 gap-4">
+                {" "}
                 {loadingPosts ||
                 (filteredPosts.length === 0 && posts.length === 0) ? (
                   Array.from({ length: 6 }).map((_, index) => (
@@ -990,7 +992,7 @@ export default function Dashboard() {
                   filteredPosts.slice(0, visiblePosts).map((post) => (
                     <div
                       key={post.tweet_id}
-                      className="post-card overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30"
+                      className="post-card break-inside-avoid mb-4 overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30"
                     >
                       <div className="post-header mb-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -1013,6 +1015,18 @@ export default function Dashboard() {
                         )}
                       </div>
                       {renderPostText(post.text, post.tweet_id)}
+                      {post.mediaThumbnail && (
+                        <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
+                          <Image
+                            src={post.mediaThumbnail || "/placeholder.svg"}
+                            alt="Tweet media"
+                            width={500}
+                            height={240}
+                            className="object-cover rounded-lg"
+                            // style={{ maxHeight: "240px", width: "auto" }}
+                          />
+                        </div>
+                      )}
                       <a
                         href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
                         onClick={(e) => {
@@ -1229,21 +1243,25 @@ export default function Dashboard() {
                             <X size={16} />
                           </button>
                         </div>
-                        {loadingSuggestions ? (
-                          <li className="p-2 text-gray-400">Loading...</li>
-                        ) : suggestions.length > 0 ? (
-                          suggestions.map((suggestion, index) => (
-                            <li
-                              key={index}
-                              className="cursor-pointer p-2 hover:bg-[#7FFFD4]/10"
-                              onClick={() => handleAddProfile(suggestion)}
-                            >
-                              @{suggestion}
+                        <ul className="list-none">
+                          {loadingSuggestions ? (
+                            <li className="p-2 text-gray-400">Loading...</li>
+                          ) : suggestions.length > 0 ? (
+                            suggestions.map((suggestion, index) => (
+                              <li
+                                key={index}
+                                className="cursor-pointer p-2 hover:bg-[#7FFFD4]/10"
+                                onClick={() => handleAddProfile(suggestion)}
+                              >
+                                @{suggestion}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="p-2 text-gray-400">
+                              No result found
                             </li>
-                          ))
-                        ) : (
-                          <li className="p-2 text-gray-400">No result found</li>
-                        )}
+                          )}
+                        </ul>
                       </div>
                     )}
                   </div>

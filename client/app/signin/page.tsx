@@ -140,7 +140,6 @@ export default function Signin() {
         );
         const { code, message } = result.data;
         if (code === 0) {
-          setLoad(true);
           setEmailContext(email);
           router.push("/dashboard");
         } else {
