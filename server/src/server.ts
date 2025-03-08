@@ -146,7 +146,6 @@ function isAuthenticated(
   res.status(401).send({ code: 1, message: "Unauthorized" });
 }
 
-
 app.get("/data", async (req, res) => {
   const { email } = req.query;
 
@@ -166,30 +165,31 @@ app.get("/data", async (req, res) => {
       return res.status(404).json({ error: "User not found", code: 1 });
     }
 
-    let posts:
-      | {
-          username: string;
-          avatar: string;
-          time: Date;
-          likes: number;
-          category: string;
-          text: string;
-          tweet_id: string;
-          mediaThumbnail?: string;
-          video?: string;
-          videoThumbnail?: string;
-        }[]
-      | {
-          username: string;
-          avatar: { type: String; required: false };
-          time: { type: Date; required: true };
-          likes: { type: Number; required: true };
-          text: { type: String; required: true };
-          tweet_id: { type: String; required: true };
-          mediaThumbnail?: { type: String; required: false };
-          video?: { type: String; required: false };
-          videoThumbnail?: { type: String; required: false };
-        }[] = [];
+    interface QuotedTweet {
+      tweet_id?: string | null;
+      text?: string | null;
+      likes?: number | null;
+      createdAt?: Date | null;
+      mediaThumbnail?: string | null;
+      video?: string | null;
+      videoThumbnail?: string | null;
+      avatar?: string | null;
+      username?: string | null;
+    }
+
+    let posts: {
+      username: string;
+      avatar: string;
+      time: Date;
+      likes: number;
+      category?: string;
+      text: string;
+      tweet_id: string;
+      mediaThumbnail?: string;
+      video?: string;
+      videoThumbnail?: string;
+      quotedTweet?: QuotedTweet;
+    }[] = [];
 
     if (user.wise === "categorywise") {
       // Fetch posts based on category-wise selection
@@ -209,6 +209,19 @@ app.get("/data", async (req, res) => {
           mediaThumbnail: tweet.mediaThumbnail || undefined,
           video: tweet.video || undefined,
           videoThumbnail: tweet.videoThumbnail || undefined,
+          quotedTweet: tweet.quotedTweet
+            ? {
+                tweet_id: tweet.quotedTweet.tweet_id || null,
+                text: tweet.quotedTweet.text || null,
+                likes: tweet.quotedTweet.likes || null,
+                createdAt: tweet.quotedTweet.createdAt || null,
+                mediaThumbnail: tweet.quotedTweet.mediaThumbnail || null,
+                video: tweet.quotedTweet.video || null,
+                videoThumbnail: tweet.quotedTweet.videoThumbnail || null,
+                avatar: tweet.quotedTweet.avatar || null, // ✅ Include quoted tweet's avatar
+                username: tweet.quotedTweet.screenName || null,
+              }
+            : undefined,
         }))
       );
     } else if (user.wise === "customProfiles") {
@@ -217,7 +230,7 @@ app.get("/data", async (req, res) => {
         screenName: { $in: user.profiles },
       })
         .select("screenName tweets avatar")
-        .lean();; // ✅ Include avatar
+        .lean(); // ✅ Include avatar
 
       posts = profilePosts.flatMap((post) =>
         post.tweets.map((tweet) => ({
@@ -227,9 +240,22 @@ app.get("/data", async (req, res) => {
           likes: tweet.likes,
           text: tweet.text,
           tweet_id: tweet.tweet_id,
-          mediaThumbnail: tweet.mediaThumbnail || null,
-          video: tweet.video || null,
-          videoThumbnail: tweet.videoThumbnail || null,
+          mediaThumbnail: tweet.mediaThumbnail || undefined,
+          video: tweet.video || undefined,
+          videoThumbnail: tweet.videoThumbnail || undefined,
+          quotedTweet: tweet.quotedTweet
+            ? {
+                tweet_id: tweet.quotedTweet.tweet_id || null,
+                text: tweet.quotedTweet.text || null,
+                likes: tweet.quotedTweet.likes || null,
+                createdAt: tweet.quotedTweet.createdAt || null,
+                mediaThumbnail: tweet.quotedTweet.mediaThumbnail || null,
+                video: tweet.quotedTweet.video || null,
+                videoThumbnail: tweet.quotedTweet.videoThumbnail || null,
+                avatar: tweet.quotedTweet.avatar || null, // ✅ Include quoted tweet's avatar
+                username: tweet.quotedTweet.screenName || null,
+              }
+            : undefined,
         }))
       );
     }
@@ -260,7 +286,9 @@ app.get("/api/posts", async (req, res) => {
   const { email } = req.query;
 
   if (!email) {
-    return res.status(400).json({ error: "Email query parameter is required", code: 1 });
+    return res
+      .status(400)
+      .json({ error: "Email query parameter is required", code: 1 });
   }
 
   try {
@@ -274,13 +302,14 @@ app.get("/api/posts", async (req, res) => {
     const selectedCategories = user.categories;
 
     // Fetch posts from StoredTweets based on user's selected categories
-    const posts = await StoredTweets.find({ category: { $in: selectedCategories } })
-      .select("screenName createdAt tweets category avatar");
+    const posts = await StoredTweets.find({
+      category: { $in: selectedCategories },
+    }).select("screenName createdAt tweets category avatar");
 
     // console.log("Posts coming from server", posts)
     // Format the data to return an array of tweets with necessary fields
-    const formattedPosts = posts.flatMap(post => {
-      return post.tweets.map(tweet => ({
+    const formattedPosts = posts.flatMap((post) => {
+      return post.tweets.map((tweet) => ({
         username: post.screenName,
         time: tweet.createdAt,
         likes: tweet.likes,
@@ -295,7 +324,9 @@ app.get("/api/posts", async (req, res) => {
     res.status(200).json({ data: formattedPosts, code: 0 });
   } catch (error) {
     console.error("Error fetching posts:", error);
-    res.status(500).json({ error: "An error occurred while fetching posts", code: 1 });
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching posts", code: 1 });
   }
 });
 
@@ -304,9 +335,7 @@ app.get("/newsletter/:id", async (req, res) => {
     const newsletter = await Newsletter.findById(req.params.id);
     if (!newsletter) return res.status(404).send("Newsletter not found");
 
-    return res
-      .status(200)
-      .json({ code: 0, newsletter: newsletter.content });
+    return res.status(200).json({ code: 0, newsletter: newsletter.content });
   } catch (error) {
     console.error("Error fetching newsletter:", error);
     res.status(500).send("Internal Server Error");
@@ -341,10 +370,8 @@ app.post("/updateProfiles", async (req, res) => {
 
     // // If profiles were changed, fetch new tweets
     if (changedProfiles.length > 0) {
-      console.log("Checked by changedProfiles")
-      await fetchAndStoreTweetsForProfiles(
-        changedProfiles
-      );
+      console.log("Checked by changedProfiles");
+      await fetchAndStoreTweetsForProfiles(changedProfiles);
     }
 
     // ✅ Fetch updated posts for the user
@@ -363,6 +390,19 @@ app.post("/updateProfiles", async (req, res) => {
         mediaThumbnail: tweet.mediaThumbnail || null,
         video: tweet.video || null,
         videoThumbnail: tweet.videoThumbnail || null,
+        quotedTweet: tweet.quotedTweet
+          ? {
+              tweet_id: tweet.quotedTweet.tweet_id || null,
+              text: tweet.quotedTweet.text || null,
+              likes: tweet.quotedTweet.likes || null,
+              createdAt: tweet.quotedTweet.createdAt || null,
+              mediaThumbnail: tweet.quotedTweet.mediaThumbnail || null,
+              video: tweet.quotedTweet.video || null,
+              videoThumbnail: tweet.quotedTweet.videoThumbnail || null,
+              avatar: tweet.quotedTweet.avatar || null, // ✅ Include quoted tweet's avatar
+              username: tweet.quotedTweet.screenName || null,
+            }
+          : null,
       }))
     );
 
@@ -371,7 +411,7 @@ app.post("/updateProfiles", async (req, res) => {
       message: "Profiles updated successfully",
       changedProfiles,
       profiles: updatedUser?.profiles,
-      posts, 
+      posts,
     });
   } catch (err) {
     console.error("Error updating profiles:", err);
@@ -444,9 +484,7 @@ app.post("/updateFeedType", async (req, res) => {
 
     // Trigger appropriate fetching logic
     if (wise === "customProfiles") {
-      await fetchAndStoreTweetsForProfiles(
-        updatedUser.profiles
-      ); // Fetch tweets for followed profiles
+      await fetchAndStoreTweetsForProfiles(updatedUser.profiles); // Fetch tweets for followed profiles
     }
 
     res
@@ -460,8 +498,6 @@ app.post("/updateFeedType", async (req, res) => {
   }
 });
 
-
-
 app.get("/getWise", async (req, res) => {
   const { email } = req.query;
 
@@ -471,7 +507,7 @@ app.get("/getWise", async (req, res) => {
     if (user) {
       return res.status(200).json({
         code: 0,
-        wise: user.wise
+        wise: user.wise,
       });
     } else {
       return res.status(200).json({
@@ -487,10 +523,6 @@ app.get("/getWise", async (req, res) => {
     });
   }
 });
-
-
-
-
 
 // Route to get posts by user-selected custom profiles
 app.get("/api/customPosts", async (req, res) => {
@@ -508,9 +540,7 @@ app.get("/api/customPosts", async (req, res) => {
     const user = await User.findOne({ email }).select("profiles");
 
     if (!user) {
-      return res
-        .status(404)
-        .json({ error: "User not found", code: 1 });
+      return res.status(404).json({ error: "User not found", code: 1 });
     }
 
     const selectedProfiles = user.profiles;
@@ -538,23 +568,16 @@ app.get("/api/customPosts", async (req, res) => {
       }))
     );
 
-   
-
     // Respond with the formatted data, adding code: 0 to indicate success
     res.status(200).json({ data: formattedPosts, code: 0 });
   } catch (error) {
     console.error("Error fetching custom posts:", error);
-    res
-      .status(500)
-      .json({
-        error: "An error occurred while fetching custom posts",
-        code: 1,
-      });
+    res.status(500).json({
+      error: "An error occurred while fetching custom posts",
+      code: 1,
+    });
   }
 });
-
-
-
 
 // Login route
 app.post("/login", (req, res, next) => {
@@ -796,7 +819,6 @@ app.get("/isNewUser", async (req, res) => {
 //         })(); // Immediately invoked async function
 //       }
 
-
 //       return res
 //         .status(200)
 //         .json({ code: 0, message: "User preferences updated successfully" });
@@ -810,7 +832,6 @@ app.get("/isNewUser", async (req, res) => {
 //       .json({ code: 1, message: "Error updating user preferences" });
 //   }
 // });
-
 
 // Register route
 app.post("/register", async (req, res) => {
@@ -845,19 +866,19 @@ app.post("/register", async (req, res) => {
       await sendNewsletterEmail(newUser, newsletter);
     }
     const digestMessage = `First Name:${firstName}\nLast Name: ${lastName}\nEmail: ${email}`;
-    
-      const msg = {
-        to: "pealh0320@gmail.com",
-        from: process.env.FROM_EMAIL || "",
-        subject: `New User Alert`,
-        text: digestMessage,
-      };
-    
-      try {
-        await sgMail.send(msg);
-      } catch (error) {
-        console.error(`❌ [Error]: Error Sending Total User count`);
-      }
+
+    const msg = {
+      to: "pealh0320@gmail.com",
+      from: process.env.FROM_EMAIL || "",
+      subject: `New User Alert`,
+      text: digestMessage,
+    };
+
+    try {
+      await sgMail.send(msg);
+    } catch (error) {
+      console.error(`❌ [Error]: Error Sending Total User count`);
+    }
   } catch (err) {
     res.status(200).send({ code: 1, message: "Error registering user" });
   }
@@ -1038,14 +1059,6 @@ app.get("/auth/google/signin", (req, res, next) => {
     next
   );
 });
-
-
-
-
-
-
-
-
 
 // Route to check cookie consent
 app.get("/getCookieConsent", (req, res) => {
@@ -1284,7 +1297,7 @@ app.post("/logout", (req, res) => {
     if (err) {
       return res.status(200).json({ code: 1, message: "Error logging out" });
     }
-    
+
     // Clear the session cookie
     res.clearCookie("connect.sid", {
       path: "/",
@@ -1292,14 +1305,18 @@ app.post("/logout", (req, res) => {
       secure: true,
       sameSite: "none",
     });
-    
+
     // Destroy session
     req.session.destroy((err) => {
       if (err) {
-        return res.status(200).json({ code: 1, message: "Error destroying session" });
+        return res
+          .status(200)
+          .json({ code: 1, message: "Error destroying session" });
       }
       // console.log("Signout successful and cookies cleared");
-      res.status(200).json({ code: 0, message: "Logout successful, cookies cleared" });
+      res
+        .status(200)
+        .json({ code: 0, message: "Logout successful, cookies cleared" });
     });
   });
 });
@@ -1321,14 +1338,15 @@ app.get("/getUserDetails", async (req, res) => {
     }
   } catch (err) {
     console.log("Error fetching user details:", err);
-    return res.status(200).json({ code: 2, message: "Error fetching user details" });
+    return res
+      .status(200)
+      .json({ code: 2, message: "Error fetching user details" });
   }
 });
 
-
 // Route to update account details
 app.post("/updateAccount", async (req, res) => {
-  const { email, newFirstName, newLastName, newEmail} = req.body;
+  const { email, newFirstName, newLastName, newEmail } = req.body;
   // console.log(email, newFirstName, newLastName, newEmail);
 
   try {
@@ -1351,22 +1369,23 @@ app.post("/updateAccount", async (req, res) => {
     if (newEmail && newEmail.trim()) {
       const existingUser = await User.findOne({ email: newEmail });
       if (existingUser) {
-        return res.status(200).json({ code: 1, message: "Account already exist with new email" });
+        return res
+          .status(200)
+          .json({ code: 1, message: "Account already exist with new email" });
       }
       user.email = newEmail;
     }
 
     // Save the updated user
     await user.save();
-    return res.status(200).json({ code: 0, message: "Account updated successfully" });
+    return res
+      .status(200)
+      .json({ code: 0, message: "Account updated successfully" });
   } catch (err) {
     console.log("Error updating account:", err);
     return res.status(200).json({ code: 2, message: "Error updating account" });
   }
 });
-
-
-
 
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);

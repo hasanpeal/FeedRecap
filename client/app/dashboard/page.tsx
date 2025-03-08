@@ -25,6 +25,17 @@ interface Post {
   mediaThumbnail?: string;
   video?: string;
   videoThumbnail?: string;
+  quotedTweet?: {
+    tweet_id: string;
+    text: string;
+    likes: number;
+    createdAt: Date;
+    mediaThumbnail: string;
+    video: string;
+    videoThumbnail: string;
+    avatar: string;
+    username: string;
+  };
 }
 
 interface UserProfile {
@@ -868,6 +879,46 @@ const useVideoIntersectionObserver = () => {
   }, [posts]); // Re-run when posts change
 };
 
+function renderQuotedTweet(quotedTweet: Post["quotedTweet"]) {
+  if (!quotedTweet) return null;
+
+  // Create a post object from the quotedTweet to use with renderMedia
+  const quotedPostForMedia: Post = {
+    ...quotedTweet,
+    username: quotedTweet.username,
+    time: quotedTweet.createdAt.toString(),
+    category: "",
+    tweet_id: quotedTweet.tweet_id,
+    text: quotedTweet.text,
+    likes: quotedTweet.likes,
+    avatar: quotedTweet.avatar,
+  };
+
+  return (
+    <div className="mt-2 mb-4 rounded-lg border border-gray-700  p-3">
+      <div className="mb-2 flex items-center gap-3">
+        {renderAvatar2(
+          quotedTweet.username,
+          quotedTweet.avatar || "/placeholder.svg"
+        )}
+        <div>
+          <h3 className="font-medium">@{quotedTweet.username}</h3>
+          <span className="text-sm text-gray-400">{formatTime(quotedTweet.createdAt)}</span>
+        </div>
+      </div>
+      <p className="mb-3">
+        {quotedTweet && quotedTweet.text
+          ? quotedTweet.text.length > 150
+            ? `${quotedTweet.text.slice(0, 150)}...`
+            : quotedTweet.text
+          : ""}
+      </p>
+      {renderMedia(quotedPostForMedia)}
+    </div>
+  );
+}
+
+
 
   const renderMedia = (post: Post) => {
     if (isIOS()) {
@@ -1089,7 +1140,7 @@ const useVideoIntersectionObserver = () => {
                   <ChevronRight className="h-5 w-5 text-[#7FFFD4]" />
                 </button>
               </div>
-              <div className="masonry-grid columns-1 md:columns-2 lg:columns-3 gap-4">
+              <div className="sm:masonry-grid columns-1 md:columns-2 lg:columns-3 gap-4">
                 {" "}
                 {loadingPosts ||
                 (filteredPosts.length === 0 && posts.length === 0) ? (
@@ -1139,6 +1190,8 @@ const useVideoIntersectionObserver = () => {
                         </div>
                       )} */}
                         {renderMedia(post)}
+                        {post.quotedTweet &&
+                          renderQuotedTweet(post.quotedTweet)}
                         <a
                           href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
                           onClick={(e) => {

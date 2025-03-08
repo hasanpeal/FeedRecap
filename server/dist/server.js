@@ -131,6 +131,19 @@ app.get("/data", async (req, res) => {
                 mediaThumbnail: tweet.mediaThumbnail || undefined,
                 video: tweet.video || undefined,
                 videoThumbnail: tweet.videoThumbnail || undefined,
+                quotedTweet: tweet.quotedTweet
+                    ? {
+                        tweet_id: tweet.quotedTweet.tweet_id || null,
+                        text: tweet.quotedTweet.text || null,
+                        likes: tweet.quotedTweet.likes || null,
+                        createdAt: tweet.quotedTweet.createdAt || null,
+                        mediaThumbnail: tweet.quotedTweet.mediaThumbnail || null,
+                        video: tweet.quotedTweet.video || null,
+                        videoThumbnail: tweet.quotedTweet.videoThumbnail || null,
+                        avatar: tweet.quotedTweet.avatar || null, // ✅ Include quoted tweet's avatar
+                        username: tweet.quotedTweet.screenName || null,
+                    }
+                    : undefined,
             })));
         }
         else if (user.wise === "customProfiles") {
@@ -139,8 +152,7 @@ app.get("/data", async (req, res) => {
                 screenName: { $in: user.profiles },
             })
                 .select("screenName tweets avatar")
-                .lean();
-            ; // ✅ Include avatar
+                .lean(); // ✅ Include avatar
             posts = profilePosts.flatMap((post) => post.tweets.map((tweet) => ({
                 username: post.screenName,
                 avatar: post.avatar, // ✅ Include avatar
@@ -148,9 +160,22 @@ app.get("/data", async (req, res) => {
                 likes: tweet.likes,
                 text: tweet.text,
                 tweet_id: tweet.tweet_id,
-                mediaThumbnail: tweet.mediaThumbnail || null,
-                video: tweet.video || null,
-                videoThumbnail: tweet.videoThumbnail || null,
+                mediaThumbnail: tweet.mediaThumbnail || undefined,
+                video: tweet.video || undefined,
+                videoThumbnail: tweet.videoThumbnail || undefined,
+                quotedTweet: tweet.quotedTweet
+                    ? {
+                        tweet_id: tweet.quotedTweet.tweet_id || null,
+                        text: tweet.quotedTweet.text || null,
+                        likes: tweet.quotedTweet.likes || null,
+                        createdAt: tweet.quotedTweet.createdAt || null,
+                        mediaThumbnail: tweet.quotedTweet.mediaThumbnail || null,
+                        video: tweet.quotedTweet.video || null,
+                        videoThumbnail: tweet.quotedTweet.videoThumbnail || null,
+                        avatar: tweet.quotedTweet.avatar || null, // ✅ Include quoted tweet's avatar
+                        username: tweet.quotedTweet.screenName || null,
+                    }
+                    : undefined,
             })));
         }
         // ✅ Send user details + posts in response
@@ -179,7 +204,9 @@ app.get("/api/posts", async (req, res) => {
     // console.log("Posts routes called");
     const { email } = req.query;
     if (!email) {
-        return res.status(400).json({ error: "Email query parameter is required", code: 1 });
+        return res
+            .status(400)
+            .json({ error: "Email query parameter is required", code: 1 });
     }
     try {
         // Fetch the user by email to get their selected categories
@@ -189,12 +216,13 @@ app.get("/api/posts", async (req, res) => {
         }
         const selectedCategories = user.categories;
         // Fetch posts from StoredTweets based on user's selected categories
-        const posts = await digest_1.StoredTweets.find({ category: { $in: selectedCategories } })
-            .select("screenName createdAt tweets category avatar");
+        const posts = await digest_1.StoredTweets.find({
+            category: { $in: selectedCategories },
+        }).select("screenName createdAt tweets category avatar");
         // console.log("Posts coming from server", posts)
         // Format the data to return an array of tweets with necessary fields
-        const formattedPosts = posts.flatMap(post => {
-            return post.tweets.map(tweet => ({
+        const formattedPosts = posts.flatMap((post) => {
+            return post.tweets.map((tweet) => ({
                 username: post.screenName,
                 time: tweet.createdAt,
                 likes: tweet.likes,
@@ -209,7 +237,9 @@ app.get("/api/posts", async (req, res) => {
     }
     catch (error) {
         console.error("Error fetching posts:", error);
-        res.status(500).json({ error: "An error occurred while fetching posts", code: 1 });
+        res
+            .status(500)
+            .json({ error: "An error occurred while fetching posts", code: 1 });
     }
 });
 app.get("/newsletter/:id", async (req, res) => {
@@ -217,9 +247,7 @@ app.get("/newsletter/:id", async (req, res) => {
         const newsletter = await newsletterModel_1.Newsletter.findById(req.params.id);
         if (!newsletter)
             return res.status(404).send("Newsletter not found");
-        return res
-            .status(200)
-            .json({ code: 0, newsletter: newsletter.content });
+        return res.status(200).json({ code: 0, newsletter: newsletter.content });
     }
     catch (error) {
         console.error("Error fetching newsletter:", error);
@@ -259,6 +287,19 @@ app.post("/updateProfiles", async (req, res) => {
             mediaThumbnail: tweet.mediaThumbnail || null,
             video: tweet.video || null,
             videoThumbnail: tweet.videoThumbnail || null,
+            quotedTweet: tweet.quotedTweet
+                ? {
+                    tweet_id: tweet.quotedTweet.tweet_id || null,
+                    text: tweet.quotedTweet.text || null,
+                    likes: tweet.quotedTweet.likes || null,
+                    createdAt: tweet.quotedTweet.createdAt || null,
+                    mediaThumbnail: tweet.quotedTweet.mediaThumbnail || null,
+                    video: tweet.quotedTweet.video || null,
+                    videoThumbnail: tweet.quotedTweet.videoThumbnail || null,
+                    avatar: tweet.quotedTweet.avatar || null, // ✅ Include quoted tweet's avatar
+                    username: tweet.quotedTweet.screenName || null,
+                }
+                : null,
         })));
         return res.status(200).json({
             code: 0,
@@ -350,7 +391,7 @@ app.get("/getWise", async (req, res) => {
         if (user) {
             return res.status(200).json({
                 code: 0,
-                wise: user.wise
+                wise: user.wise,
             });
         }
         else {
@@ -381,9 +422,7 @@ app.get("/api/customPosts", async (req, res) => {
         // Fetch the user by email to get their selected profiles
         const user = await userModel_1.User.findOne({ email }).select("profiles");
         if (!user) {
-            return res
-                .status(404)
-                .json({ error: "User not found", code: 1 });
+            return res.status(404).json({ error: "User not found", code: 1 });
         }
         const selectedProfiles = user.profiles;
         if (!selectedProfiles || selectedProfiles.length === 0) {
@@ -409,9 +448,7 @@ app.get("/api/customPosts", async (req, res) => {
     }
     catch (error) {
         console.error("Error fetching custom posts:", error);
-        res
-            .status(500)
-            .json({
+        res.status(500).json({
             error: "An error occurred while fetching custom posts",
             code: 1,
         });
@@ -1069,10 +1106,14 @@ app.post("/logout", (req, res) => {
         // Destroy session
         req.session.destroy((err) => {
             if (err) {
-                return res.status(200).json({ code: 1, message: "Error destroying session" });
+                return res
+                    .status(200)
+                    .json({ code: 1, message: "Error destroying session" });
             }
             // console.log("Signout successful and cookies cleared");
-            res.status(200).json({ code: 0, message: "Logout successful, cookies cleared" });
+            res
+                .status(200)
+                .json({ code: 0, message: "Logout successful, cookies cleared" });
         });
     });
 });
@@ -1094,7 +1135,9 @@ app.get("/getUserDetails", async (req, res) => {
     }
     catch (err) {
         console.log("Error fetching user details:", err);
-        return res.status(200).json({ code: 2, message: "Error fetching user details" });
+        return res
+            .status(200)
+            .json({ code: 2, message: "Error fetching user details" });
     }
 });
 // Route to update account details
@@ -1117,13 +1160,17 @@ app.post("/updateAccount", async (req, res) => {
         if (newEmail && newEmail.trim()) {
             const existingUser = await userModel_1.User.findOne({ email: newEmail });
             if (existingUser) {
-                return res.status(200).json({ code: 1, message: "Account already exist with new email" });
+                return res
+                    .status(200)
+                    .json({ code: 1, message: "Account already exist with new email" });
             }
             user.email = newEmail;
         }
         // Save the updated user
         await user.save();
-        return res.status(200).json({ code: 0, message: "Account updated successfully" });
+        return res
+            .status(200)
+            .json({ code: 0, message: "Account updated successfully" });
     }
     catch (err) {
         console.log("Error updating account:", err);

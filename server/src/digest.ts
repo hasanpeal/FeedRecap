@@ -43,6 +43,7 @@ export interface ITweet extends Document {
       video: string;
       videoThumbnail: string;
       avatar: string;
+      screenName: string;
     };
   }[];
   createdAt: Date;
@@ -71,6 +72,7 @@ export const tweetSchema: Schema = new mongoose.Schema({
         video: { type: String, required: false },
         videoThumbnail: { type: String, required: false },
         avatar: { type: String, required: false },
+        screenName: { type: String, required: false },
       },
     },
   ],
@@ -81,30 +83,29 @@ export const tweetSchema: Schema = new mongoose.Schema({
 export const StoredTweets = dbTweet.model<ITweet>("StoredTweets", tweetSchema);
 
 export interface ICustomProfilePost extends Document {
-  screenName: string; // Twitter profile's screen name
-  avatar: { type: String; required: false };
-  tweets: [
-    {
-      text: { type: String; required: true };
-      likes: { type: Number; required: true };
-      tweet_id: { type: String; required: true };
-      createdAt: { type: Date; required: true };
-      mediaThumbnail: { type: String; required: false };
-      video: { type: String; required: false };
-      videoThumbnail: { type: String; required: false }; // ✅ Stores video preview thumbnail
-      quotedTweet: {
-        tweet_id: { type: String; required: false };
-        text: { type: String; required: false };
-        likes: { type: Number; required: false };
-        createdAt: { type: Date; required: false };
-        mediaThumbnail: { type: String; required: false };
-        video: { type: String; required: false };
-        videoThumbnail: { type: String; required: false };
-        avatar: { type: String; required: false };
-      };
-    }
-  ];
-  createdAt: Date; // When the posts were fetched
+  screenName: string;
+  avatar: string;
+  tweets: {
+    text: string;
+    likes: number;
+    tweet_id: string;
+    createdAt: Date;
+    mediaThumbnail: string;
+    video: string;
+    videoThumbnail: string; // ✅ Stores video preview thumbnail
+    quotedTweet: {
+      tweet_id: string;
+      text: string;
+      likes: number;
+      createdAt: Date;
+      mediaThumbnail: string;
+      video: string;
+      videoThumbnail: string;
+      avatar: string;
+      screenName: string;
+    };
+  }[];
+  createdAt: Date;
 }
 
 const CustomProfilePostSchema: Schema = new Schema({
@@ -128,6 +129,7 @@ const CustomProfilePostSchema: Schema = new Schema({
         video: { type: String, required: false },
         videoThumbnail: { type: String, required: false },
         avatar: { type: String, required: false },
+        screenName: { type: String, required: false },
       },
     },
   ],
@@ -154,11 +156,11 @@ async function ensureDatabaseConnections() {
 }
 
 function extractQuotedTweet(quoted: any): any | null {
-  if (!quoted || !quoted.tweet_id) return null; // No quoted tweet
+  if (!quoted || !quoted.tweet_id) return null;
 
   return {
     tweet_id: quoted.tweet_id,
-    text: quoted.text || null,
+    text: removeLinksFromText(quoted.text) || null,
     likes: quoted.favorites || null,
     createdAt: quoted.created_at
       ? moment(quoted.created_at, "ddd MMM DD HH:mm:ss Z YYYY").toDate()
@@ -166,7 +168,8 @@ function extractQuotedTweet(quoted: any): any | null {
     mediaThumbnail: extractMediaThumbnail(quoted),
     video: extractVideoUrl(quoted),
     videoThumbnail: extractVideoThumbnail(quoted),
-    avatar: quoted.author?.avatar || null, // ✅ Extract quoted tweet author's avatar
+    screenName: quoted.author?.screen_name,
+    avatar: quoted.author?.avatar || null,
   };
 }
 

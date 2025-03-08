@@ -75,6 +75,7 @@ exports.tweetSchema = new mongoose_1.default.Schema({
                 video: { type: String, required: false },
                 videoThumbnail: { type: String, required: false },
                 avatar: { type: String, required: false },
+                screenName: { type: String, required: false },
             },
         },
     ],
@@ -103,6 +104,7 @@ const CustomProfilePostSchema = new mongoose_1.Schema({
                 video: { type: String, required: false },
                 videoThumbnail: { type: String, required: false },
                 avatar: { type: String, required: false },
+                screenName: { type: String, required: false },
             },
         },
     ],
@@ -124,10 +126,10 @@ async function ensureDatabaseConnections() {
 }
 function extractQuotedTweet(quoted) {
     if (!quoted || !quoted.tweet_id)
-        return null; // No quoted tweet
+        return null;
     return {
         tweet_id: quoted.tweet_id,
-        text: quoted.text || null,
+        text: removeLinksFromText(quoted.text) || null,
         likes: quoted.favorites || null,
         createdAt: quoted.created_at
             ? (0, moment_timezone_1.default)(quoted.created_at, "ddd MMM DD HH:mm:ss Z YYYY").toDate()
@@ -135,7 +137,8 @@ function extractQuotedTweet(quoted) {
         mediaThumbnail: extractMediaThumbnail(quoted),
         video: extractVideoUrl(quoted),
         videoThumbnail: extractVideoThumbnail(quoted),
-        avatar: quoted.author?.avatar || null, // ✅ Extract quoted tweet author's avatar
+        screenName: quoted.author?.screen_name,
+        avatar: quoted.author?.avatar || null,
     };
 }
 // Thumbnail extract
