@@ -64,6 +64,7 @@ exports.tweetSchema = new mongoose_1.default.Schema({
             tweet_id: { type: String, required: true },
             createdAt: { type: Date, required: true },
             mediaThumbnail: { type: String, required: false },
+            video: { type: String, required: false },
         },
     ],
     createdAt: { type: Date, default: Date.now },
@@ -80,6 +81,7 @@ const CustomProfilePostSchema = new mongoose_1.Schema({
             tweet_id: { type: String, required: true },
             createdAt: { type: Date, required: true },
             mediaThumbnail: { type: String, required: false },
+            video: { type: String, required: false },
         },
     ],
     createdAt: { type: Date, default: Date.now },
@@ -100,15 +102,20 @@ async function ensureDatabaseConnections() {
 }
 // Thumbnail extract
 function extractMediaThumbnail(tweet) {
-    if (tweet.media) {
-        if (tweet.media.photo && tweet.media.photo.length > 0) {
-            return tweet.media.photo[0].media_url_https; // ✅ First photo
-        }
-        if (tweet.media.video && tweet.media.video.length > 0) {
-            return tweet.media.video[0].media_url_https; // ✅ First video thumbnail
-        }
+    if (tweet.media && tweet.media.photo && tweet.media.photo.length > 0) {
+        return tweet.media.photo[0].media_url_https; // ✅ Get the first photo
     }
-    return null; // No media found
+    return null; // No image found
+}
+function extractVideoUrl(tweet) {
+    if (tweet.media && tweet.media.video && tweet.media.video.length > 0) {
+        const videoVariants = tweet.media.video[0].variants;
+        if (videoVariants.length > 1) {
+            return videoVariants[1].url; // ✅ Get the second variant (1-indexed)
+        }
+        return videoVariants[0].url; // ✅ Fallback to the first variant if only one exists
+    }
+    return null; // No video found
 }
 const fetchAvatar = async (username) => {
     let retries = 0;
@@ -189,6 +196,7 @@ async function fetchAndStoreTweets(categories) {
                     createdAt: (0, moment_timezone_1.default)(tweet.created_at, "ddd MMM DD HH:mm:ss Z YYYY").toDate(), // Use tweet creation time
                     mediaThumbnail: extractMediaThumbnail(tweet),
                     screenName: screenName,
+                    video: extractVideoUrl(tweet),
                 }));
                 // Fetch avatar (only if it's missing in DB)
                 let storedUser = await exports.StoredTweets.findOne({
@@ -395,7 +403,7 @@ const fetchTweetsPeriodically = async () => {
         if ([9, 15, 20].includes(hours)) {
             console.log(`⏸️ [Tweet Fetching]: Skipped execution at ${hours}:00`);
         }
-        else if (minutes % 30 === 0) {
+        else if (minutes % 5 === 0) {
             console.log("🔄 [Tweet Fetching]: Fetching fresh tweets for all categories...");
             // Process categories sequentially (one at a time)
             const categories = [
@@ -625,6 +633,7 @@ async function fetchAndStoreTweetsForProfiles(profiles) {
                 tweet_id: tweet.tweet_id,
                 createdAt: (0, moment_timezone_1.default)(tweet.created_at, "ddd MMM DD HH:mm:ss Z YYYY").toDate(),
                 mediaThumbnail: extractMediaThumbnail(tweet),
+                video: extractVideoUrl(tweet),
             }));
             // console.log(
             //   `📌 [Top Tweets]: Storing ${topTweets.length} tweets for @${profile}`

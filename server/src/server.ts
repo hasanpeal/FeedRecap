@@ -169,22 +169,24 @@ app.get("/data", async (req, res) => {
     let posts:
       | {
           username: string;
-          avatar: string; 
+          avatar: string;
           time: Date;
           likes: number;
           category: string;
           text: string;
           tweet_id: string;
           mediaThumbnail?: string;
+          video?: string;
         }[]
       | {
           username: string;
-          avatar: { type: String; required: false }; 
+          avatar: { type: String; required: false };
           time: { type: Date; required: true };
           likes: { type: Number; required: true };
           text: { type: String; required: true };
           tweet_id: { type: String; required: true };
-          mediaThumbnail?: {type: String; required: false};
+          mediaThumbnail?: { type: String; required: false };
+          video?: { type: String; required: false };
         }[] = [];
 
     if (user.wise === "categorywise") {
@@ -203,6 +205,7 @@ app.get("/data", async (req, res) => {
           text: tweet.text,
           tweet_id: tweet.tweet_id,
           mediaThumbnail: tweet.mediaThumbnail || undefined,
+          video: tweet.video || undefined,
         }))
       );
     } else if (user.wise === "customProfiles") {
@@ -222,6 +225,7 @@ app.get("/data", async (req, res) => {
           text: tweet.text,
           tweet_id: tweet.tweet_id,
           mediaThumbnail: tweet.mediaThumbnail || null,
+          video: tweet.video || null,
         }))
       );
     }
@@ -353,6 +357,7 @@ app.post("/updateProfiles", async (req, res) => {
         text: tweet.text,
         tweet_id: tweet.tweet_id,
         mediaThumbnail: tweet.mediaThumbnail || null,
+        video: tweet.video || null,
       }))
     );
 

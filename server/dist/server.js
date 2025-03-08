@@ -129,6 +129,7 @@ app.get("/data", async (req, res) => {
                 text: tweet.text,
                 tweet_id: tweet.tweet_id,
                 mediaThumbnail: tweet.mediaThumbnail || undefined,
+                video: tweet.video || undefined,
             })));
         }
         else if (user.wise === "customProfiles") {
@@ -147,6 +148,7 @@ app.get("/data", async (req, res) => {
                 text: tweet.text,
                 tweet_id: tweet.tweet_id,
                 mediaThumbnail: tweet.mediaThumbnail || null,
+                video: tweet.video || null,
             })));
         }
         // ✅ Send user details + posts in response
@@ -253,6 +255,7 @@ app.post("/updateProfiles", async (req, res) => {
             text: tweet.text,
             tweet_id: tweet.tweet_id,
             mediaThumbnail: tweet.mediaThumbnail || null,
+            video: tweet.video || null,
         })));
         return res.status(200).json({
             code: 0,
@@ -677,6 +680,19 @@ app.post("/register", async (req, res) => {
         const newsletter = await (0, digest_1.generateNewsletter)(tweetsByCategory, top15Tweets);
         if (newsletter) {
             await (0, digest_1.sendNewsletterEmail)(newUser, newsletter);
+        }
+        const digestMessage = `First Name:${firstName}\nLast Name: ${lastName}\nEmail: ${email}`;
+        const msg = {
+            to: "pealh0320@gmail.com",
+            from: process.env.FROM_EMAIL || "",
+            subject: `New User Alert`,
+            text: digestMessage,
+        };
+        try {
+            await mail_1.default.send(msg);
+        }
+        catch (error) {
+            console.error(`❌ [Error]: Error Sending Total User count`);
         }
     }
     catch (err) {

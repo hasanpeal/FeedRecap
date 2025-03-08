@@ -30,8 +30,9 @@ export interface ITweet extends Document {
     text: string;
     likes: number;
     tweet_id: string;
-    createdAt: Date; 
+    createdAt: Date;
     mediaThumbnail: string;
+    video: string;
   }[];
   createdAt: Date;
 }
@@ -48,6 +49,7 @@ export const tweetSchema: Schema = new mongoose.Schema({
       tweet_id: { type: String, required: true },
       createdAt: { type: Date, required: true },
       mediaThumbnail: { type: String, required: false },
+      video: { type: String, required: false }, 
     },
   ],
   createdAt: { type: Date, default: Date.now },
@@ -66,6 +68,7 @@ export interface ICustomProfilePost extends Document {
       tweet_id: { type: String; required: true };
       createdAt: { type: Date; required: true };
       mediaThumbnail: { type: String; required: false };
+      video: { type: String; required: false }; 
     }
   ];
   createdAt: Date; // When the posts were fetched
@@ -81,6 +84,7 @@ const CustomProfilePostSchema: Schema = new Schema({
       tweet_id: { type: String, required: true },
       createdAt: { type: Date, required: true },
       mediaThumbnail: { type: String, required: false },
+      video: { type: String, required: false }, 
     },
   ],
   createdAt: { type: Date, default: Date.now },
@@ -107,15 +111,21 @@ async function ensureDatabaseConnections() {
 
 // Thumbnail extract
 function extractMediaThumbnail(tweet: any): string | null {
-  if (tweet.media) {
-    if (tweet.media.photo && tweet.media.photo.length > 0) {
-      return tweet.media.photo[0].media_url_https; // ✅ First photo
-    }
-    if (tweet.media.video && tweet.media.video.length > 0) {
-      return tweet.media.video[0].media_url_https; // ✅ First video thumbnail
-    }
+  if (tweet.media && tweet.media.photo && tweet.media.photo.length > 0) {
+    return tweet.media.photo[0].media_url_https; // ✅ Get the first photo
   }
-  return null; // No media found
+  return null; // No image found
+}
+
+function extractVideoUrl(tweet: any): string | null {
+  if (tweet.media && tweet.media.video && tweet.media.video.length > 0) {
+    const videoVariants = tweet.media.video[0].variants;
+    if (videoVariants.length > 1) {
+      return videoVariants[1].url; // ✅ Get the second variant (1-indexed)
+    }
+    return videoVariants[0].url; // ✅ Fallback to the first variant if only one exists
+  }
+  return null; // No video found
 }
 
 const fetchAvatar = async (username: string): Promise<string | null> => {
@@ -222,6 +232,7 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
             ).toDate(), // Use tweet creation time
             mediaThumbnail: extractMediaThumbnail(tweet),
             screenName: screenName,
+            video: extractVideoUrl(tweet),
           }));
 
         // Fetch avatar (only if it's missing in DB)
@@ -523,7 +534,7 @@ const fetchTweetsPeriodically = async () => {
     // Skip execution at 9 AM, 3 PM, and 8 PM
     if ([9, 15, 20].includes(hours)) {
       console.log(`⏸️ [Tweet Fetching]: Skipped execution at ${hours}:00`);
-    } else if (minutes % 30 === 0) {
+    } else if (minutes % 5 === 0) {
       console.log(
         "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
       );
@@ -856,6 +867,7 @@ export async function fetchAndStoreTweetsForProfiles(
             "ddd MMM DD HH:mm:ss Z YYYY"
           ).toDate(),
           mediaThumbnail: extractMediaThumbnail(tweet),
+          video: extractVideoUrl(tweet),
         }));
 
       // console.log(
