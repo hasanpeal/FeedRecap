@@ -65,6 +65,17 @@ exports.tweetSchema = new mongoose_1.default.Schema({
             createdAt: { type: Date, required: true },
             mediaThumbnail: { type: String, required: false },
             video: { type: String, required: false },
+            videoThumbnail: { type: String, required: false }, // ✅ Stores video preview thumbnail
+            quotedTweet: {
+                tweet_id: { type: String, required: false },
+                text: { type: String, required: false },
+                likes: { type: Number, required: false },
+                createdAt: { type: Date, required: false },
+                mediaThumbnail: { type: String, required: false },
+                video: { type: String, required: false },
+                videoThumbnail: { type: String, required: false },
+                avatar: { type: String, required: false },
+            },
         },
     ],
     createdAt: { type: Date, default: Date.now },
@@ -82,6 +93,17 @@ const CustomProfilePostSchema = new mongoose_1.Schema({
             createdAt: { type: Date, required: true },
             mediaThumbnail: { type: String, required: false },
             video: { type: String, required: false },
+            videoThumbnail: { type: String, required: false }, // ✅ Stores video preview thumbnail
+            quotedTweet: {
+                tweet_id: { type: String, required: false },
+                text: { type: String, required: false },
+                likes: { type: Number, required: false },
+                createdAt: { type: Date, required: false },
+                mediaThumbnail: { type: String, required: false },
+                video: { type: String, required: false },
+                videoThumbnail: { type: String, required: false },
+                avatar: { type: String, required: false },
+            },
         },
     ],
     createdAt: { type: Date, default: Date.now },
@@ -100,6 +122,22 @@ async function ensureDatabaseConnections() {
         }),
     ]);
 }
+function extractQuotedTweet(quoted) {
+    if (!quoted || !quoted.tweet_id)
+        return null; // No quoted tweet
+    return {
+        tweet_id: quoted.tweet_id,
+        text: quoted.text || null,
+        likes: quoted.favorites || null,
+        createdAt: quoted.created_at
+            ? (0, moment_timezone_1.default)(quoted.created_at, "ddd MMM DD HH:mm:ss Z YYYY").toDate()
+            : null,
+        mediaThumbnail: extractMediaThumbnail(quoted),
+        video: extractVideoUrl(quoted),
+        videoThumbnail: extractVideoThumbnail(quoted),
+        avatar: quoted.author?.avatar || null, // ✅ Extract quoted tweet author's avatar
+    };
+}
 // Thumbnail extract
 function extractMediaThumbnail(tweet) {
     if (tweet.media && tweet.media.photo && tweet.media.photo.length > 0) {
@@ -116,6 +154,12 @@ function extractVideoUrl(tweet) {
         return videoVariants[0].url; // ✅ Fallback to the first variant if only one exists
     }
     return null; // No video found
+}
+function extractVideoThumbnail(tweet) {
+    if (tweet.media && tweet.media.video && tweet.media.video.length > 0) {
+        return tweet.media.video[0].media_url_https; // ✅ Get video thumbnail
+    }
+    return null; // No video thumbnail found
 }
 const fetchAvatar = async (username) => {
     let retries = 0;
@@ -197,6 +241,8 @@ async function fetchAndStoreTweets(categories) {
                     mediaThumbnail: extractMediaThumbnail(tweet),
                     screenName: screenName,
                     video: extractVideoUrl(tweet),
+                    videoThumbnail: extractVideoThumbnail(tweet),
+                    quotedTweet: extractQuotedTweet(tweet.quoted),
                 }));
                 // Fetch avatar (only if it's missing in DB)
                 let storedUser = await exports.StoredTweets.findOne({
@@ -403,7 +449,7 @@ const fetchTweetsPeriodically = async () => {
         if ([9, 15, 20].includes(hours)) {
             console.log(`⏸️ [Tweet Fetching]: Skipped execution at ${hours}:00`);
         }
-        else if (minutes % 5 === 0) {
+        else if (minutes % 30 === 0) {
             console.log("🔄 [Tweet Fetching]: Fetching fresh tweets for all categories...");
             // Process categories sequentially (one at a time)
             const categories = [
@@ -634,6 +680,8 @@ async function fetchAndStoreTweetsForProfiles(profiles) {
                 createdAt: (0, moment_timezone_1.default)(tweet.created_at, "ddd MMM DD HH:mm:ss Z YYYY").toDate(),
                 mediaThumbnail: extractMediaThumbnail(tweet),
                 video: extractVideoUrl(tweet),
+                videoThumbnail: extractVideoThumbnail(tweet),
+                quotedTweet: extractQuotedTweet(tweet.quoted),
             }));
             // console.log(
             //   `📌 [Top Tweets]: Storing ${topTweets.length} tweets for @${profile}`

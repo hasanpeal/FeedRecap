@@ -34,6 +34,16 @@ export interface ITweet extends Document {
     mediaThumbnail: string;
     video: string;
     videoThumbnail: string; // ✅ Stores video preview thumbnail
+    quotedTweet: {
+      tweet_id: string;
+      text: string;
+      likes: number;
+      createdAt: Date;
+      mediaThumbnail: string;
+      video: string;
+      videoThumbnail: string;
+      avatar: string;
+    };
   }[];
   createdAt: Date;
 }
@@ -52,6 +62,16 @@ export const tweetSchema: Schema = new mongoose.Schema({
       mediaThumbnail: { type: String, required: false },
       video: { type: String, required: false },
       videoThumbnail: { type: String, required: false }, // ✅ Stores video preview thumbnail
+      quotedTweet: {
+        tweet_id: { type: String, required: false },
+        text: { type: String, required: false },
+        likes: { type: Number, required: false },
+        createdAt: { type: Date, required: false },
+        mediaThumbnail: { type: String, required: false },
+        video: { type: String, required: false },
+        videoThumbnail: { type: String, required: false },
+        avatar: { type: String, required: false },
+      },
     },
   ],
   createdAt: { type: Date, default: Date.now },
@@ -72,6 +92,16 @@ export interface ICustomProfilePost extends Document {
       mediaThumbnail: { type: String; required: false };
       video: { type: String; required: false };
       videoThumbnail: { type: String; required: false }; // ✅ Stores video preview thumbnail
+      quotedTweet: {
+        tweet_id: { type: String; required: false };
+        text: { type: String; required: false };
+        likes: { type: Number; required: false };
+        createdAt: { type: Date; required: false };
+        mediaThumbnail: { type: String; required: false };
+        video: { type: String; required: false };
+        videoThumbnail: { type: String; required: false };
+        avatar: { type: String; required: false };
+      };
     }
   ];
   createdAt: Date; // When the posts were fetched
@@ -89,6 +119,16 @@ const CustomProfilePostSchema: Schema = new Schema({
       mediaThumbnail: { type: String, required: false },
       video: { type: String, required: false },
       videoThumbnail: { type: String, required: false }, // ✅ Stores video preview thumbnail
+      quotedTweet: {
+        tweet_id: { type: String, required: false },
+        text: { type: String, required: false },
+        likes: { type: Number, required: false },
+        createdAt: { type: Date, required: false },
+        mediaThumbnail: { type: String, required: false },
+        video: { type: String, required: false },
+        videoThumbnail: { type: String, required: false },
+        avatar: { type: String, required: false },
+      },
     },
   ],
   createdAt: { type: Date, default: Date.now },
@@ -111,6 +151,23 @@ async function ensureDatabaseConnections() {
       dbTweet.once("error", reject);
     }),
   ]);
+}
+
+function extractQuotedTweet(quoted: any): any | null {
+  if (!quoted || !quoted.tweet_id) return null; // No quoted tweet
+
+  return {
+    tweet_id: quoted.tweet_id,
+    text: quoted.text || null,
+    likes: quoted.favorites || null,
+    createdAt: quoted.created_at
+      ? moment(quoted.created_at, "ddd MMM DD HH:mm:ss Z YYYY").toDate()
+      : null,
+    mediaThumbnail: extractMediaThumbnail(quoted),
+    video: extractVideoUrl(quoted),
+    videoThumbnail: extractVideoThumbnail(quoted),
+    avatar: quoted.author?.avatar || null, // ✅ Extract quoted tweet author's avatar
+  };
 }
 
 // Thumbnail extract
@@ -245,6 +302,7 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
             screenName: screenName,
             video: extractVideoUrl(tweet),
             videoThumbnail: extractVideoThumbnail(tweet),
+            quotedTweet: extractQuotedTweet(tweet.quoted),
           }));
 
         // Fetch avatar (only if it's missing in DB)
@@ -881,6 +939,7 @@ export async function fetchAndStoreTweetsForProfiles(
           mediaThumbnail: extractMediaThumbnail(tweet),
           video: extractVideoUrl(tweet),
           videoThumbnail: extractVideoThumbnail(tweet),
+          quotedTweet: extractQuotedTweet(tweet.quoted),
         }));
 
       // console.log(

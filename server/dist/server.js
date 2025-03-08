@@ -130,6 +130,7 @@ app.get("/data", async (req, res) => {
                 tweet_id: tweet.tweet_id,
                 mediaThumbnail: tweet.mediaThumbnail || undefined,
                 video: tweet.video || undefined,
+                videoThumbnail: tweet.videoThumbnail || undefined,
             })));
         }
         else if (user.wise === "customProfiles") {
@@ -149,6 +150,7 @@ app.get("/data", async (req, res) => {
                 tweet_id: tweet.tweet_id,
                 mediaThumbnail: tweet.mediaThumbnail || null,
                 video: tweet.video || null,
+                videoThumbnail: tweet.videoThumbnail || null,
             })));
         }
         // ✅ Send user details + posts in response
@@ -256,6 +258,7 @@ app.post("/updateProfiles", async (req, res) => {
             tweet_id: tweet.tweet_id,
             mediaThumbnail: tweet.mediaThumbnail || null,
             video: tweet.video || null,
+            videoThumbnail: tweet.videoThumbnail || null,
         })));
         return res.status(200).json({
             code: 0,
