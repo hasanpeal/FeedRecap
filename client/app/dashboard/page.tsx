@@ -384,26 +384,27 @@ export default function Dashboard() {
         }
       );
       if (response.data.code === 0) {
-        setProfiles(
-          response.data.profiles.map((profile: string) => {
-            // Find the first post that matches the profile username to get the avatar
-            const matchedPost = response.data.posts.find(
-              (post: { username: string }) => post.username === profile
-            );
+        // setProfiles(
+        //   response.data.profiles.map((profile: string) => {
+        //     // Find the first post that matches the profile username to get the avatar
+        //     const matchedPost = response.data.posts.find(
+        //       (post: { username: string }) => post.username === profile
+        //     );
 
-            return {
-              username: profile,
-              avatar: matchedPost?.avatar || "/placeholder.svg",
-            };
-          })
-        );
+        //     return {
+        //       username: profile,
+        //       avatar: matchedPost?.avatar || "/placeholder.svg",
+        //     };
+        //   })
+        // );
 
-        // Set posts correctly
-        const sortedPosts = response.data.posts.sort(
-          (a: Post, b: Post) =>
-            new Date(b.time).getTime() - new Date(a.time).getTime()
-        );
-        setPosts(sortedPosts);
+        // // Set posts correctly
+        // const sortedPosts = response.data.posts.sort(
+        //   (a: Post, b: Post) =>
+        //     new Date(b.time).getTime() - new Date(a.time).getTime()
+        // );
+        // setPosts(sortedPosts);
+        fetchData();
         showNotification("Profiles updated successfully!", "success");
       } else {
         showNotification("Error updating profiles.", "error");
@@ -1041,6 +1042,106 @@ function renderQuotedTweet(quotedTweet: Post["quotedTweet"]) {
 
           {selectedTab === "newsfeed" && (
             <div className="newsfeed-content">
+              {/* Trending Section */}
+              {/* Trending Section */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-4 flex items-center">
+                  <span className="mr-2">🔥</span> Trending Posts
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                  {loadingPosts
+                    ? // Skeleton loader for trending posts
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className="trending-card-skeleton rounded-xl border border-gray-800 bg-[#111] overflow-hidden"
+                        >
+                          <div className="h-32 bg-gray-800 animate-pulse"></div>
+                          <div className="p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-gray-800 animate-pulse"></div>
+                              <div className="h-4 w-24 rounded bg-gray-800 animate-pulse"></div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="h-4 w-16 rounded bg-gray-800 animate-pulse"></div>
+                              <div className="h-4 w-16 rounded bg-gray-800 animate-pulse"></div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    : (() => {
+                        // Get unique usernames from posts
+                        const usernames = [
+                          ...Array.from(new Set(posts.map((post) => post.username))),
+                        ];
+
+                        // Get top post by likes for each username
+                        const topPostsByUser = usernames.map((username) => {
+                          const userPosts = posts.filter(
+                            (post) => post.username === username
+                          );
+                          return userPosts.sort((a, b) => b.likes - a.likes)[0];
+                        });
+
+                        // Sort by likes and take top 5
+                        return topPostsByUser
+                          .sort((a, b) => b.likes - a.likes)
+                          .slice(0, 5)
+                          .map((post) => (
+                            <div
+                              key={post.tweet_id}
+                              className="trending-card rounded-xl border border-[#7FFFD4] bg-[#111] overflow-hidden hover:border-[#7FFFD4]/30 transition-all"
+                            >
+                              {post.mediaThumbnail || post.videoThumbnail ? (
+                                <div className="h-32 overflow-hidden">
+                                  <Image
+                                    src={
+                                      post.mediaThumbnail ||
+                                      post.videoThumbnail ||
+                                      "/placeholder.svg"
+                                    }
+                                    alt="Tweet media"
+                                    width={300}
+                                    height={128}
+                                    className="object-cover w-full h-full"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="h-32  flex items-center justify-center p-4">
+                                  <p className="text-sm line-clamp-4 text-center">
+                                    {post.text}
+                                  </p>
+                                </div>
+                              )}
+                              <div className="p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  {renderAvatar(
+                                    post.username,
+                                    post.avatar || "/placeholder.svg"
+                                  )}
+                                  <span className="text-sm font-medium truncate">
+                                    @{post.username}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-[#7FFFD4]">
+                                    {timeAgo(post.time)}
+                                  </span>
+                                  <a
+                                    href={`https://twitter.com/i/web/status/${post.tweet_id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-[#7FFFD4] hover:underline"
+                                  >
+                                    View Post
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          ));
+                      })()}
+                </div>
+              </div>
               <div className="relative mb-6">
                 <button
                   onClick={() => scrollProfiles("left")}
