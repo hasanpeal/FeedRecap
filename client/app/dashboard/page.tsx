@@ -841,101 +841,103 @@ export default function Dashboard() {
     return false;
   };
 
-const useVideoIntersectionObserver = () => {
-  useEffect(() => {
-    if (isIOS()) return;
-    const videoElements = document.querySelectorAll(".post-video");
+  const useVideoIntersectionObserver = () => {
+    useEffect(() => {
+      if (isIOS()) return;
+      const videoElements = document.querySelectorAll(".post-video");
 
-    if (!videoElements.length) return;
+      if (!videoElements.length) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const video = entry.target as HTMLVideoElement;
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const video = entry.target as HTMLVideoElement;
 
-          if (!entry.isIntersecting && !video.paused) {
-            // Pause video when it's out of view
-            video.pause();
-          }
-        });
-      },
-      {
-        root: null, // viewport
-        rootMargin: "0px",
-        threshold: 0.2, // 20% visibility required
-      }
-    );
+            if (!entry.isIntersecting && !video.paused) {
+              // Pause video when it's out of view
+              video.pause();
+            }
+          });
+        },
+        {
+          root: null, // viewport
+          rootMargin: "0px",
+          threshold: 0.2, // 20% visibility required
+        }
+      );
 
-    // Observe all video elements
-    videoElements.forEach((video) => {
-      observer.observe(video);
-    });
-
-    // Cleanup
-    return () => {
+      // Observe all video elements
       videoElements.forEach((video) => {
-        observer.unobserve(video);
+        observer.observe(video);
       });
-    };
-  }, [posts]); // Re-run when posts change
-};
 
-function renderQuotedTweet(quotedTweet: Post["quotedTweet"]) {
-  if (!quotedTweet) return null;
-
-  // Create a post object from the quotedTweet to use with renderMedia
-  const quotedPostForMedia: Post = {
-    ...quotedTweet,
-    username: quotedTweet.username,
-    time: quotedTweet.createdAt.toString(),
-    category: "",
-    tweet_id: quotedTweet.tweet_id,
-    text: quotedTweet.text,
-    likes: quotedTweet.likes,
-    avatar: quotedTweet.avatar,
+      // Cleanup
+      return () => {
+        videoElements.forEach((video) => {
+          observer.unobserve(video);
+        });
+      };
+    }, [posts]); // Re-run when posts change
   };
 
-  return (
-    <div className="mt-2 mb-4 rounded-lg border border-gray-700  p-3">
-      <div className="mb-2 flex items-center gap-3">
-        {renderAvatar2(
-          quotedTweet.username,
-          quotedTweet.avatar || "/placeholder.svg"
-        )}
-        <div>
-          <h3 className="font-medium">@{quotedTweet.username}</h3>
-          <span className="text-sm text-gray-400">{formatTime(quotedTweet.createdAt)}</span>
+  function renderQuotedTweet(quotedTweet: Post["quotedTweet"]) {
+    if (!quotedTweet) return null;
+
+    // Create a post object from the quotedTweet to use with renderMedia
+    const quotedPostForMedia: Post = {
+      ...quotedTweet,
+      username: quotedTweet.username,
+      time: quotedTweet.createdAt.toString(),
+      category: "",
+      tweet_id: quotedTweet.tweet_id,
+      text: quotedTweet.text,
+      likes: quotedTweet.likes,
+      avatar: quotedTweet.avatar,
+    };
+
+    return (
+      <div className="mt-2 mb-4 rounded-lg border border-gray-700  p-3">
+        <div className="mb-2 flex items-center gap-3">
+          {renderAvatar2(
+            quotedTweet.username,
+            quotedTweet.avatar || "/placeholder.svg"
+          )}
+          <div>
+            <h3 className="font-medium">@{quotedTweet.username}</h3>
+            <span className="text-sm text-gray-400">
+              {formatTime(quotedTweet.createdAt)}
+            </span>
+          </div>
         </div>
+        <p className="mb-3">
+          {quotedTweet && quotedTweet.text
+            ? quotedTweet.text.length > 150
+              ? `${quotedTweet.text.slice(0, 150)}...`
+              : quotedTweet.text
+            : ""}
+        </p>
+        {renderMedia(quotedPostForMedia)}
       </div>
-      <p className="mb-3">
-        {quotedTweet && quotedTweet.text
-          ? quotedTweet.text.length > 150
-            ? `${quotedTweet.text.slice(0, 150)}...`
-            : quotedTweet.text
-          : ""}
-      </p>
-      {renderMedia(quotedPostForMedia)}
-    </div>
-  );
-}
-
-
+    );
+  }
 
   const renderMedia = (post: Post) => {
     if (isIOS()) {
-      if(post.video){
+      if (post.video) {
         return (
           <div className="mb-4 mt-2 rounded-lg overflow-hidden">
             <Image
-              src={post.videoThumbnail || "/placeholder.svg?height=240&width=400"}
+              src={
+                post.videoThumbnail || "/placeholder.svg?height=240&width=400"
+              }
               alt="Video Poster"
               width={500}
               height={240}
               className="object-cover rounded-lg border border-gray-800"
             />
           </div>
-      );
-      }      
+        );
+      }
     }
 
     if (post.video) {
@@ -1044,7 +1046,7 @@ function renderQuotedTweet(quotedTweet: Post["quotedTweet"]) {
             <div className="newsfeed-content">
               {/* Trending Section */}
               {/* Trending Section */}
-              <div className="mb-8">
+              <div className="hidden md:block mb-8 mx-1">
                 <h2 className="text-xl font-bold mb-4 flex items-center">
                   <span className="mr-2">🔥</span> Trending Posts
                 </h2>
@@ -1072,7 +1074,9 @@ function renderQuotedTweet(quotedTweet: Post["quotedTweet"]) {
                     : (() => {
                         // Get unique usernames from posts
                         const usernames = [
-                          ...Array.from(new Set(posts.map((post) => post.username))),
+                          ...Array.from(
+                            new Set(posts.map((post) => post.username))
+                          ),
                         ];
 
                         // Get top post by likes for each username
@@ -1291,8 +1295,8 @@ function renderQuotedTweet(quotedTweet: Post["quotedTweet"]) {
                         </div>
                       )} */}
                         {renderMedia(post)}
-                        {wise == "customProfiles" && post.quotedTweet &&
-                          renderQuotedTweet(post.quotedTweet)}
+                        {/* {post.quotedTweet &&
+                          renderQuotedTweet(post.quotedTweet)} */}
                         <a
                           href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
                           onClick={(e) => {
