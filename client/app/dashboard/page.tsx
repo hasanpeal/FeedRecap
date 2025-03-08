@@ -821,77 +821,103 @@ export default function Dashboard() {
   `;
   };
 
-  // Add a new function to handle video intersection observation
-  const useVideoIntersectionObserver = () => {
-    useEffect(() => {
-      const videoElements = document.querySelectorAll(".post-video");
-
-      if (!videoElements.length) return;
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            const video = entry.target as HTMLVideoElement;
-
-            if (!entry.isIntersecting && !video.paused) {
-              // Pause video when it's out of view
-              video.pause();
-            }
-          });
-        },
-        {
-          root: null, // viewport
-          rootMargin: "0px",
-          threshold: 0.2, // 20% visibility required
-        }
-      );
-
-      // Observe all video elements
-      videoElements.forEach((video) => {
-        observer.observe(video);
-      });
-
-      // Cleanup
-      return () => {
-        videoElements.forEach((video) => {
-          observer.unobserve(video);
-        });
-      };
-    }, [posts]); // Re-run when posts change
+  // ✅ Utility function to detect iOS devices
+  const isIOS = () => {
+    if (typeof navigator !== "undefined") {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+    return false;
   };
 
+const useVideoIntersectionObserver = () => {
+  useEffect(() => {
+    if (isIOS()) return;
+    const videoElements = document.querySelectorAll(".post-video");
+
+    if (!videoElements.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
+
+          if (!entry.isIntersecting && !video.paused) {
+            // Pause video when it's out of view
+            video.pause();
+          }
+        });
+      },
+      {
+        root: null, // viewport
+        rootMargin: "0px",
+        threshold: 0.2, // 20% visibility required
+      }
+    );
+
+    // Observe all video elements
+    videoElements.forEach((video) => {
+      observer.observe(video);
+    });
+
+    // Cleanup
+    return () => {
+      videoElements.forEach((video) => {
+        observer.unobserve(video);
+      });
+    };
+  }, [posts]); // Re-run when posts change
+};
+
+
   const renderMedia = (post: Post) => {
+    if (isIOS()) {
+      if(post.video){
+        return (
+          <div className="mb-4 mt-2 rounded-lg overflow-hidden">
+            <Image
+              src={post.videoThumbnail || "/placeholder.svg?height=240&width=400"}
+              alt="Video Poster"
+              width={500}
+              height={240}
+              className="object-cover rounded-lg border border-gray-800"
+            />
+          </div>
+      );
+      }      
+    }
+
     if (post.video) {
+      // ✅ On non-iOS devices, render autoplaying video
       return (
         <div className="mb-4 mt-2 rounded-lg overflow-hidden">
           <div className="video-container relative w-full aspect-video rounded-lg">
             <video
               src={post.video}
-              className="w-500 h-500 object-contain rounded-lg border border-gray-800 post-video"
+              className="w-full h-auto object-contain rounded-lg border border-gray-800 post-video"
               controls
-              playsInline
-              webkit-playsinline="true"
-              preload="metadata"
+              // loop
+              // playsInline
+              // preload="metadata"
               controlsList="nodownload"
               poster={
                 post.videoThumbnail || "/placeholder.svg?height=240&width=400"
               }
             >
-              Your browser does not support the video tag
+              Your browser does not support the video tag.
             </video>
           </div>
         </div>
       );
     } else if (post.mediaThumbnail) {
+      // ✅ If no video, render media image
       return (
         <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
           <Image
-            src={post.mediaThumbnail || "/placeholder.svg"}
+            src={post.mediaThumbnail}
             alt="Tweet media"
             width={500}
             height={240}
             className="object-cover rounded-lg"
-            // style={{ maxHeight: "240px", width: "auto" }}
           />
         </div>
       );
@@ -1071,33 +1097,36 @@ export default function Dashboard() {
                     <PostSkeleton key={index} />
                   ))
                 ) : filteredPosts.length > 0 ? (
-                  filteredPosts.map((post) => ( // Slice (0,20) was here
-                    <div
-                      key={post.tweet_id}
-                      className="post-card break-inside-avoid mb-4 overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30"
-                    >
-                      <div className="post-header mb-3 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {/* 🔥 Ensure avatar comes from profiles */}
-                          {renderAvatar2(
-                            post.username,
-                            post.avatar || "/placeholder.svg"
-                          )}
-                          <div>
-                            <h3 className="font-medium">@{post.username}</h3>
-                            <span className="text-sm text-gray-400">
-                              {formatTime(post.time)}
-                            </span>
+                  filteredPosts.map(
+                    (
+                      post // Slice (0,20) was here
+                    ) => (
+                      <div
+                        key={post.tweet_id}
+                        className="post-card break-inside-avoid mb-4 overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30"
+                      >
+                        <div className="post-header mb-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {/* 🔥 Ensure avatar comes from profiles */}
+                            {renderAvatar2(
+                              post.username,
+                              post.avatar || "/placeholder.svg"
+                            )}
+                            <div>
+                              <h3 className="font-medium">@{post.username}</h3>
+                              <span className="text-sm text-gray-400">
+                                {formatTime(post.time)}
+                              </span>
+                            </div>
                           </div>
+                          {wise === "categorywise" && (
+                            <span className="rounded-full bg-[#7FFFD4]/10 px-3 py-1 text-sm text-[#7FFFD4]">
+                              {post.category}
+                            </span>
+                          )}
                         </div>
-                        {wise === "categorywise" && (
-                          <span className="rounded-full bg-[#7FFFD4]/10 px-3 py-1 text-sm text-[#7FFFD4]">
-                            {post.category}
-                          </span>
-                        )}
-                      </div>
-                      {renderPostText(post.text, post.tweet_id)}
-                      {/* {post.mediaThumbnail && (
+                        {renderPostText(post.text, post.tweet_id)}
+                        {/* {post.mediaThumbnail && (
                         <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
                           <Image
                             src={post.mediaThumbnail || "/placeholder.svg"}
@@ -1109,53 +1138,54 @@ export default function Dashboard() {
                           />
                         </div>
                       )} */}
-                      {renderMedia(post)}
-                      <a
-                        href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const tweetId = post.tweet_id;
-                          const isMobile = /Mobi|Android|iPhone/i.test(
-                            navigator.userAgent
-                          );
-
-                          if (isMobile) {
-                            // Try opening in X app directly (NO confirmation prompt)
-                            window.location.href = `twitter://status?id=${tweetId}`;
-
-                            // If app is not installed, open in browser after a short delay
-                            setTimeout(() => {
-                              window.location.href = `https://twitter.com/i/web/status/${tweetId}`;
-                            }, 500);
-                          } else {
-                            // Desktop: Always open in a new tab
-                            window.open(
-                              `https://twitter.com/i/web/status/${tweetId}`,
-                              "_blank"
+                        {renderMedia(post)}
+                        <a
+                          href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const tweetId = post.tweet_id;
+                            const isMobile = /Mobi|Android|iPhone/i.test(
+                              navigator.userAgent
                             );
-                          }
-                        }}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-[#7FFFD4] hover:underline"
-                      >
-                        View Post
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+
+                            if (isMobile) {
+                              // Try opening in X app directly (NO confirmation prompt)
+                              window.location.href = `twitter://status?id=${tweetId}`;
+
+                              // If app is not installed, open in browser after a short delay
+                              setTimeout(() => {
+                                window.location.href = `https://twitter.com/i/web/status/${tweetId}`;
+                              }, 500);
+                            } else {
+                              // Desktop: Always open in a new tab
+                              window.open(
+                                `https://twitter.com/i/web/status/${tweetId}`,
+                                "_blank"
+                              );
+                            }
+                          }}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-[#7FFFD4] hover:underline"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                          />
-                        </svg>
-                      </a>
-                    </div>
-                  ))
+                          View Post
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                        </a>
+                      </div>
+                    )
+                  )
                 ) : (
                   <div className="col-span-full text-center py-8">
                     <p className="text-gray-400">No posts found.</p>
