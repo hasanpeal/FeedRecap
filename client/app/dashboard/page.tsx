@@ -24,6 +24,7 @@ interface Post {
   isExpanded?: boolean;
   mediaThumbnail?: string;
   video?: string;
+  videoThumbnail?: string;
 }
 
 interface UserProfile {
@@ -868,7 +869,13 @@ export default function Dashboard() {
               src={post.video}
               className="w-500 h-500 object-contain rounded-lg border border-gray-800 post-video"
               controls
+              playsInline
+              webkit-playsinline="true"
               preload="metadata"
+              controlsList="nodownload"
+              poster={
+                post.videoThumbnail || "/placeholder.svg?height=240&width=400"
+              }
             >
               Your browser does not support the video tag
             </video>

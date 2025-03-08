@@ -177,6 +177,7 @@ app.get("/data", async (req, res) => {
           tweet_id: string;
           mediaThumbnail?: string;
           video?: string;
+          videoThumbnail?: string;
         }[]
       | {
           username: string;
@@ -187,6 +188,7 @@ app.get("/data", async (req, res) => {
           tweet_id: { type: String; required: true };
           mediaThumbnail?: { type: String; required: false };
           video?: { type: String; required: false };
+          videoThumbnail?: { type: String; required: false };
         }[] = [];
 
     if (user.wise === "categorywise") {
@@ -206,6 +208,7 @@ app.get("/data", async (req, res) => {
           tweet_id: tweet.tweet_id,
           mediaThumbnail: tweet.mediaThumbnail || undefined,
           video: tweet.video || undefined,
+          videoThumbnail: tweet.videoThumbnail || undefined,
         }))
       );
     } else if (user.wise === "customProfiles") {
@@ -226,6 +229,7 @@ app.get("/data", async (req, res) => {
           tweet_id: tweet.tweet_id,
           mediaThumbnail: tweet.mediaThumbnail || null,
           video: tweet.video || null,
+          videoThumbnail: tweet.videoThumbnail || null,
         }))
       );
     }
@@ -358,6 +362,7 @@ app.post("/updateProfiles", async (req, res) => {
         tweet_id: tweet.tweet_id,
         mediaThumbnail: tweet.mediaThumbnail || null,
         video: tweet.video || null,
+        videoThumbnail: tweet.videoThumbnail || null,
       }))
     );
 
