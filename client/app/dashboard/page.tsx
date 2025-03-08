@@ -1291,7 +1291,7 @@ function renderQuotedTweet(quotedTweet: Post["quotedTweet"]) {
                         </div>
                       )} */}
                         {renderMedia(post)}
-                        {post.quotedTweet &&
+                        {wise == "customProfiles" && post.quotedTweet &&
                           renderQuotedTweet(post.quotedTweet)}
                         <a
                           href={`https://twitter.com/i/web/status/${post.tweet_id}`} // Default browser fallback
