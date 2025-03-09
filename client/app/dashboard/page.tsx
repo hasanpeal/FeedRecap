@@ -11,7 +11,15 @@ import { useEmail } from "@/context/UserContext";
 import Image from "next/image";
 import _ from "lodash";
 import Navbar3 from "@/components/navbar3";
-import { ChevronLeft, ChevronRight, MessageCircle, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle,
+  X,
+  UserPlus,
+  Check,
+  Loader2,
+} from "lucide-react";
 // Testing test setup
 interface Post {
   username: string;
@@ -48,6 +56,38 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
+
+// Add this custom X logo component after the imports
+const XLogo = ({ size = 24, className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0,0,256,256"
+    className={className}
+  >
+    <g
+      fill="currentColor"
+      fillRule="nonzero"
+      stroke="none"
+      strokeWidth="1"
+      strokeLinecap="butt"
+      strokeLinejoin="miter"
+      strokeMiterlimit="10"
+      strokeDasharray=""
+      strokeDashoffset="0"
+      fontFamily="none"
+      fontWeight="none"
+      fontSize="none"
+      textAnchor="none"
+      style={{ mixBlendMode: "normal" }}
+    >
+      <g transform="scale(10.66667,10.66667)">
+        <path d="M2.36719,3l7.0957,10.14063l-6.72266,7.85938h2.64063l5.26367,-6.16992l4.31641,6.16992h6.91016l-7.42187,-10.625l6.29102,-7.375h-2.59961l-4.86914,5.6875l-3.97266,-5.6875zM6.20703,5h2.04883l9.77734,14h-2.03125z"></path>
+      </g>
+    </g>
+  </svg>
+);
 
 export default function Dashboard() {
   const { emailContext, setEmailContext } = useEmail();
@@ -93,6 +133,13 @@ export default function Dashboard() {
     null
   );
   const [updatingFeed, setUpdatingFeed] = useState(false);
+  const [twitterUsername, setTwitterUsername] = useState("");
+  const [isConnectingTwitter, setIsConnectingTwitter] = useState(false);
+  const [twitterFollowing, setTwitterFollowing] = useState<any[]>([]);
+  const [selectedTwitterAccounts, setSelectedTwitterAccounts] = useState<
+    string[]
+  >([]);
+  const [showTwitterFollowing, setShowTwitterFollowing] = useState(false);
 
   const availableCategories = [
     "Politics",
@@ -968,7 +1015,7 @@ export default function Dashboard() {
       return (
         <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
           <Image
-            src={post.mediaThumbnail}
+            src={post.mediaThumbnail || "/placeholder.svg"}
             alt="Tweet media"
             width={500}
             height={240}
@@ -982,6 +1029,98 @@ export default function Dashboard() {
   };
 
   useVideoIntersectionObserver();
+
+  const handleConnectTwitter = async () => {
+    if (!twitterUsername) {
+      showNotification("Please enter a Twitter username", "error");
+      return;
+    }
+
+    playSound();
+    setIsConnectingTwitter(true);
+
+    try {
+      const response = await axios.request({
+        method: "GET",
+        url: "https://twitter-api45.p.rapidapi.com/following.php",
+        params: {
+          screenname: twitterUsername,
+        },
+        headers: {
+          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
+          "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+        },
+      });
+
+      if (response.data && response.data.following) {
+        setTwitterFollowing(response.data.following);
+        setShowTwitterFollowing(true);
+        showNotification(
+          `Found ${response.data.following.length} accounts`,
+          "success"
+        );
+      } else {
+        showNotification("No following accounts found", "error");
+      }
+    } catch (error) {
+      console.error("Error fetching Twitter following:", error);
+      showNotification("Error connecting to Twitter", "error");
+    } finally {
+      setIsConnectingTwitter(false);
+    }
+  };
+
+  const handleSelectTwitterAccount = (screenName: string) => {
+    setSelectedTwitterAccounts((prev) =>
+      prev.includes(screenName)
+        ? prev.filter((name) => name !== screenName)
+        : [...prev, screenName]
+    );
+  };
+
+  const handleAddSelectedAccounts = async () => {
+    if (selectedTwitterAccounts.length === 0) {
+      showNotification("Please select at least one account", "error");
+      return;
+    }
+
+    playSound();
+    setLoading(true);
+
+    // Create a copy of current profiles
+    const currentProfiles = [...profiles];
+
+    // Add each selected account that isn't already in profiles
+    for (const screenName of selectedTwitterAccounts) {
+      if (!profiles.some((profile) => profile.username === screenName)) {
+        try {
+          // Find the account in twitterFollowing
+          const account = twitterFollowing.find(
+            (acc) => acc.screen_name === screenName
+          );
+          if (account) {
+            const newProfile = {
+              username: screenName,
+              avatar: account.profile_image || "/placeholder.svg",
+            };
+            currentProfiles.push(newProfile);
+          }
+        } catch (error) {
+          console.error(`Error adding profile for ${screenName}:`, error);
+        }
+      }
+    }
+
+    // Update profiles state
+    setProfiles(currentProfiles);
+
+    // Reset Twitter following UI
+    setShowTwitterFollowing(false);
+    setSelectedTwitterAccounts([]);
+
+    showNotification("Accounts added to your profiles", "success");
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -1103,6 +1242,8 @@ export default function Dashboard() {
                                     src={
                                       post.mediaThumbnail ||
                                       post.videoThumbnail ||
+                                      "/placeholder.svg" ||
+                                      "/placeholder.svg" ||
                                       "/placeholder.svg"
                                     }
                                     alt="Tweet media"
@@ -1401,6 +1542,119 @@ export default function Dashboard() {
                 >
                   {loading ? "Updating..." : "Update Feed Type"}
                 </button>
+              </section>
+
+              {/* Twitter Integration Section */}
+              <section className="space-y-4 border-t border-gray-800 pt-6">
+                <h2 className="text-xl font-semibold text-[#7FFFD4] flex items-center gap-2">
+                  <XLogo size={20} className="text-[#7FFFD4]" />
+                  Connect Account
+                </h2>
+                <p className="text-gray-400">
+                  Connect your X account to import profiles you follow
+                </p>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={twitterUsername}
+                    onChange={(e) => setTwitterUsername(e.target.value)}
+                    placeholder="Your Twitter username"
+                    className="flex-1 rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
+                    disabled={isConnectingTwitter}
+                  />
+                  <button
+                    className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black flex items-center gap-2"
+                    onClick={handleConnectTwitter}
+                    disabled={isConnectingTwitter || !twitterUsername}
+                  >
+                    {isConnectingTwitter ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <XLogo size={16} className="text-[#7FFFD4]" />
+                        Connect
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {showTwitterFollowing && (
+                  <div className="mt-4 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-medium text-[#7FFFD4]">
+                        Select accounts to add ({selectedTwitterAccounts.length}{" "}
+                        selected)
+                      </h3>
+                      <button
+                        className="text-sm text-gray-400 hover:text-white"
+                        onClick={() => setShowTwitterFollowing(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-gray-800 bg-black p-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {twitterFollowing.map((account) => (
+                          <div
+                            key={account.screen_name}
+                            className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                              selectedTwitterAccounts.includes(
+                                account.screen_name
+                              )
+                                ? "bg-[#7FFFD4]/20 border border-[#7FFFD4]"
+                                : "hover:bg-gray-900 border border-gray-800"
+                            }`}
+                            onClick={() =>
+                              handleSelectTwitterAccount(account.screen_name)
+                            }
+                          >
+                            <div className="relative flex-shrink-0">
+                              <Image
+                                src={
+                                  account.profile_image || "/placeholder.svg"
+                                }
+                                alt={account.screen_name}
+                                width={40}
+                                height={40}
+                                className="rounded-full"
+                              />
+                              {selectedTwitterAccounts.includes(
+                                account.screen_name
+                              ) && (
+                                <div className="absolute -right-1 -bottom-1 bg-[#7FFFD4] rounded-full p-0.5">
+                                  <Check size={12} className="text-black" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="overflow-hidden">
+                              <div className="font-medium truncate">
+                                {account.name}
+                              </div>
+                              <div className="text-sm text-gray-400 truncate">
+                                @{account.screen_name}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      className="w-full rounded-lg bg-[#7FFFD4] px-4 py-2 text-black transition-colors hover:bg-[#7FFFD4]/90 flex items-center justify-center gap-2"
+                      onClick={handleAddSelectedAccounts}
+                      disabled={selectedTwitterAccounts.length === 0}
+                    >
+                      <UserPlus size={16} />
+                      Add {selectedTwitterAccounts.length} Selected Account
+                      {selectedTwitterAccounts.length !== 1 ? "s" : ""}
+                    </button>
+                  </div>
+                )}
               </section>
 
               {/* Update Categories Section */}
