@@ -62,7 +62,7 @@ app.use(bodyParser.json());
 // Configuring cors
 app.use(
   cors({
-    origin: process.env.ORIGIN,
+    origin: [process.env.ORIGIN || "", process.env.ORIGINTEST || ""],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   })

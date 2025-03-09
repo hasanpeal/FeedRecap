@@ -42,7 +42,7 @@ app.use(body_parser_1.default.urlencoded({ extended: true }));
 app.use(body_parser_1.default.json());
 // Configuring cors
 app.use((0, cors_1.default)({
-    origin: process.env.ORIGIN,
+    origin: [process.env.ORIGIN || "", process.env.ORIGINTEST || ""],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
 }));
