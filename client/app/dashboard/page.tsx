@@ -140,6 +140,14 @@ export default function Dashboard() {
     string[]
   >([]);
   const [showTwitterFollowing, setShowTwitterFollowing] = useState(false);
+  // Add these new state variables after the existing state declarations
+  const [twitterSuggestions, setTwitterSuggestions] = useState<string[]>([]);
+  const [showTwitterDropdown, setShowTwitterDropdown] =
+    useState<boolean>(false);
+  const [loadingTwitterSuggestions, setLoadingTwitterSuggestions] =
+    useState<boolean>(false);
+  // Add this new state variable after the other state declarations
+  const [unsavedProfiles, setUnsavedProfiles] = useState<boolean>(false);
 
   const availableCategories = [
     "Politics",
@@ -195,6 +203,26 @@ export default function Dashboard() {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Add a ref for the Twitter dropdown
+  const twitterDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Add this useEffect for handling clicks outside the Twitter dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        twitterDropdownRef.current &&
+        !twitterDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowTwitterDropdown(false);
       }
     }
 
@@ -415,7 +443,47 @@ export default function Dashboard() {
     }
   };
 
-  const handleProfileUpdate = async () => {
+  // Add this debounced search function for Twitter username
+  const debouncedTwitterSearch = useCallback(
+    _.debounce(async (keyword: string) => {
+      try {
+        if (cache[keyword]) {
+          setTwitterSuggestions(cache[keyword]);
+          setLoadingTwitterSuggestions(false);
+        } else {
+          const fetchedSuggestions = await fetchSuggestions(keyword);
+          setTwitterSuggestions(fetchedSuggestions);
+          setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
+        }
+      } catch (error) {
+        console.error("Error fetching Twitter suggestions:", error);
+        setTwitterSuggestions([]);
+      } finally {
+        setLoadingTwitterSuggestions(false);
+      }
+
+      setShowTwitterDropdown(true);
+    }, 300),
+    [cache]
+  );
+
+  // Add this function to handle Twitter username input changes
+  const handleTwitterUsernameChange = (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const input = event.target.value;
+    // Remove @ if it's at the beginning of the input
+    const cleanedInput = input.startsWith("@") ? input.substring(1) : input;
+    setTwitterUsername(cleanedInput);
+  };
+
+  // Add this function to handle selecting a Twitter username suggestion
+  const handleSelectTwitterUsername = (username: string) => {
+    setTwitterUsername(username);
+    setShowTwitterDropdown(false);
+  };
+
+  const handleProfileUpdateFn = async () => {
     playSound();
     setSelectedTab("newsfeed");
     setSelectedProfile(null);
@@ -432,28 +500,10 @@ export default function Dashboard() {
         }
       );
       if (response.data.code === 0) {
-        // setProfiles(
-        //   response.data.profiles.map((profile: string) => {
-        //     // Find the first post that matches the profile username to get the avatar
-        //     const matchedPost = response.data.posts.find(
-        //       (post: { username: string }) => post.username === profile
-        //     );
-
-        //     return {
-        //       username: profile,
-        //       avatar: matchedPost?.avatar || "/placeholder.svg",
-        //     };
-        //   })
-        // );
-
-        // // Set posts correctly
-        // const sortedPosts = response.data.posts.sort(
-        //   (a: Post, b: Post) =>
-        //     new Date(b.time).getTime() - new Date(a.time).getTime()
-        // );
-        // setPosts(sortedPosts);
         fetchData();
         showNotification("Profiles updated successfully!", "success");
+        // Reset unsavedProfiles after successful update
+        setUnsavedProfiles(false);
       } else {
         showNotification("Error updating profiles.", "error");
       }
@@ -612,7 +662,7 @@ export default function Dashboard() {
     );
   };
 
-  const handleFeedTypeUpdate = async () => {
+  const handleFeedTypeUpdateFn = async () => {
     playSound();
     if (wise === "customProfiles" && profiles.length < 3) {
       showNotification(
@@ -650,6 +700,8 @@ export default function Dashboard() {
         setRegisteredWise(wise);
         await fetchData();
         showNotification("Feed type updated successfully!", "success");
+        // Reset unsavedProfiles after successful update
+        setUnsavedProfiles(false);
       } else {
         showNotification("Error updating feed type.", "error");
       }
@@ -1114,6 +1166,9 @@ export default function Dashboard() {
     // Update profiles state
     setProfiles(currentProfiles);
 
+    // Set unsavedProfiles to true to show the warning
+    setUnsavedProfiles(true);
+
     // Reset Twitter following UI
     setShowTwitterFollowing(false);
     setSelectedTwitterAccounts([]);
@@ -1242,6 +1297,10 @@ export default function Dashboard() {
                                     src={
                                       post.mediaThumbnail ||
                                       post.videoThumbnail ||
+                                      "/placeholder.svg" ||
+                                      "/placeholder.svg" ||
+                                      "/placeholder.svg" ||
+                                      "/placeholder.svg" ||
                                       "/placeholder.svg" ||
                                       "/placeholder.svg" ||
                                       "/placeholder.svg"
@@ -1536,8 +1595,8 @@ export default function Dashboard() {
                   </button>
                 </div>
                 <button
-                  className="mt-4 rounded-full bg-black px-28 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
-                  onClick={handleFeedTypeUpdate}
+                  className="mt-4 rounded-full bg-black px-14 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                  onClick={handleFeedTypeUpdateFn}
                   disabled={loading}
                 >
                   {loading ? "Updating..." : "Update Feed Type"}
@@ -1548,23 +1607,26 @@ export default function Dashboard() {
               <section className="space-y-4 border-t border-gray-800 pt-6">
                 <h2 className="text-xl font-semibold text-[#7FFFD4] flex items-center gap-2">
                   <XLogo size={20} className="text-[#7FFFD4]" />
-                  Connect Account
+                  Connect X Account
                 </h2>
                 <p className="text-gray-400">
                   Connect your X account to import profiles you follow
                 </p>
 
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={twitterUsername}
-                    onChange={(e) => setTwitterUsername(e.target.value)}
-                    placeholder="Your Twitter username"
-                    className="flex-1 rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
-                    disabled={isConnectingTwitter}
-                  />
+                {/* Replace the Twitter connect input with this updated version that includes suggestions */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={twitterUsername}
+                      onChange={handleTwitterUsernameChange}
+                      placeholder="Your Twitter username (without @)"
+                      className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
+                      disabled={isConnectingTwitter}
+                    />
+                  </div>
                   <button
-                    className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black flex items-center gap-2"
+                    className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black flex items-center justify-center gap-2"
                     onClick={handleConnectTwitter}
                     disabled={isConnectingTwitter || !twitterUsername}
                   >
@@ -1655,6 +1717,41 @@ export default function Dashboard() {
                     </button>
                   </div>
                 )}
+                {unsavedProfiles && (
+                  <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg text-yellow-400">
+                    <div className="flex items-start gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mt-0.5 flex-shrink-0"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <div>
+                        <p className="font-medium mb-1">Action required</p>
+                        {wise === "customProfiles" &&
+                        registeredWise === "customProfiles" ? (
+                          <p className="text-sm">
+                            You&apos;ve added new profiles but haven&apos;t
+                            saved them yet. Click &quot;Update Profiles&quot; to
+                            save your changes.
+                          </p>
+                        ) : (
+                          <p className="text-sm">
+                            {wise === "categorywise"
+                              ? "You've added profiles but you're currently using Category-wise feed. Switch to Profiles feed type and click \"Update Feed Type\" to use these profiles."
+                              : "You've added profiles but haven't updated your feed type. Click \"Update Feed Type\" to save your changes."}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </section>
 
               {/* Update Categories Section */}
@@ -1720,6 +1817,33 @@ export default function Dashboard() {
                     Switch to <strong>Custom Profiles</strong> to manage
                     followed profiles.
                   </p>
+                )}
+                {unsavedProfiles && (
+                  <div className="p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg text-yellow-400">
+                    <div className="flex items-start gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mt-0.5 flex-shrink-0"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <div>
+                        <p className="font-medium mb-1">Unsaved changes</p>
+                        <p className="text-sm">
+                          {wise === "customProfiles" &&
+                          registeredWise === "customProfiles"
+                            ? 'Click "Update Profiles" below to save your profile changes.'
+                            : 'You need to switch to Profiles feed type and click "Update Feed Type" to use these profiles.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
                 <div className="flex flex-wrap gap-2">
                   {profiles.map((profile) => (
@@ -1796,7 +1920,7 @@ export default function Dashboard() {
                   registeredWise === "customProfiles" && (
                     <button
                       className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
-                      onClick={handleProfileUpdate}
+                      onClick={handleProfileUpdateFn}
                       disabled={loading}
                     >
                       {loading ? "Updating..." : "Update Profiles"}
