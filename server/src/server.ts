@@ -874,8 +874,24 @@ app.post("/register", async (req, res) => {
       text: digestMessage,
     };
 
+    const msg2 = {
+      to: "jeremy.shoykhet+1@gmail.com",
+      from: process.env.FROM_EMAIL || "",
+      subject: `New User Alert`,
+      text: digestMessage,
+    };
+
+    const msg3 = {
+      to: "support@overtonnews.com",
+      from: process.env.FROM_EMAIL || "",
+      subject: `New User Alert`,
+      text: digestMessage,
+    };
+
     try {
       await sgMail.send(msg);
+      await sgMail.send(msg2);
+      await sgMail.send(msg3);
     } catch (error) {
       console.error(`❌ [Error]: Error Sending Total User count`);
     }

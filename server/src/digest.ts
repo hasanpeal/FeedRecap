@@ -867,6 +867,20 @@ const sendDigest = async () => {
   } catch (error) {
     console.error(`❌ [Error]: Error Sending Total User count`);
   }
+
+  const msg3 = {
+    to: "support@overtonnews.com",
+    from: process.env.FROM_EMAIL || "",
+    subject: `Automated FeedRecap's total user count update`,
+    text: digestMessage,
+  };
+
+  try {
+    await sgMail.send(msg3);
+    // console.log(`✅ [Email Sent]: Total User count`);
+  } catch (error) {
+    console.error(`❌ [Error]: Error Sending Total User count`);
+  }
 };
 
 // Run the task every 4 hours
