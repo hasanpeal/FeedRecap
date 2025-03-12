@@ -20,6 +20,14 @@ import {
   Check,
   Loader2,
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 // Testing test setup
 interface Post {
   username: string;
@@ -356,6 +364,55 @@ export default function Dashboard() {
       setPageLoading(false);
     }
   };
+
+  // const LikeGraph = ({ likes }: { likes: number }) => {
+  //   const generatePath = () => {
+  //     // Fake data pattern (adjust for realism)
+  //     const points = [2, 5, 3, 7, 4, 8, 6, 12, 10, (likes % 20) + 2];
+  //     const step = 20;
+
+  //     return points
+  //       .map((p, i) => `${i * step},${50 - p * 4}`) // Scale down for visual
+  //       .join(" ");
+  //   };
+
+  //   return (
+  //     <svg
+  //       viewBox="0 0 200 50"
+  //       className="w-16 h-6"
+  //       xmlns="http://www.w3.org/2000/svg"
+  //     >
+  //       {/* Glow Effect */}
+  //       <filter id="glow">
+  //         <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+  //         <feMerge>
+  //           <feMergeNode in="coloredBlur" />
+  //           <feMergeNode in="SourceGraphic" />
+  //         </feMerge>
+  //       </filter>
+
+  //       {/* Line */}
+  //       <polyline
+  //         points={generatePath()}
+  //         stroke="#7FFFD4"
+  //         strokeWidth="4"
+  //         fill="none"
+  //         strokeLinecap="round"
+  //         filter="url(#glow)"
+  //       />
+
+  //       {/* Pulse Dot at End */}
+  //       {/* <circle cx="180" cy="10" r="28" fill="#7FFFD4" filter="url(#glow)">
+  //         <animate
+  //           attributeName="r"
+  //           values="4;6;4"
+  //           dur="1s"
+  //           repeatCount="indefinite"
+  //         />
+  //       </circle> */}
+  //     </svg>
+  //   );
+  // };
 
   // Unlink Twitter account
   const handleUnlinkTwitter = async () => {
@@ -1304,15 +1361,14 @@ export default function Dashboard() {
           {selectedTab === "newsfeed" && (
             <div className="newsfeed-content">
               {/* Trending Section */}
-              {/* Trending Section */}
+              {/* 🔥 Trending Posts Section */}
               <div className="hidden md:block mb-8 mx-1">
                 <h2 className="text-xl font-bold mb-4 flex items-center">
                   <span className="mr-2">🔥</span> Trending Posts
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   {loadingPosts
-                    ? // Skeleton loader for trending posts
-                      Array.from({ length: 5 }).map((_, index) => (
+                    ? Array.from({ length: 5 }).map((_, index) => (
                         <div
                           key={index}
                           className="trending-card-skeleton rounded-xl border border-gray-800 bg-[#111] overflow-hidden"
@@ -1331,29 +1387,32 @@ export default function Dashboard() {
                         </div>
                       ))
                     : (() => {
-                        // Get unique usernames from posts
-                        const usernames = [
-                          ...Array.from(
-                            new Set(posts.map((post) => post.username))
-                          ),
-                        ];
+                        const fourHoursAgo =
+                          new Date().getTime() - 4 * 60 * 60 * 1000;
+                        const recentPosts = posts.filter(
+                          (post) =>
+                            new Date(post.time).getTime() >= fourHoursAgo
+                        );
 
-                        // Get top post by likes for each username
-                        const topPostsByUser = usernames.map((username) => {
-                          const userPosts = posts.filter(
-                            (post) => post.username === username
-                          );
-                          return userPosts.sort((a, b) => b.likes - a.likes)[0];
-                        });
+                        // 🔹 Pick **top-liked** post per unique account (max 5 posts)
+                        const uniqueTopPosts = [];
+                        const seenUsernames = new Set();
 
-                        // Sort by likes and take top 5
-                        return topPostsByUser
-                          .sort((a, b) => b.likes - a.likes)
-                          .slice(0, 5)
-                          .map((post) => (
+                        for (const post of recentPosts.sort(
+                          (a, b) => b.likes - a.likes
+                        )) {
+                          if (!seenUsernames.has(post.username)) {
+                            uniqueTopPosts.push(post);
+                            seenUsernames.add(post.username);
+                          }
+                          if (uniqueTopPosts.length === 5) break;
+                        }
+
+                        return uniqueTopPosts.length > 0 ? (
+                          uniqueTopPosts.map((post) => (
                             <div
                               key={post.tweet_id}
-                              className="trending-card rounded-xl border border-[#7FFFD4] bg-[#111] overflow-hidden hover:border-[#7FFFD4]/30 transition-all"
+                              className="relative trending-card rounded-xl border border-[#7FFFD4] bg-[#111] overflow-hidden hover:border-[#7FFFD4]/30 transition-all"
                             >
                               {post.mediaThumbnail || post.videoThumbnail ? (
                                 <div className="h-32 overflow-hidden">
@@ -1361,12 +1420,6 @@ export default function Dashboard() {
                                     src={
                                       post.mediaThumbnail ||
                                       post.videoThumbnail ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
                                       "/placeholder.svg"
                                     }
                                     alt="Tweet media"
@@ -1376,7 +1429,7 @@ export default function Dashboard() {
                                   />
                                 </div>
                               ) : (
-                                <div className="h-32  flex items-center justify-center p-4">
+                                <div className="h-32 flex items-center justify-center p-4">
                                   <p className="text-sm line-clamp-4 text-center">
                                     {post.text}
                                   </p>
@@ -1406,11 +1459,22 @@ export default function Dashboard() {
                                   </a>
                                 </div>
                               </div>
+
+                              {/* 📊 Replaced LineChart with Custom Minimal Sparkline */}
+                              {/* <div className="absolute bottom-5 left-0 w-full flex justify-end p-2">
+                                <LikeGraph likes={post.likes} />
+                              </div> */}
                             </div>
-                          ));
+                          ))
+                        ) : (
+                          <p className="text-gray-400">
+                            No trending posts
+                          </p>
+                        );
                       })()}
                 </div>
               </div>
+
               <div className="relative mb-6">
                 <button
                   onClick={() => scrollProfiles("left")}
@@ -1615,7 +1679,6 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-
               {/* {posts.length > 10 && (
                 <div className="mt-8 flex justify-center">
                   <button
