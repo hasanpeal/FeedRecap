@@ -158,7 +158,7 @@ app.get("/data", async (req, res) => {
   try {
     // Fetch user data
     const user = await User.findOne({ email }).select(
-      "categories time timezone newsletter wise profiles"
+      "categories time timezone newsletter wise profiles twitterUsername"
     );
 
     if (!user) {
@@ -269,6 +269,7 @@ app.get("/data", async (req, res) => {
         newsletter: user.newsletter,
         wise: user.wise,
         profiles: user.profiles,
+        twitterUsername: user.twitterUsername
       },
       posts,
       code: 0,
@@ -280,6 +281,39 @@ app.get("/data", async (req, res) => {
       .json({ error: "An error occurred while fetching data", code: 1 });
   }
 });
+
+app.post("/unlinkX", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email is required" });
+
+    await User.findOneAndUpdate({ email }, { twitterUsername: null });
+
+    res.json({
+      success: true,
+      message: "Twitter account unlinked successfully",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/saveX", async (req, res) => {
+  try {
+    const { email, twitterUsername } = req.body;
+    if (!email || !twitterUsername)
+      return res
+        .status(400)
+        .json({ error: "Email and Twitter username required" });
+
+    await User.findOneAndUpdate({ email }, { twitterUsername });
+
+    res.json({ success: true, message: "Twitter account linked successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // Route to get posts by user-selected categories
 app.get("/api/posts", async (req, res) => {
   // console.log("Posts routes called");

@@ -11,8 +11,9 @@ interface IUser extends Document {
   categories: string[];
   timezone: string;
   totalnewsletter: number;
-  wise: "categorywise" | "customProfiles"; 
-  profiles: string[]; 
+  wise: "categorywise" | "customProfiles";
+  profiles: string[];
+  twitterUsername: string,
 }
 
 const UserSchema: Schema = new Schema({
@@ -49,6 +50,7 @@ const UserSchema: Schema = new Schema({
     default: "categorywise",
   },
   profiles: { type: [String], default: [] },
+  twitterUsername: { type: String, default: null },
 });
 
 const User = db.model<IUser>("User", UserSchema);

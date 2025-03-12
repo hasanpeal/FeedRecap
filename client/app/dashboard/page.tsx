@@ -140,6 +140,8 @@ export default function Dashboard() {
     string[]
   >([]);
   const [showTwitterFollowing, setShowTwitterFollowing] = useState(false);
+  const [isSavingTwitter, setIsSavingTwitter] = useState(false);
+
   // Add these new state variables after the existing state declarations
   const [twitterSuggestions, setTwitterSuggestions] = useState<string[]>([]);
   const [showTwitterDropdown, setShowTwitterDropdown] =
@@ -148,7 +150,7 @@ export default function Dashboard() {
     useState<boolean>(false);
   // Add this new state variable after the other state declarations
   const [unsavedProfiles, setUnsavedProfiles] = useState<boolean>(false);
-
+  const [linkedTwitter, setLinkedTwitter] = useState<string | null>(null);
   const availableCategories = [
     "Politics",
     "Geopolitics",
@@ -317,6 +319,9 @@ export default function Dashboard() {
         setLatestNewsletter(userData.newsletter);
         setWise(userData.wise);
         setRegisteredWise(userData.wise);
+        setLinkedTwitter(
+          userData.twitterUsername ? userData.twitterUsername : null
+        );
 
         // ✅ Set profiles correctly since avatars are now provided
         setProfiles(
@@ -349,6 +354,22 @@ export default function Dashboard() {
       setLoadingProfiles(false);
       setLoadingPosts(false);
       setPageLoading(false);
+    }
+  };
+
+  // Unlink Twitter account
+  const handleUnlinkTwitter = async () => {
+    setIsSavingTwitter(true);
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/unlinkX`, {
+        email: emailContext,
+      });
+      setLinkedTwitter(null);
+      showNotification("Twitter account unlinked", "success");
+    } catch (err) {
+      showNotification("Error unlinking Twitter", "error");
+    } finally {
+      setIsSavingTwitter(false);
     }
   };
 
@@ -1092,12 +1113,11 @@ export default function Dashboard() {
     setIsConnectingTwitter(true);
 
     try {
+      // Fetch followed accounts from Twitter
       const response = await axios.request({
         method: "GET",
         url: "https://twitter-api45.p.rapidapi.com/following.php",
-        params: {
-          screenname: twitterUsername,
-        },
+        params: { screenname: twitterUsername },
         headers: {
           "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
           "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
@@ -1111,6 +1131,14 @@ export default function Dashboard() {
           `Found ${response.data.following.length} accounts`,
           "success"
         );
+        // ✅ Save Twitter username to DB after fetching followed accounts
+        await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/saveX`, {
+          email: emailContext,
+          twitterUsername,
+        });
+
+        setLinkedTwitter(twitterUsername);
+        showNotification("Twitter account linked!", "success");
       } else {
         showNotification("No following accounts found", "error");
       }
@@ -1128,6 +1156,42 @@ export default function Dashboard() {
         ? prev.filter((name) => name !== screenName)
         : [...prev, screenName]
     );
+  };
+
+  const handleShowFollowedProfiles = async () => {
+    if (!linkedTwitter) return; // Ensure there is a linked account
+
+    playSound();
+    setIsConnectingTwitter(true);
+
+    try {
+      // Fetch followed accounts again on demand
+      const response = await axios.request({
+        method: "GET",
+        url: "https://twitter-api45.p.rapidapi.com/following.php",
+        params: { screenname: linkedTwitter },
+        headers: {
+          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
+          "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+        },
+      });
+
+      if (response.data && response.data.following) {
+        setTwitterFollowing(response.data.following);
+        setShowTwitterFollowing(true);
+        showNotification(
+          `Loaded ${response.data.following.length} accounts`,
+          "success"
+        );
+      } else {
+        showNotification("No following accounts found", "error");
+      }
+    } catch (error) {
+      console.error("Error fetching Twitter following:", error);
+      showNotification("Error fetching followed profiles", "error");
+    } finally {
+      setIsConnectingTwitter(false);
+    }
   };
 
   const handleAddSelectedAccounts = async () => {
@@ -1606,44 +1670,70 @@ export default function Dashboard() {
               {/* Twitter Integration Section */}
               <section className="space-y-4 border-t border-gray-800 pt-6">
                 <h2 className="text-xl font-semibold text-[#7FFFD4] flex items-center gap-2">
-                  <XLogo size={20} className="text-[#7FFFD4]" />
                   Connect X Account
                 </h2>
-                <p className="text-gray-400">
-                  Connect your X account to import profiles you follow
-                </p>
 
-                {/* Replace the Twitter connect input with this updated version that includes suggestions */}
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={twitterUsername}
-                      onChange={handleTwitterUsernameChange}
-                      placeholder="Your Twitter username (without @)"
-                      className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
-                      disabled={isConnectingTwitter}
-                    />
-                  </div>
-                  <button
-                    className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black flex items-center justify-center gap-2"
-                    onClick={handleConnectTwitter}
-                    disabled={isConnectingTwitter || !twitterUsername}
-                  >
-                    {isConnectingTwitter ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" />
-                        Connecting...
-                      </>
-                    ) : (
-                      <>
-                        <XLogo size={16} className="text-[#7FFFD4]" />
-                        Connect
-                      </>
-                    )}
-                  </button>
-                </div>
+                {/* If user has linked a Twitter account */}
+                {linkedTwitter ? (
+                  <>
+                    <p className="text-gray-400">
+                      Connected as <strong>@{linkedTwitter}</strong>
+                    </p>
+                    <div className="flex gap-4">
+                      <button
+                        className="rounded-lg bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600"
+                        onClick={handleUnlinkTwitter}
+                        disabled={loading}
+                      >
+                        {loading ? "Unlinking..." : "Unlink Twitter"}
+                      </button>
+                      <button
+                        className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                        onClick={() => handleShowFollowedProfiles()}
+                      >
+                        Show Followed Profiles
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-400">
+                      Connect your X account to import profiles you follow
+                    </p>
 
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={twitterUsername}
+                          onChange={handleTwitterUsernameChange}
+                          placeholder="@YourUsername"
+                          className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
+                          disabled={isConnectingTwitter}
+                        />
+                      </div>
+                      <button
+                        className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black flex items-center justify-center gap-2"
+                        onClick={handleConnectTwitter}
+                        disabled={isConnectingTwitter || !twitterUsername}
+                      >
+                        {isConnectingTwitter ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Connecting...
+                          </>
+                        ) : (
+                          <>
+                            <XLogo size={16} className="text-[#7FFFD4]" />
+                            Connect
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Show Followed Profiles UI when connected */}
                 {showTwitterFollowing && (
                   <div className="mt-4 space-y-4">
                     <div className="flex justify-between items-center">
@@ -1717,6 +1807,8 @@ export default function Dashboard() {
                     </button>
                   </div>
                 )}
+
+                {/* Warning for unsaved profiles */}
                 {unsavedProfiles && (
                   <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg text-yellow-400">
                     <div className="flex items-start gap-2">
@@ -1919,7 +2011,7 @@ export default function Dashboard() {
                 {wise === "customProfiles" &&
                   registeredWise === "customProfiles" && (
                     <button
-                      className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                      className="mt-4 rounded-full bg-black px-24 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
                       onClick={handleProfileUpdateFn}
                       disabled={loading}
                     >
@@ -1937,7 +2029,7 @@ export default function Dashboard() {
                   {availableTimes.map((timeOption) => (
                     <button
                       key={timeOption}
-                      className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                      className={`rounded-full px-6 py-2 text-sm transition-colors ${
                         time.includes(timeOption)
                           ? "bg-[#7FFFD4] text-black"
                           : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
@@ -1956,7 +2048,7 @@ export default function Dashboard() {
                   ))}
                 </div>
                 <button
-                  className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                  className="mt-4 rounded-full bg-black px-28 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
                   onClick={handleTimeUpdate}
                   disabled={loading}
                 >
