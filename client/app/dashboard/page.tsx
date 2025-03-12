@@ -1685,7 +1685,7 @@ export default function Dashboard() {
                         onClick={handleUnlinkTwitter}
                         disabled={loading}
                       >
-                        {loading ? "Unlinking..." : "Unlink Twitter"}
+                        {loading ? "Unlinking..." : "Unlink X"}
                       </button>
                       <button
                         className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
