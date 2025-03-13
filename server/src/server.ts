@@ -165,6 +165,11 @@ app.get("/data", async (req, res) => {
       return res.status(404).json({ error: "User not found", code: 1 });
     }
 
+    // Fetch the latest newsletter for the user
+    const latestNewsletter = await Newsletter.findOne({ user: user._id })
+      .sort({ createdAt: -1 }) // Get the latest newsletter
+      .select("_id"); // Only return the ID
+
     interface QuotedTweet {
       tweet_id?: string | null;
       text?: string | null;
@@ -269,7 +274,8 @@ app.get("/data", async (req, res) => {
         newsletter: user.newsletter,
         wise: user.wise,
         profiles: user.profiles,
-        twitterUsername: user.twitterUsername
+        twitterUsername: user.twitterUsername,
+        latestNewsletterId: latestNewsletter ? latestNewsletter._id : null, // Send the latest newsletter ID
       },
       posts,
       code: 0,
