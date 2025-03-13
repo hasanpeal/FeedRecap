@@ -1009,11 +1009,21 @@ passport.use(
             lastName,
             email,
             password: "", // Empty password as the user signed up via Google OAuth
-            isNewUser: true,
-            time: [],
+            isNewUser: false,
+            time: ["Morning", "Afternoon", "Night"],
             newsletter:
               "Thank you for signing up. Please wait for your first newsletter to generate",
-            categories: [],
+            categories: [
+              "Politics",
+              "Geopolitics",
+              "Finance",
+              "AI",
+              "Tech",
+              "Crypto",
+              "Meme",
+              "Sports",
+              "Entertainment",
+            ],
           });
 
           await user.save();
