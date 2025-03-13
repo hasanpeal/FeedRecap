@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import html2canvas from "html2canvas";
 // Testing test setup
 interface Post {
   username: string;
@@ -99,6 +100,13 @@ const XLogo = ({ size = 24, className = "" }) => (
 
 export default function Dashboard() {
   const { emailContext, setEmailContext } = useEmail();
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
+  const [modalCallback, setModalCallback] = useState<(() => void) | null>(null);
+
+  const showModal = (message: string, callback?: () => void) => {
+    setModalMessage(message);
+    setModalCallback(() => callback || null);
+  };
   const [categories, setCategories] = useState<string[]>([]);
   const [time, setTime] = useState<string[]>([]);
   const [timezone, setTimezone] = useState<string | null>(null);
@@ -159,6 +167,7 @@ export default function Dashboard() {
   // Add this new state variable after the other state declarations
   const [unsavedProfiles, setUnsavedProfiles] = useState<boolean>(false);
   const [linkedTwitter, setLinkedTwitter] = useState<string | null>(null);
+  const [newsID, setNewsID] = useState<string | null>(null);
   const availableCategories = [
     "Politics",
     "Geopolitics",
@@ -241,6 +250,122 @@ export default function Dashboard() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+const handleShareOnX = async () => {
+  const newsletterElement = document.getElementById("newsletter-content");
+
+  if (!newsletterElement) {
+    showModal("❌ Error capturing newsletter.");
+    return;
+  }
+
+  try {
+    // Clone the newsletter content
+    const clone = newsletterElement.cloneNode(true) as HTMLElement;
+
+    // Remove "TOP POSTS OF TODAY" section
+    const topPostsIndex = clone.innerHTML.indexOf("TOP POSTS OF TODAY:");
+    if (topPostsIndex !== -1) {
+      clone.innerHTML = clone.innerHTML.slice(0, topPostsIndex); // Keep only the part before it
+    }
+
+    // Ensure text remains white by applying a temporary style
+    clone.style.color = "#FFFFFF"; // Force text to be white
+    clone.style.backgroundColor = "#000"; // Ensure the background is black
+
+    // Temporarily add the modified element to the document to capture it
+    document.body.appendChild(clone);
+
+    // Capture only the modified content
+    const originalCanvas = await html2canvas(clone, {
+      backgroundColor: "#000", // Ensure background is black
+      scale: 2, // High resolution
+    });
+
+    // Remove the temporary element
+    document.body.removeChild(clone);
+
+    // Create a new canvas with padding
+    const paddedCanvas = document.createElement("canvas");
+    const padding = 30;
+    paddedCanvas.width = originalCanvas.width + padding * 2;
+    paddedCanvas.height = originalCanvas.height + padding * 2;
+    const ctx = paddedCanvas.getContext("2d");
+
+    if (ctx) {
+      // Fill background with black
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
+
+      // Draw original image with padding
+      ctx.drawImage(originalCanvas, padding, padding);
+
+      // Add bold watermark with color #7FFFD4
+      const watermarkText = "FeedRecap.com";
+      ctx.font = "bold 44px Arial";
+      ctx.fillStyle = "#7FFFD4"; // Watermark color
+      ctx.textAlign = "right";
+
+      // Add shadow for better visibility
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      // Draw watermark at the bottom-right
+      ctx.fillText(
+        watermarkText,
+        paddedCanvas.width - 30,
+        paddedCanvas.height - 30
+      );
+    }
+
+    // Convert canvas to Blob
+    const blob = await new Promise<Blob>((resolve) =>
+      paddedCanvas.toBlob((blob) => resolve(blob!), "image/png")
+    );
+
+    // Copy image to clipboard
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+      ]);
+
+      showModal(
+        "Newsletter copied! Paste newsletter on X",
+        () => {
+          const tweetText = encodeURIComponent(
+            `Check out today's newsletter on FeedRecap! 🚀\nRead full newsletter: ${process.env.NEXT_PUBLIC_SERVER}/readnewsletter?newsletter=${newsID}`
+          );
+          const xAppUrl = `twitter://post?message=${tweetText}`;
+          const xWebUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+
+          const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+
+          if (isMobile) {
+            // Try opening in X app directly
+            window.location.href = xAppUrl;
+
+            // If app is not installed, fallback to web after a short delay
+            setTimeout(() => {
+              window.location.href = xWebUrl;
+            }, 500);
+          } else {
+            // Desktop: Always open in a new tab
+            window.open(xWebUrl, "_blank");
+          }
+        }
+      );
+    } catch (clipboardError) {
+      showModal(
+        "Newsletter could not be copied automatically. Please paste it manually."
+      );
+    }
+  } catch (error) {
+    console.error("Error sharing newsletter:", error);
+    showModal("❌ Failed to share the newsletter.");
+  }
+};
 
   const playSound = () => {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -330,6 +455,7 @@ export default function Dashboard() {
         setLinkedTwitter(
           userData.twitterUsername ? userData.twitterUsername : null
         );
+        setNewsID(userData.latestNewsletterId);
 
         // ✅ Set profiles correctly since avatars are now provided
         setProfiles(
@@ -1467,9 +1593,7 @@ export default function Dashboard() {
                             </div>
                           ))
                         ) : (
-                          <p className="text-gray-400">
-                            No trending posts
-                          </p>
+                          <p className="text-gray-400">No trending posts</p>
                         );
                       })()}
                 </div>
@@ -1748,7 +1872,7 @@ export default function Dashboard() {
                         onClick={handleUnlinkTwitter}
                         disabled={loading}
                       >
-                        {loading ? "Unlinking..." : "Unlink X"}
+                        {loading ? "Unlinking..." : "Unlink"}
                       </button>
                       <button
                         className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
@@ -2123,11 +2247,21 @@ export default function Dashboard() {
 
           {selectedTab === "newsletter" && (
             <div className="space-y-4 rounded-xl border border-gray-800 bg-black p-6">
-              <h3 className="text-xl font-semibold text-[#7FFFD4]">
-                Latest Newsletter
-              </h3>
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-[#7FFFD4]">
+                  Latest Newsletter
+                </h3>
+                <button
+                  onClick={handleShareOnX}
+                  className="bg-[#7FFFD4] text-black px-4 py-2 rounded-lg transition hover:bg-[#00CED1] flex items-center gap-1"
+                >
+                  Share on<XLogo size={14}/>
+                </button>
+              </div>
+
               <div
-                className="prose prose-invert max-w-none"
+                id="newsletter-content"
+                className="prose prose-invert max-w-none p-4 border border-gray-800 rounded-lg bg-[#111]"
                 dangerouslySetInnerHTML={{
                   __html:
                     newlatestNewsletter || "<p>No newsletters available.</p>",
@@ -2228,6 +2362,26 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+        </div>
+      )}
+      {modalMessage && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-[#111] rounded-lg w-full max-w-md mx-auto overflow-hidden shadow-lg">
+            <div className="p-6 text-center">
+              <p className="text-white text-lg">{modalMessage}</p>
+            </div>
+            <div className="border-t border-gray-700 p-4 text-center">
+              <button
+                className="bg-[#7FFFD4] text-black px-6 py-2 rounded-lg transition hover:bg-[#00CED1]"
+                onClick={() => {
+                  setModalMessage(null);
+                  if (modalCallback) modalCallback();
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
