@@ -2251,12 +2251,15 @@ const handleShareOnX = async () => {
                 <h3 className="text-xl font-semibold text-[#7FFFD4]">
                   Latest Newsletter
                 </h3>
-                <button
-                  onClick={handleShareOnX}
-                  className="bg-[#7FFFD4] text-black px-4 py-2 rounded-lg transition hover:bg-[#00CED1] flex items-center gap-1"
-                >
-                  Share on<XLogo size={14}/>
-                </button>
+                {latestNewsletter !== "Thank you for signing up. Please wait for your first newsletter to generate" && (
+                  <button
+                    onClick={handleShareOnX}
+                    className="hidden md:flex bg-[#7FFFD4] text-black px-4 py-2 rounded-lg transition hover:bg-[#00CED1]  items-center gap-1"
+                  >
+                    Share on
+                    <XLogo size={14} />
+                  </button>
+                )}
               </div>
 
               <div
