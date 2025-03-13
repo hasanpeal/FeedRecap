@@ -335,7 +335,7 @@ const handleShareOnX = async () => {
         "Newsletter copied! Paste newsletter on X",
         () => {
           const tweetText = encodeURIComponent(
-            `Check out today's newsletter on FeedRecap! 🚀\nRead full newsletter: ${process.env.NEXT_PUBLIC_SERVER}/readnewsletter?newsletter=${newsID}`
+            `Check out today's newsletter on FeedRecap! 🚀\nRead the full newsletter: https://www.feedrecap.com/readnewsletter?newsletter=${newsID}`
           );
           const xAppUrl = `twitter://post?message=${tweetText}`;
           const xWebUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
