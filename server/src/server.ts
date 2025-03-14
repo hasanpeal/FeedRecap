@@ -1027,6 +1027,55 @@ passport.use(
           });
 
           await user.save();
+          const { tweetsByCategory, top15Tweets } =
+            await fetchTweetsForCategories([
+              "Politics",
+              "Geopolitics",
+              "Finance",
+              "AI",
+              "Tech",
+              "Crypto",
+              "Meme",
+              "Sports",
+              "Entertainment",
+            ]);
+          const newsletter = await generateNewsletter(
+            tweetsByCategory,
+            top15Tweets
+          );
+          if (newsletter) {
+            await sendNewsletterEmail(user, newsletter);
+          }
+          const digestMessage = `First Name:${firstName}\nLast Name: ${lastName}\nEmail: ${email}`;
+
+          const msg = {
+            to: "pealh0320@gmail.com",
+            from: process.env.FROM_EMAIL || "",
+            subject: `New User Alert`,
+            text: digestMessage,
+          };
+
+          const msg2 = {
+            to: "jeremy.shoykhet+1@gmail.com",
+            from: process.env.FROM_EMAIL || "",
+            subject: `New User Alert`,
+            text: digestMessage,
+          };
+
+          const msg3 = {
+            to: "support@overtonnews.com",
+            from: process.env.FROM_EMAIL || "",
+            subject: `New User Alert`,
+            text: digestMessage,
+          };
+
+          try {
+            await sgMail.send(msg);
+            await sgMail.send(msg2);
+            await sgMail.send(msg3);
+          } catch (error) {
+            console.error(`❌ [Error]: Error Sending Total User count`);
+          }
           return done(null, user);
         } else {
           // If user exists, return the user
