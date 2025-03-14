@@ -35,7 +35,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta
           property="og:title"
-          content="FeedRecap: AI-Powered X Curator | Personalized Newsletters"
+          content="FeedRecap - Your Timeline Summarized"
         />
         <meta
           property="og:description"
@@ -45,23 +45,24 @@ export default function RootLayout({
         <meta property="og:type" content="website" />
         <meta
           property="og:image"
-          content="https://www.feedrecap.com/icons8-feed-50.png"
+          content="https://www.feedrecap.com/favicon.ico"
         />
 
-        <link rel="canonical" href="https://www.feedrecap.com" />
         <link
           rel="icon"
           type="image/png"
-          sizes="32x32"
-          href="/icons8-feed-50.png"
+          href="/favicon-96x96.png"
+          sizes="96x96"
         />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon.ico" />
         <link
-          rel="icon"
-          type="image/png"
-          sizes="16x16"
-          href="/icons8-feed-50.png"
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/apple-touch-icon.png"
         />
-        <link rel="apple-touch-icon" href="/icons8-feed-50.png" />
+        <meta name="apple-mobile-web-app-title" content="FeedRecap" />
+        <link rel="manifest" href="%/site.webmanifest" />
       </head>
       <body className={(inter.className, montserrat.className)}>
         <EmailProvider>{children}</EmailProvider>

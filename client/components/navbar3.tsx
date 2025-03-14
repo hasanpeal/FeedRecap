@@ -236,7 +236,7 @@ export default function Navbar2() {
           Update Account
         </h2>
         <div className="space-y-4">
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium mb-2">First Name</label>
             <input
               type="text"
@@ -255,7 +255,7 @@ export default function Navbar2() {
               className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
               placeholder="Last Name"
             />
-          </div>
+          </div> */}
           <div>
             <label className="block text-sm font-medium mb-2">Email</label>
             <input

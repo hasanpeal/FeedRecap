@@ -11,8 +11,8 @@ import Footer from "@/components/footer";
 
 const Signup: React.FC = () => {
   const [flag, setFlag] = useState(true);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("User");
+  const [lastName, setLastName] = useState("User");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -211,7 +211,7 @@ const Signup: React.FC = () => {
 
             {flag && (
               <div className="space-y-4">
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
                     First Name
                   </label>
@@ -259,7 +259,7 @@ const Signup: React.FC = () => {
                       {formErrors.lastName}
                     </p>
                   )}
-                </div>
+                </div> */}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
