@@ -1,6 +1,6 @@
 # FeedRecap
 
-![FeedRecap Logo](https://www.feedrecap.com/favicon.svg)
+![FeedRecap Logo](https://www.feedrecap.com/favicon.svg | width=100)
 
 **FeedRecap** is a cutting-edge AI-powered newsletter platform that curates top tweets from Twitter, delivering them directly to your inbox. Whether you're following trending categories like politics, tech, finance, or entertainment, or customizing your feed with specific Twitter profiles, FeedRecap ensures you stay informed effortlessly and efficiently.
 
