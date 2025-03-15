@@ -564,7 +564,14 @@ export async function sendNewsletterEmail(
 
   // Short link for the newsletter
   const shortLink = `${process.env.ORIGIN}/readnewsletter?newsletter=${savedNewsletter._id}`;
+  // Construct Share on X URL
+  const shareText = encodeURIComponent(
+    `📢 Read today's newsletter at FeedRecap! 🚀\n\n${shortLink}`
+  );
+  const shareOnXLink = `https://twitter.com/intent/tweet?text=${shareText}`;
 
+  // X Mobile Deep Link (opens in X app if installed)
+  const shareOnXMobile = `twitter://post?message=${shareText}`;
   // Unsubscribe link
   const unsubscribeLink = `${
     process.env.ORIGIN
@@ -586,6 +593,16 @@ export async function sendNewsletterEmail(
         </a>
       </div>
 
+      <!-- Share on X -->
+  <div style="text-align: center; margin-top: 20px;">
+    <p style="color: #666;">🚀 Spread the word on X</p>
+    <a href="${shareOnXLink}" 
+      onclick="event.preventDefault(); if(navigator.userAgent.match(/(iPhone|iPod|iPad|Android)/i)){ window.location.href='${shareOnXMobile}'; setTimeout(() => { window.location.href='${shareOnXLink}'; }, 1000); } else { window.location.href='${shareOnXLink}'; }"
+      style="background: #00A8E8; color: #000; padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block; margin-top: 10px; transition: all 0.3s ease-in-out;">
+      Share on X
+    </a>
+  </div>
+
       <!-- Divider -->
       <hr style="margin: 30px 0; border: 0.5px solid #DDD;">
 
@@ -596,7 +613,7 @@ export async function sendNewsletterEmail(
 
       <!-- Social Media Footer -->
       <div style="text-align: center; font-size: 14px; color: #777; margin-top: 20px;">
-        <p>Stay updated on:</p>
+        <p>Stay updated on</p>
         <a href="https://x.com/FeedRecap" style="color: #00A8E8; text-decoration: none; margin: 0 10px;"> X </a> |
         <a href="https://feedrecap.com" style="color: #00A8E8; text-decoration: none; margin: 0 10px;"> FeedRecap </a>
         <p style="margin-top: 20px;">© 2025 FeedRecap. All Rights Reserved</p>
@@ -1287,7 +1304,7 @@ export async function generateCustomProfileNewsletter(
 // async function testNewsletter() {
 //   try {
 //     // Fetch the user
-//     const user = await User.findOne({ email: "mrdeadstark@gmail.com" }).exec();
+//     const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
 //     if (!user) {
 //       console.error("❌ User not found with email: pealh0320@gmail.com");
 //       return;

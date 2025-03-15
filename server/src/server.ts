@@ -29,6 +29,7 @@ import {
   generateCustomProfileNewsletter,
   CustomProfilePosts,
   fetchAndStoreTweets,
+  getStoredTweetsForUser,
 } from "./digest";
 
 env.config();
@@ -530,6 +531,27 @@ app.post("/updateFeedType", async (req, res) => {
     res
       .status(200)
       .json({ message: "Feed type updated successfully", code: 0 });
+
+    let newsletter = null;
+    if (updatedUser.wise === "categorywise") {
+      const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
+        updatedUser.categories
+      );
+      newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+    } else if (updatedUser.wise === "customProfiles") {
+      const { tweetsByProfiles, top15Tweets } = await getStoredTweetsForUser(
+        updatedUser._id as mongoose.Types.ObjectId
+      );
+      newsletter = await generateCustomProfileNewsletter(
+        tweetsByProfiles,
+        top15Tweets
+      );
+    }
+
+    if (newsletter) {
+      await sendNewsletterEmail(updatedUser, newsletter);
+      console.log(`✅ [Debug] Newsletter sent to: ${updatedUser.email}`);
+    }
   } catch (error) {
     console.error("Error updating feed type:", error);
     res
@@ -1335,7 +1357,6 @@ app.post("/updateCategories", async (req, res) => {
 
 // Route to update Times
 app.post("/updateTimes", async (req, res) => {
-  // console.log("/updateTimes");
   const { email, time } = req.body;
 
   try {
