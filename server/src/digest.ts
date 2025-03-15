@@ -565,13 +565,36 @@ export async function sendNewsletterEmail(
   // Short link for the newsletter
   const shortLink = `${process.env.ORIGIN}/readnewsletter?newsletter=${savedNewsletter._id}`;
 
-  // Encode the newsletter content for sharing via email
-  const encodedNewsletterContent = encodeURIComponent(newsletter);
+    const emailTemplate = `
+<div style=" color: #333; font-family: Verdana, sans-serif;   margin: auto; border-radius: 12px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);">      
+      <!-- Logo -->
+      <!-- Header -->
 
-  // Share buttons with individual lines and additional spacing
-  const shareButtons = `
-    <div style="text-align: center; margin-top: 20px;">
-      <p>Share this newsletter with your friends <a href="${shortLink}"><em>${shortLink}</em></a></p>
+      <!-- Newsletter Content -->
+      <div style="background: white; border-radius: 10px; margin-top: 20px; font-size: 16px; line-height: 1.6; color: #333; box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.05);">
+        ${newsletter}
+      </div>
+
+      <!-- Call to Action -->
+      <div style="text-align: center; margin-top: 30px;">
+        <p style="color: #666;">Share it with your friends 📲</p>
+        <a href="${shortLink}" 
+          style="background: #00A8E8; color: #000; padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block; margin-top: 10px; transition: all 0.3s ease-in-out;">
+          📩 Read & Share
+        </a>
+      </div>
+
+      <!-- Divider -->
+      <hr style="margin: 30px 0; border: 0.5px solid #DDD;">
+
+      <!-- Social Media Footer -->
+      <div style="text-align: center; font-size: 14px; color: #777;">
+        <p>Stay updated on:</p>
+        <a href="https://x.com/FeedRecap" style="color: #00A8E8; text-decoration: none; margin: 0 10px;"> X </a> |
+        <a href="https://feedrecap.com" style="color: #00A8E8; text-decoration: none; margin: 0 10px;"> FeedRecap </a>
+        <p style="margin-top: 20px;">© 2025 FeedRecap. All Rights Reserved</p>
+      </div>
+
     </div>
   `;
 
@@ -581,18 +604,18 @@ export async function sendNewsletterEmail(
       email: process.env.FROM_EMAIL || "",
       name: "FeedRecap",
     },
-    subject: "Your personalized newsletter from FeedRecap 👋",
-    html: `${newsletter} ${shareButtons}`,
+    subject: "🚀 Your FeedRecap Newsletter Just Landed!",
+    html: emailTemplate,
   };
 
   try {
     await sgMail.send(msg);
     console.log(`✅ [Email Sent]: Newsletter sent to ${user.email}`);
+
     // Save the generated newsletter in the user's document
-    user.newsletter = newsletter; // Save the updated newsletter
+    user.newsletter = newsletter;
     user.totalnewsletter = (user.totalnewsletter || 0) + 1;
     await user.save();
-    // console.log(`✅ [Database Updated]: Newsletter saved for ${user.email}`);
   } catch (error) {
     console.error(`❌ [Error]: Error sending email to ${user.email}:`, error);
   }
