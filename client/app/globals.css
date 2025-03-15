@@ -169,3 +169,65 @@ hr {
 .navbar Link {
   text-decoration: none !important;
 }
+
+
+
+
+
+
+
+
+
+/* Tutorial highlight animation */
+@keyframes pulse-highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(127, 255, 212, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(127, 255, 212, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(127, 255, 212, 0);
+  }
+}
+
+.tutorial-highlight {
+  animation: pulse-highlight 2s infinite;
+  position: relative;
+  z-index: 60 !important;
+  border-radius: 4px;
+}
+
+/* Ensure the tutorial overlay is above everything else */
+.tutorial-overlay {
+  z-index: 9999;
+}
+
+/* Hide scrollbar for profile container */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Typing animation for chat */
+.typing-animation {
+  display: inline-block;
+  overflow: hidden;
+  animation: typing 1.5s infinite;
+}
+
+@keyframes typing {
+  0% {
+    content: ".";
+  }
+  33% {
+    content: "..";
+  }
+  66% {
+    content: "...";
+  }
+}

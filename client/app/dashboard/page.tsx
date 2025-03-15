@@ -1,80 +1,56 @@
-"use client";
-import {
-  useState,
-  useEffect,
-  useCallback,
-  type ChangeEvent,
-  useRef,
-} from "react";
-import axios from "axios";
-import { useEmail } from "@/context/UserContext";
-import Image from "next/image";
-import _ from "lodash";
-import Navbar3 from "@/components/navbar3";
-import {
-  ChevronLeft,
-  ChevronRight,
-  MessageCircle,
-  X,
-  UserPlus,
-  Check,
-  Loader2,
-} from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
-import html2canvas from "html2canvas";
+//
+//
+"use client"
+import { useState, useEffect, useCallback, type ChangeEvent, useRef } from "react"
+import axios from "axios"
+import { useEmail } from "@/context/UserContext"
+import Image from "next/image"
+import _ from "lodash"
+import Navbar3 from "@/components/navbar3"
+import { ChevronLeft, ChevronRight, MessageCircle, X, UserPlus, Check, Loader2, MoveUp, MoveDown } from "lucide-react"
+import html2canvas from "html2canvas"
+import { TutorialOverlay } from "@/components/tutorial-overlay"
+
 // Testing test setup
 interface Post {
-  username: string;
-  time: string;
-  likes: number;
-  category: string;
-  text: string;
-  tweet_id: string;
-  thumbnailUrl?: string;
-  avatar?: string;
-  isExpanded?: boolean;
-  mediaThumbnail?: string;
-  video?: string;
-  videoThumbnail?: string;
+  username: string
+  time: string
+  likes: number
+  category: string
+  text: string
+  tweet_id: string
+  thumbnailUrl?: string
+  avatar?: string
+  isExpanded?: boolean
+  mediaThumbnail?: string
+  video?: string
+  videoThumbnail?: string
   quotedTweet?: {
-    tweet_id: string;
-    text: string;
-    likes: number;
-    createdAt: Date;
-    mediaThumbnail: string;
-    video: string;
-    videoThumbnail: string;
-    avatar: string;
-    username: string;
-  };
+    tweet_id: string
+    text: string
+    likes: number
+    createdAt: Date
+    mediaThumbnail: string
+    video: string
+    videoThumbnail: string
+    avatar: string
+    username: string
+  }
 }
 
 interface UserProfile {
-  username: string;
-  avatar: string;
+  username: string
+  avatar: string
 }
 
 interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
+  role: "user" | "assistant"
+  content: string
 }
 
 // Add this custom X logo component after the imports
 const XLogo = ({ size = 24, className = "" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0,0,256,256"
-    className={className}
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0,0,256,256" className={className}>
     <g
       fill="currentColor"
       fillRule="nonzero"
@@ -96,12 +72,17 @@ const XLogo = ({ size = 24, className = "" }) => (
       </g>
     </g>
   </svg>
-);
+)
 
 export default function Dashboard() {
   const { emailContext, setEmailContext } = useEmail();
   const [modalMessage, setModalMessage] = useState<string | null>(null);
   const [modalCallback, setModalCallback] = useState<(() => void) | null>(null);
+
+  // Add tutorial state
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialCompleted, setTutorialCompleted] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
 
   const showModal = (message: string, callback?: () => void) => {
     setModalMessage(message);
@@ -168,6 +149,10 @@ export default function Dashboard() {
   const [unsavedProfiles, setUnsavedProfiles] = useState<boolean>(false);
   const [linkedTwitter, setLinkedTwitter] = useState<string | null>(null);
   const [newsID, setNewsID] = useState<string | null>(null);
+  // Add these new state variables after the existing state declarations
+  const [twitterCursor, setTwitterCursor] = useState<string | null>(null);
+  const [isLoadingMoreProfiles, setIsLoadingMoreProfiles] = useState(false);
+  const [showSettingInfo, setShowSettingInfo] = useState<string | null>(null);
   const availableCategories = [
     "Politics",
     "Geopolitics",
@@ -180,6 +165,51 @@ export default function Dashboard() {
     "Entertainment",
   ];
   const availableTimes = ["Morning", "Afternoon", "Night"];
+
+  // Add these new state variables after the existing state declarations (around line 100)
+  const [sortBy, setSortBy] = useState<"time" | "likes">("time");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [filterMinLikes, setFilterMinLikes] = useState<number | null>(null);
+
+  // Check if this is the user's first login
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem("hasSeenTutorial");
+    if (!hasSeenTutorial && !pageLoading) {
+      setShowTutorial(true);
+    }
+  }, [pageLoading]);
+
+  // Handle tutorial completion
+  const handleTutorialComplete = () => {
+    localStorage.setItem("hasSeenTutorial", "true");
+    setTutorialCompleted(true);
+    setShowTutorial(false);
+    setSelectedTab("newsfeed"); // Always return to newsfeed tab when tutorial completes
+  };
+
+  // Skip tutorial
+  const handleSkipTutorial = () => {
+    localStorage.setItem("hasSeenTutorial", "true");
+    setShowTutorial(false);
+    setSelectedTab("newsfeed"); // Always return to newsfeed tab when tutorial is skipped
+  };
+
+  // Handle tutorial step change
+  const handleTutorialStepChange = (step: number) => {
+    setTutorialStep(step);
+
+    // Change tabs based on tutorial step
+    if (step === 0) {
+      // Newsfeed step
+      setSelectedTab("newsfeed");
+    } else if (step === 1) {
+      // Newsletter step
+      setSelectedTab("newsletter");
+    } else if (step >= 2) {
+      // Settings steps
+      setSelectedTab("settings");
+    }
+  };
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("email");
@@ -251,89 +281,87 @@ export default function Dashboard() {
     };
   }, []);
 
-const handleShareOnX = async () => {
-  const newsletterElement = document.getElementById("newsletter-content");
+  const handleShareOnX = async () => {
+    const newsletterElement = document.getElementById("newsletter-content");
 
-  if (!newsletterElement) {
-    showModal("❌ Error capturing newsletter.");
-    return;
-  }
-
-  try {
-    // Clone the newsletter content
-    const clone = newsletterElement.cloneNode(true) as HTMLElement;
-
-    // Remove "TOP POSTS OF TODAY" section
-    const topPostsIndex = clone.innerHTML.indexOf("TOP POSTS OF TODAY:");
-    if (topPostsIndex !== -1) {
-      clone.innerHTML = clone.innerHTML.slice(0, topPostsIndex); // Keep only the part before it
+    if (!newsletterElement) {
+      showModal("❌ Error capturing newsletter.");
+      return;
     }
 
-    // Ensure text remains white by applying a temporary style
-    clone.style.color = "#FFFFFF"; // Force text to be white
-    clone.style.backgroundColor = "#000"; // Ensure the background is black
-
-    // Temporarily add the modified element to the document to capture it
-    document.body.appendChild(clone);
-
-    // Capture only the modified content
-    const originalCanvas = await html2canvas(clone, {
-      backgroundColor: "#000", // Ensure background is black
-      scale: 2, // High resolution
-    });
-
-    // Remove the temporary element
-    document.body.removeChild(clone);
-
-    // Create a new canvas with padding
-    const paddedCanvas = document.createElement("canvas");
-    const padding = 30;
-    paddedCanvas.width = originalCanvas.width + padding * 2;
-    paddedCanvas.height = originalCanvas.height + padding * 2;
-    const ctx = paddedCanvas.getContext("2d");
-
-    if (ctx) {
-      // Fill background with black
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-
-      // Draw original image with padding
-      ctx.drawImage(originalCanvas, padding, padding);
-
-      // Add bold watermark with color #7FFFD4
-      const watermarkText = "FeedRecap.com";
-      ctx.font = "bold 44px Arial";
-      ctx.fillStyle = "#7FFFD4"; // Watermark color
-      ctx.textAlign = "right";
-
-      // Add shadow for better visibility
-      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-
-      // Draw watermark at the bottom-right
-      ctx.fillText(
-        watermarkText,
-        paddedCanvas.width - 30,
-        paddedCanvas.height - 30
-      );
-    }
-
-    // Convert canvas to Blob
-    const blob = await new Promise<Blob>((resolve) =>
-      paddedCanvas.toBlob((blob) => resolve(blob!), "image/png")
-    );
-
-    // Copy image to clipboard
     try {
-      await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": blob }),
-      ]);
+      // Clone the newsletter content
+      const clone = newsletterElement.cloneNode(true) as HTMLElement;
 
-      showModal(
-        "Newsletter copied! Paste newsletter on X",
-        () => {
+      // Remove "TOP POSTS OF TODAY" section
+      const topPostsIndex = clone.innerHTML.indexOf("TOP POSTS OF TODAY:");
+      if (topPostsIndex !== -1) {
+        clone.innerHTML = clone.innerHTML.slice(0, topPostsIndex); // Keep only the part before it
+      }
+
+      // Ensure text remains white by applying a temporary style
+      clone.style.color = "#FFFFFF"; // Force text to be white
+      clone.style.backgroundColor = "#000"; // Ensure the background is black
+
+      // Temporarily add the modified element to the document to capture it
+      document.body.appendChild(clone);
+
+      // Capture only the modified content
+      const originalCanvas = await html2canvas(clone, {
+        backgroundColor: "#000", // Ensure background is black
+        scale: 2, // High resolution
+      });
+
+      // Remove the temporary element
+      document.body.removeChild(clone);
+
+      // Create a new canvas with padding
+      const paddedCanvas = document.createElement("canvas");
+      const padding = 30;
+      paddedCanvas.width = originalCanvas.width + padding * 2;
+      paddedCanvas.height = originalCanvas.height + padding * 2;
+      const ctx = paddedCanvas.getContext("2d");
+
+      if (ctx) {
+        // Fill background with black
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
+
+        // Draw original image with padding
+        ctx.drawImage(originalCanvas, padding, padding);
+
+        // Add bold watermark with color #7FFFD4
+        const watermarkText = "FeedRecap.com";
+        ctx.font = "bold 44px Arial";
+        ctx.fillStyle = "#7FFFD4"; // Watermark color
+        ctx.textAlign = "right";
+
+        // Add shadow for better visibility
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        // Draw watermark at the bottom-right
+        ctx.fillText(
+          watermarkText,
+          paddedCanvas.width - 30,
+          paddedCanvas.height - 30
+        );
+      }
+
+      // Convert canvas to Blob
+      const blob = await new Promise<Blob>((resolve) =>
+        paddedCanvas.toBlob((blob) => resolve(blob!), "image/png")
+      );
+
+      // Copy image to clipboard
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": blob }),
+        ]);
+
+        showModal("Newsletter copied! Paste newsletter on X", () => {
           const tweetText = encodeURIComponent(
             `Check out today's newsletter on FeedRecap! 🚀\nRead the full newsletter: https://www.feedrecap.com/readnewsletter?newsletter=${newsID}`
           );
@@ -354,18 +382,17 @@ const handleShareOnX = async () => {
             // Desktop: Always open in a new tab
             window.open(xWebUrl, "_blank");
           }
-        }
-      );
-    } catch (clipboardError) {
-      showModal(
-        "Newsletter could not be copied automatically. Please paste it manually."
-      );
+        });
+      } catch (clipboardError) {
+        showModal(
+          "Newsletter could not be copied automatically. Please paste it manually."
+        );
+      }
+    } catch (error) {
+      console.error("Error sharing newsletter:", error);
+      showModal("❌ Failed to share the newsletter.");
     }
-  } catch (error) {
-    console.error("Error sharing newsletter:", error);
-    showModal("❌ Failed to share the newsletter.");
-  }
-};
+  };
 
   const playSound = () => {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -490,55 +517,6 @@ const handleShareOnX = async () => {
       setPageLoading(false);
     }
   };
-
-  // const LikeGraph = ({ likes }: { likes: number }) => {
-  //   const generatePath = () => {
-  //     // Fake data pattern (adjust for realism)
-  //     const points = [2, 5, 3, 7, 4, 8, 6, 12, 10, (likes % 20) + 2];
-  //     const step = 20;
-
-  //     return points
-  //       .map((p, i) => `${i * step},${50 - p * 4}`) // Scale down for visual
-  //       .join(" ");
-  //   };
-
-  //   return (
-  //     <svg
-  //       viewBox="0 0 200 50"
-  //       className="w-16 h-6"
-  //       xmlns="http://www.w3.org/2000/svg"
-  //     >
-  //       {/* Glow Effect */}
-  //       <filter id="glow">
-  //         <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-  //         <feMerge>
-  //           <feMergeNode in="coloredBlur" />
-  //           <feMergeNode in="SourceGraphic" />
-  //         </feMerge>
-  //       </filter>
-
-  //       {/* Line */}
-  //       <polyline
-  //         points={generatePath()}
-  //         stroke="#7FFFD4"
-  //         strokeWidth="4"
-  //         fill="none"
-  //         strokeLinecap="round"
-  //         filter="url(#glow)"
-  //       />
-
-  //       {/* Pulse Dot at End */}
-  //       {/* <circle cx="180" cy="10" r="28" fill="#7FFFD4" filter="url(#glow)">
-  //         <animate
-  //           attributeName="r"
-  //           values="4;6;4"
-  //           dur="1s"
-  //           repeatCount="indefinite"
-  //         />
-  //       </circle> */}
-  //     </svg>
-  //   );
-  // };
 
   // Unlink Twitter account
   const handleUnlinkTwitter = async () => {
@@ -752,20 +730,14 @@ const handleShareOnX = async () => {
     }
   };
 
-  // const toggleShowMore = () => {
-  //   if (showAllPosts) {
-  //     setVisiblePosts(20);
-  //   } else {
-  //     setVisiblePosts(posts.length);
-  //   }
-  //   setShowAllPosts(!showAllPosts);
-  // };
-
-  const filteredPosts = posts.filter(
-    (post) =>
-      (selectedCategory ? post.category === selectedCategory : true) &&
-      (selectedProfile ? post.username === selectedProfile : true)
-  );
+  // Add this function after the other handler functions
+  const handleResetFilters = () => {
+    setSortBy("time");
+    setSortOrder("desc");
+    setFilterMinLikes(null);
+    setSelectedCategory(null);
+    setSelectedProfile(null);
+  };
 
   const handleTimezoneUpdate = async () => {
     setLoading(true);
@@ -1286,6 +1258,12 @@ const handleShareOnX = async () => {
 
   useVideoIntersectionObserver();
 
+  // Add this function to handle showing setting information
+  const handleShowSettingInfo = (setting: string) => {
+    setShowSettingInfo(setting === showSettingInfo ? null : setting);
+  };
+
+  // Replace the handleConnectTwitter function with this enhanced version
   const handleConnectTwitter = async () => {
     if (!twitterUsername) {
       showNotification("Please enter a Twitter username", "error");
@@ -1296,41 +1274,163 @@ const handleShareOnX = async () => {
     setIsConnectingTwitter(true);
 
     try {
-      // Fetch followed accounts from Twitter
-      const response = await axios.request({
-        method: "GET",
-        url: "https://twitter-api45.p.rapidapi.com/following.php",
-        params: { screenname: twitterUsername },
-        headers: {
-          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
-          "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-        },
+      // First, save Twitter username to DB
+      await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/saveX`, {
+        email: emailContext,
+        twitterUsername,
       });
 
-      if (response.data && response.data.following) {
-        setTwitterFollowing(response.data.following);
-        setShowTwitterFollowing(true);
-        showNotification(
-          `Found ${response.data.following.length} accounts`,
-          "success"
-        );
-        // ✅ Save Twitter username to DB after fetching followed accounts
-        await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/saveX`, {
-          email: emailContext,
-          twitterUsername,
-        });
+      setLinkedTwitter(twitterUsername);
 
-        setLinkedTwitter(twitterUsername);
-        showNotification("Twitter account linked!", "success");
-      } else {
-        showNotification("No following accounts found", "error");
-      }
+      // Then fetch followed accounts with pagination
+      const allFollowing = await fetchTwitterFollowingWithPagination(
+        twitterUsername
+      );
+
+      // Save to localStorage for future use
+      localStorage.setItem(
+        `twitter_following_${twitterUsername}`,
+        JSON.stringify(allFollowing)
+      );
+
+      setTwitterFollowing(allFollowing);
+      setShowTwitterFollowing(true);
+      showNotification(`Found ${allFollowing.length} accounts`, "success");
     } catch (error) {
-      console.error("Error fetching Twitter following:", error);
+      console.error("Error connecting Twitter:", error);
       showNotification("Error connecting to Twitter", "error");
     } finally {
       setIsConnectingTwitter(false);
     }
+  };
+
+  // Add this new function to fetch Twitter following with pagination
+  const fetchTwitterFollowingWithPagination = async (
+    screenname: string,
+    maxProfiles = 500
+  ): Promise<any[]> => {
+    let allFollowing: any[] = [];
+    let cursor: string | null = "-1"; // Start with -1 for first page
+    let hasMore = true;
+
+    while (hasMore && allFollowing.length < maxProfiles) {
+      setIsLoadingMoreProfiles(true);
+      try {
+        const response:any = await axios.request({
+          method: "GET",
+          url: "https://twitter-api45.p.rapidapi.com/following.php",
+          params: {
+            screenname: screenname,
+            cursor: cursor,
+          },
+          headers: {
+            "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
+            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+          },
+        });
+
+        if (response.data && response.data.following) {
+          allFollowing = [...allFollowing, ...response.data.following];
+
+          // // Update notification to show progress
+          // showNotification(
+          //   `Loading profiles: ${allFollowing.length} so far...`,
+          //   "success"
+          // );
+
+          // Check if there's more data to fetch
+          if (response.data.next_cursor && response.data.next_cursor !== "0") {
+            cursor = response.data.next_cursor;
+          } else {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
+      } catch (error) {
+        console.error("Error fetching Twitter following page:", error);
+        hasMore = false;
+      }
+
+      // // Avoid rate limiting
+      // if (hasMore) {
+      //   await new Promise((resolve) => setTimeout(resolve, 1000));
+      // }
+    }
+
+    setIsLoadingMoreProfiles(false);
+    return allFollowing;
+  };
+
+  // Replace the handleShowFollowedProfiles function with this enhanced version
+  const handleShowFollowedProfiles = async () => {
+    if (!linkedTwitter) return; // Ensure there is a linked account
+
+    playSound();
+    setIsConnectingTwitter(true);
+
+    try {
+      // First check if we have cached data in localStorage
+      const cachedData = localStorage.getItem(
+        `twitter_following_${linkedTwitter}`
+      );
+
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        setTwitterFollowing(parsedData);
+        setShowTwitterFollowing(true);
+        showNotification(
+          `Loaded ${parsedData.length} accounts from cache`,
+          "success"
+        );
+        setIsConnectingTwitter(false);
+        return;
+      }
+
+      // If no cached data, fetch from API with pagination
+      const allFollowing = await fetchTwitterFollowingWithPagination(
+        linkedTwitter
+      );
+
+      // Save to localStorage for future use
+      localStorage.setItem(
+        `twitter_following_${linkedTwitter}`,
+        JSON.stringify(allFollowing)
+      );
+
+      setTwitterFollowing(allFollowing);
+      setShowTwitterFollowing(true);
+      showNotification(`Loaded ${allFollowing.length} accounts`, "success");
+    } catch (error) {
+      console.error("Error fetching Twitter following:", error);
+      showNotification("Error fetching followed profiles", "error");
+    } finally {
+      setIsConnectingTwitter(false);
+    }
+  };
+
+  // Add this function to render setting info tooltips
+  const renderSettingInfo = (setting: string) => {
+    const infoContent = {
+      "feed-type":
+        'Choose how your feed is organized. "Categories" shows content organized by topics like Tech, Finance, AI etc. "Profiles" shows content from specific accounts you follow',
+      "twitter-connect":
+        "Connect your X/Twitter account to easily import profiles you already follow. This saves you time from manually adding each profile",
+      categories:
+        "Select the topics you want to see in your feed. Your feed will prioritize content from these categories",
+      "profiles-manage":
+        "Add or remove specific accounts to follow. You can search for profiles or import them from your X/Twitter account",
+      "time-settings":
+        "Choose when you’d like to receive your newsletter: Morning (after 9 AM ET), Afternoon (after 3 PM ET), or Night (after 8 PM ET)",
+    };
+
+    if (!showSettingInfo || showSettingInfo !== setting) return null;
+
+    return (
+      <div className="mt-2 p-3 bg-[#111] border border-[#7FFFD4] rounded-lg text-white text-sm">
+        {infoContent[setting as keyof typeof infoContent]}
+      </div>
+    );
   };
 
   const handleSelectTwitterAccount = (screenName: string) => {
@@ -1339,42 +1439,6 @@ const handleShareOnX = async () => {
         ? prev.filter((name) => name !== screenName)
         : [...prev, screenName]
     );
-  };
-
-  const handleShowFollowedProfiles = async () => {
-    if (!linkedTwitter) return; // Ensure there is a linked account
-
-    playSound();
-    setIsConnectingTwitter(true);
-
-    try {
-      // Fetch followed accounts again on demand
-      const response = await axios.request({
-        method: "GET",
-        url: "https://twitter-api45.p.rapidapi.com/following.php",
-        params: { screenname: linkedTwitter },
-        headers: {
-          "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
-          "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-        },
-      });
-
-      if (response.data && response.data.following) {
-        setTwitterFollowing(response.data.following);
-        setShowTwitterFollowing(true);
-        showNotification(
-          `Loaded ${response.data.following.length} accounts`,
-          "success"
-        );
-      } else {
-        showNotification("No following accounts found", "error");
-      }
-    } catch (error) {
-      console.error("Error fetching Twitter following:", error);
-      showNotification("Error fetching followed profiles", "error");
-    } finally {
-      setIsConnectingTwitter(false);
-    }
   };
 
   const handleAddSelectedAccounts = async () => {
@@ -1424,8 +1488,37 @@ const handleShareOnX = async () => {
     setLoading(false);
   };
 
+  // Replace the filteredPosts definition (around line 1000) with this enhanced version
+  const filteredPosts = posts
+    .filter(
+      (post) =>
+        (selectedCategory ? post.category === selectedCategory : true) &&
+        (selectedProfile ? post.username === selectedProfile : true) &&
+        (filterMinLikes ? post.likes >= filterMinLikes : true)
+    )
+    .sort((a, b) => {
+      if (sortBy === "time") {
+        return sortOrder === "desc"
+          ? new Date(b.time).getTime() - new Date(a.time).getTime()
+          : new Date(a.time).getTime() - new Date(b.time).getTime();
+      } else {
+        return sortOrder === "desc"
+          ? b.likes - a.likes
+          : a.likes - b.likes;
+      }
+    });
+
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white" data-tutorial="dashboard">
+      {/* Tutorial Overlay */}
+      <TutorialOverlay
+        isOpen={showTutorial}
+        onClose={handleSkipTutorial}
+        onComplete={handleTutorialComplete}
+        currentStep={tutorialStep}
+        onStepChange={handleTutorialStepChange}
+      />
+
       {updatingFeed && (
         <div className="fixed top-0 left-0 right-0 bg-[#7FFFD4] text-black py-2 px-4 text-center z-50">
           Updating dashboard...
@@ -1452,6 +1545,7 @@ const handleShareOnX = async () => {
           <nav className="mb-8 flex items-center justify-center border-b border-gray-800 pb-4">
             <div className="flex gap-8 sm:gap-14">
               <button
+                data-tutorial="newsfeed"
                 onClick={() => setSelectedTab("newsfeed")}
                 className={`text-lg transition-colors ${
                   selectedTab === "newsfeed"
@@ -1462,6 +1556,7 @@ const handleShareOnX = async () => {
                 Newsfeed
               </button>
               <button
+                data-tutorial="newsletter"
                 onClick={() => setSelectedTab("newsletter")}
                 className={`text-lg transition-colors ${
                   selectedTab === "newsletter"
@@ -1472,6 +1567,7 @@ const handleShareOnX = async () => {
                 Newsletter
               </button>
               <button
+                data-tutorial="settings"
                 onClick={() => setSelectedTab("settings")}
                 className={`text-lg transition-colors ${
                   selectedTab === "settings"
@@ -1488,7 +1584,7 @@ const handleShareOnX = async () => {
             <div className="newsfeed-content">
               {/* Trending Section */}
               {/* 🔥 Trending Posts Section */}
-              <div className="hidden md:block mb-8 mx-1">
+              <div className="mb-8 mx-1" data-tutorial="trending">
                 <h2 className="text-xl font-bold mb-4 flex items-center">
                   <span className="mr-2">🔥</span> Trending Posts
                 </h2>
@@ -1546,6 +1642,12 @@ const handleShareOnX = async () => {
                                     src={
                                       post.mediaThumbnail ||
                                       post.videoThumbnail ||
+                                      "/placeholder.svg" ||
+                                      "/placeholder.svg" ||
+                                      "/placeholder.svg" ||
+                                      "/placeholder.svg" ||
+                                      "/placeholder.svg" ||
+                                      "/placeholder.svg" ||
                                       "/placeholder.svg"
                                     }
                                     alt="Tweet media"
@@ -1585,11 +1687,6 @@ const handleShareOnX = async () => {
                                   </a>
                                 </div>
                               </div>
-
-                              {/* 📊 Replaced LineChart with Custom Minimal Sparkline */}
-                              {/* <div className="absolute bottom-5 left-0 w-full flex justify-end p-2">
-                                <LikeGraph likes={post.likes} />
-                              </div> */}
                             </div>
                           ))
                         ) : (
@@ -1610,6 +1707,7 @@ const handleShareOnX = async () => {
                 <div className="relative overflow-x-hidden ml-2 mr-2">
                   <div
                     ref={profilesContainerRef}
+                    data-tutorial="profiles"
                     className="flex gap-2 overflow-x-auto scrollbar-hide whitespace-nowrap px-8"
                     style={{
                       scrollbarWidth: "none",
@@ -1698,7 +1796,88 @@ const handleShareOnX = async () => {
                   <ChevronRight className="h-5 w-5 text-[#7FFFD4]" />
                 </button>
               </div>
-              <div className="sm:masonry-grid columns-1 md:columns-2 lg:columns-3 gap-4">
+              {/* Add this filter UI right after the profiles scrolling section (around line 1400, after the scrollProfiles buttons) */}
+              {/* Find the closing </div> after the profilesContainerRef and add this before it: */}
+              <div className="flex flex-wrap items-center gap-4 mt-4 mb-4">
+                <div className="flex items-center gap-2 bg-[#111] rounded-lg p-2 border border-gray-800">
+                  <span className="text-sm text-gray-400">Sort by:</span>
+                  <button
+                    onClick={() => setSortBy("time")}
+                    className={`px-3 py-1 rounded-md text-sm ${
+                      sortBy === "time"
+                        ? "bg-[#7FFFD4] text-black"
+                        : "text-gray-300 hover:bg-gray-800"
+                    }`}
+                  >
+                    Time
+                  </button>
+                  <button
+                    onClick={() => setSortBy("likes")}
+                    className={`px-3 py-1 rounded-md text-sm ${
+                      sortBy === "likes"
+                        ? "bg-[#7FFFD4] text-black"
+                        : "text-gray-300 hover:bg-gray-800"
+                    }`}
+                  >
+                    Likes
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 bg-[#111] rounded-lg p-2.5 border border-gray-800">
+                  <span className="text-sm text-gray-400">Order:</span>
+                  <button
+                    onClick={() => setSortOrder("desc")}
+                    className={`px-3  rounded-md text-sm ${
+                      sortOrder === "desc"
+                        ? "bg-[#7FFFD4] text-black"
+                        : "text-gray-300 hover:bg-gray-800"
+                    }`}
+                  >
+                    <MoveDown width={10} />
+                  </button>
+                  <button
+                    onClick={() => setSortOrder("asc")}
+                    className={`px-3  rounded-md text-sm ${
+                      sortOrder === "asc"
+                        ? "bg-[#7FFFD4] text-black"
+                        : "text-gray-300 hover:bg-gray-800"
+                    }`}
+                  >
+                    <MoveUp width={10} />
+                  </button>
+                </div>
+
+                {/* <div className="flex items-center gap-2 bg-[#111] rounded-lg p-2 border border-gray-800">
+                  <span className="text-sm text-gray-400">Min likes:</span>
+                  <select
+                    value={filterMinLikes || ""}
+                    onChange={(e) =>
+                      setFilterMinLikes(
+                        e.target.value ? Number(e.target.value) : null
+                      )
+                    }
+                    className="bg-black border border-gray-700 rounded-md px-2 py-1 text-sm"
+                  >
+                    <option value="">Any</option>
+                    <option value="10">10+</option>
+                    <option value="50">50+</option>
+                    <option value="100">100+</option>
+                    <option value="500">500+</option>
+                    <option value="1000">1000+</option>
+                  </select>
+                </div> */}
+
+                {/* <button
+                  onClick={handleResetFilters}
+                  className="px-3 py-3 rounded-md text-sm bg-[#7FFFD4] text-black hover:bg-gray-700"
+                >
+                  Reset Filters
+                </button> */}
+              </div>
+              <div
+                className="sm:masonry-grid columns-1 md:columns-2 lg:columns-3 gap-4"
+                data-tutorial="posts"
+              >
                 {" "}
                 {loadingPosts ||
                 (filteredPosts.length === 0 && posts.length === 0) ? (
@@ -1735,18 +1914,6 @@ const handleShareOnX = async () => {
                           )}
                         </div>
                         {renderPostText(post.text, post.tweet_id)}
-                        {/* {post.mediaThumbnail && (
-                        <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
-                          <Image
-                            src={post.mediaThumbnail || "/placeholder.svg"}
-                            alt="Tweet media"
-                            width={500}
-                            height={240}
-                            className="object-cover rounded-lg"
-                            // style={{ maxHeight: "240px", width: "auto" }}
-                          />
-                        </div>
-                      )} */}
                         {renderMedia(post)}
                         {post.quotedTweet &&
                           renderQuotedTweet(post.quotedTweet)}
@@ -1803,26 +1970,41 @@ const handleShareOnX = async () => {
                   </div>
                 )}
               </div>
-              {/* {posts.length > 10 && (
-                <div className="mt-8 flex justify-center">
-                  <button
-                    className="rounded-full bg-[#7FFFD4] px-6 py-2 text-black transition-opacity hover:opacity-90"
-                    onClick={toggleShowMore}
-                  >
-                    {showAllPosts ? "Show Less" : "Show More"}
-                  </button>
-                </div>
-              )} */}
             </div>
           )}
 
           {selectedTab === "settings" && (
             <div className="settings-content space-y-8 rounded-xl border border-gray-800 bg-[#111] p-6">
               {/* Feed Type Selection */}
-              <section className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#7FFFD4]">
-                  Feed Type
-                </h2>
+
+              <section className="space-y-4" data-tutorial="feed-type">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                    Feed Type
+                  </h2>
+                  <button
+                    onClick={() => handleShowSettingInfo("feed-type")}
+                    className="text-[#7FFFD4] hover:text-white transition-colors"
+                    aria-label="Show feed type information"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M12 16v-4"></path>
+                      <path d="M12 8h.01"></path>
+                    </svg>
+                  </button>
+                </div>
+                {renderSettingInfo("feed-type")}
                 <div className="flex gap-4">
                   <button
                     className={`rounded-full px-6 py-2 transition-colors ${
@@ -1855,10 +2037,38 @@ const handleShareOnX = async () => {
               </section>
 
               {/* Twitter Integration Section */}
-              <section className="space-y-4 border-t border-gray-800 pt-6">
-                <h2 className="text-xl font-semibold text-[#7FFFD4] flex items-center gap-2">
-                  Connect X Account
-                </h2>
+
+              <section
+                className="space-y-4 border-t border-gray-800 pt-6"
+                data-tutorial="twitter-connect"
+              >
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                    Connect X Account
+                  </h2>
+                  <button
+                    onClick={() => handleShowSettingInfo("twitter-connect")}
+                    className="text-[#7FFFD4] hover:text-white transition-colors"
+                    aria-label="Show Twitter connect information"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M12 16v-4"></path>
+                      <path d="M12 8h.01"></path>
+                    </svg>
+                  </button>
+                </div>
+                {renderSettingInfo("twitter-connect")}
 
                 {/* If user has linked a Twitter account */}
                 {linkedTwitter ? (
@@ -1877,8 +2087,15 @@ const handleShareOnX = async () => {
                       <button
                         className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
                         onClick={() => handleShowFollowedProfiles()}
+                        disabled={isLoadingMoreProfiles}
                       >
-                        Show Followed Profiles
+                        {isLoadingMoreProfiles ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                          </>
+                        ) : (
+                          "Show Followed Profiles"
+                        )}
                       </button>
                     </div>
                   </>
@@ -1920,6 +2137,11 @@ const handleShareOnX = async () => {
                   </>
                 )}
 
+                <button
+                  onClick={() => handleShowSettingInfo("twitter-connect")}
+                  className="text-sm text-gray-400 hover:text-white"
+                ></button>
+
                 {/* Show Followed Profiles UI when connected */}
                 {showTwitterFollowing && (
                   <div className="mt-4 space-y-4">
@@ -1936,7 +2158,16 @@ const handleShareOnX = async () => {
                       </button>
                     </div>
 
-                    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-gray-800 bg-black p-2">
+                    {isLoadingMoreProfiles && (
+                      <div className="flex items-center justify-center p-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[#7FFFD4] mr-2"></div>
+                        <span className="text-[#7FFFD4]">
+                          Loading more profiles...
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-gray-800 bg-black p-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                         {twitterFollowing.map((account) => (
                           <div
@@ -1983,15 +2214,20 @@ const handleShareOnX = async () => {
                       </div>
                     </div>
 
-                    <button
-                      className="w-full rounded-lg bg-[#7FFFD4] px-4 py-2 text-black transition-colors hover:bg-[#7FFFD4]/90 flex items-center justify-center gap-2"
-                      onClick={handleAddSelectedAccounts}
-                      disabled={selectedTwitterAccounts.length === 0}
-                    >
-                      <UserPlus size={16} />
-                      Add {selectedTwitterAccounts.length} Selected Account
-                      {selectedTwitterAccounts.length !== 1 ? "s" : ""}
-                    </button>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm text-gray-400">
+                        {twitterFollowing.length} accounts loaded
+                      </div>
+                      <button
+                        className="w-full md:w-auto rounded-lg bg-[#7FFFD4] px-4 py-2 text-black transition-colors hover:bg-[#7FFFD4]/90 flex items-center justify-center gap-2"
+                        onClick={handleAddSelectedAccounts}
+                        disabled={selectedTwitterAccounts.length === 0}
+                      >
+                        <UserPlus size={16} />
+                        Add {selectedTwitterAccounts.length} Selected Account
+                        {selectedTwitterAccounts.length !== 1 ? "s" : ""}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -2038,10 +2274,35 @@ const handleShareOnX = async () => {
                 className={`space-y-4 ${
                   wise === "customProfiles" ? "opacity-50" : ""
                 }`}
+                data-tutorial="categories"
               >
-                <h2 className="text-xl font-semibold text-[#7FFFD4]">
-                  Update Categories
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                    Update Categories
+                  </h2>
+                  <button
+                    onClick={() => handleShowSettingInfo("categories")}
+                    className="text-[#7FFFD4] hover:text-white transition-colors"
+                    aria-label="Show categories information"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M12 16v-4"></path>
+                      <path d="M12 8h.01"></path>
+                    </svg>
+                  </button>
+                </div>
+                {renderSettingInfo("categories")}
                 {wise === "customProfiles" && (
                   <p className="text-gray-400">
                     Switch to <strong>Category-wise feed</strong> to update
@@ -2080,6 +2341,11 @@ const handleShareOnX = async () => {
                       {loading ? "Updating..." : "Update Categories"}
                     </button>
                   )}
+
+                <button
+                  onClick={() => handleShowSettingInfo("categories")}
+                  className="text-sm text-gray-400 hover:text-white"
+                ></button>
               </section>
 
               {/* Manage Followed Profiles Section */}
@@ -2087,16 +2353,35 @@ const handleShareOnX = async () => {
                 className={`space-y-4 ${
                   wise === "categorywise" ? "opacity-50" : ""
                 }`}
+                data-tutorial="profiles-manage"
               >
-                <h2 className="text-xl font-semibold text-[#7FFFD4]">
-                  Manage Followed Profiles
-                </h2>
-                {wise === "categorywise" && (
-                  <p className="text-gray-400">
-                    Switch to <strong>Custom Profiles</strong> to manage
-                    followed profiles.
-                  </p>
-                )}
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                    Manage Followed Profiles
+                  </h2>
+                  <button
+                    onClick={() => handleShowSettingInfo("profiles-manage")}
+                    className="text-[#7FFFD4] hover:text-white transition-colors"
+                    aria-label="Show profiles management information"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M12 16v-4"></path>
+                      <path d="M12 8h.01"></path>
+                    </svg>
+                  </button>
+                </div>
+                {renderSettingInfo("profiles-manage")}
                 {unsavedProfiles && (
                   <div className="p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg text-yellow-400">
                     <div className="flex items-start gap-2">
@@ -2205,13 +2490,42 @@ const handleShareOnX = async () => {
                       {loading ? "Updating..." : "Update Profiles"}
                     </button>
                   )}
+
+                <button
+                  onClick={() => handleShowSettingInfo("profiles-manage")}
+                  className="text-sm text-gray-400 hover:text-white"
+                ></button>
               </section>
 
               {/* Update Time Section */}
-              <section className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#7FFFD4]">
-                  Update Preferred Time
-                </h2>
+              <section className="space-y-4" data-tutorial="time-settings">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-[#7FFFD4]">
+                    Update Preferred Time
+                  </h2>
+                  <button
+                    onClick={() => handleShowSettingInfo("time-settings")}
+                    className="text-[#7FFFD4] hover:text-white transition-colors"
+                    aria-label="Show time settings information"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M12 16v-4"></path>
+                      <path d="M12 8h.01"></path>
+                    </svg>
+                  </button>
+                </div>
+                {renderSettingInfo("time-settings")}
                 <div className="flex flex-wrap gap-2">
                   {availableTimes.map((timeOption) => (
                     <button
@@ -2241,6 +2555,11 @@ const handleShareOnX = async () => {
                 >
                   {loading ? "Updating..." : "Update Time"}
                 </button>
+
+                <button
+                  onClick={() => handleShowSettingInfo("time-settings")}
+                  className="text-sm text-gray-400 hover:text-white"
+                ></button>
               </section>
             </div>
           )}
@@ -2249,9 +2568,10 @@ const handleShareOnX = async () => {
             <div className="space-y-4 rounded-xl border border-gray-800 bg-black p-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-semibold text-[#7FFFD4]">
-                  Latest Newsletter
+                  &nbsp;Latest Newsletter
                 </h3>
-                {latestNewsletter !== "Thank you for signing up. Please wait for your first newsletter to generate" && (
+                {latestNewsletter !==
+                  "Thank you for signing up. Please wait for your first newsletter to generate" && (
                   <button
                     onClick={handleShareOnX}
                     className="hidden md:flex bg-[#7FFFD4] text-black px-4 py-2 rounded-lg transition hover:bg-[#00CED1]  items-center gap-1"
@@ -2276,6 +2596,7 @@ const handleShareOnX = async () => {
           {/* Floating Chat Button */}
           {wise === "customProfiles" && (
             <button
+              data-tutorial="chat"
               onClick={() => setIsChatOpen(true)}
               className="fixed bottom-6 right-6 bg-[#7FFFD4] text-black p-4 rounded-full shadow-lg hover:bg-[#00CED1] transition-colors"
             >
@@ -2387,6 +2708,31 @@ const handleShareOnX = async () => {
           </div>
         </div>
       )}
+
+      {/* Add CSS for tutorial highlighting */}
+      <style jsx global>{`
+        .tutorial-highlight {
+          position: relative;
+          z-index: 51;
+          box-shadow: 0 0 0 4px rgba(127, 255, 212, 0.7);
+          border-radius: 4px;
+          animation: pulse-border 2s infinite;
+          outline: 2px solid #7fffd4;
+        }
+
+        @keyframes pulse-border {
+          0% {
+            box-shadow: 0 0 0 0 rgba(127, 255, 212, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(127, 255, 212, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(127, 255, 212, 0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
+

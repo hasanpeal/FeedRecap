@@ -5,6 +5,7 @@ const nextConfig = {
       "img.daisyui.com",
       "hebbkx1anhila5yf.public.blob.vercel-storage.com",
       "pbs.twimg.com",
+      "abs.twimg.com",
     ],
   },
 };
