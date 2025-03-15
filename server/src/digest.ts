@@ -565,11 +565,13 @@ export async function sendNewsletterEmail(
   // Short link for the newsletter
   const shortLink = `${process.env.ORIGIN}/readnewsletter?newsletter=${savedNewsletter._id}`;
 
-    const emailTemplate = `
-<div style=" color: #333; font-family: Verdana, sans-serif;   margin: auto; border-radius: 12px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);">      
-      <!-- Logo -->
-      <!-- Header -->
+  // Unsubscribe link
+  const unsubscribeLink = `${
+    process.env.ORIGIN
+  }/unsubscribe?email=${encodeURIComponent(user.email)}`;
 
+  const emailTemplate = `
+<div style="color: #333; font-family: Verdana, sans-serif; margin: auto; border-radius: 12px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);">      
       <!-- Newsletter Content -->
       <div style="background: white; border-radius: 10px; margin-top: 20px; font-size: 16px; line-height: 1.6; color: #333; box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.05);">
         ${newsletter}
@@ -587,14 +589,18 @@ export async function sendNewsletterEmail(
       <!-- Divider -->
       <hr style="margin: 30px 0; border: 0.5px solid #DDD;">
 
+      <!-- Unsubscribe -->
+      <div style="text-align: center; font-size: 14px; color: #777; margin-top: 20px;">
+        <p><a href="${unsubscribeLink}" style="color: #00A8E8; text-decoration: none;">Click here to unsubscribe</a></p>
+      </div>
+
       <!-- Social Media Footer -->
-      <div style="text-align: center; font-size: 14px; color: #777;">
+      <div style="text-align: center; font-size: 14px; color: #777; margin-top: 20px;">
         <p>Stay updated on:</p>
         <a href="https://x.com/FeedRecap" style="color: #00A8E8; text-decoration: none; margin: 0 10px;"> X </a> |
         <a href="https://feedrecap.com" style="color: #00A8E8; text-decoration: none; margin: 0 10px;"> FeedRecap </a>
         <p style="margin-top: 20px;">© 2025 FeedRecap. All Rights Reserved</p>
       </div>
-
     </div>
   `;
 
@@ -1281,7 +1287,7 @@ export async function generateCustomProfileNewsletter(
 // async function testNewsletter() {
 //   try {
 //     // Fetch the user
-//     const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
+//     const user = await User.findOne({ email: "mrdeadstark@gmail.com" }).exec();
 //     if (!user) {
 //       console.error("❌ User not found with email: pealh0320@gmail.com");
 //       return;
