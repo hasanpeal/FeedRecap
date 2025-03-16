@@ -203,7 +203,7 @@ export default function Navbar2() {
               }
             }}
           >
-            Report a Problem
+            Feedback
           </button>
           <button
             className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
@@ -296,7 +296,7 @@ export default function Navbar2() {
         className="bg-[#111] p-6 rounded-lg max-w-lg text-white"
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-[#7FFFD4]">Report a Problem</h2>
+          <h2 className="text-xl font-bold text-[#7FFFD4]">Feedback</h2>
           <button
             className="text-[#7FFFD4] font-bold text-lg hover:text-white transition-colors"
             onClick={() => {

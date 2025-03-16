@@ -526,9 +526,9 @@ export default function Dashboard() {
         email: emailContext,
       });
       setLinkedTwitter(null);
-      showNotification("Twitter account unlinked", "success");
+      showNotification("X account unlinked", "success");
     } catch (err) {
-      showNotification("Error unlinking Twitter", "error");
+      showNotification("Error unlinking X", "error");
     } finally {
       setIsSavingTwitter(false);
     }
@@ -1266,7 +1266,7 @@ export default function Dashboard() {
   // Replace the handleConnectTwitter function with this enhanced version
   const handleConnectTwitter = async () => {
     if (!twitterUsername) {
-      showNotification("Please enter a Twitter username", "error");
+      showNotification("Please enter a X username", "error");
       return;
     }
 
@@ -1295,10 +1295,10 @@ export default function Dashboard() {
 
       setTwitterFollowing(allFollowing);
       setShowTwitterFollowing(true);
-      showNotification(`Found ${allFollowing.length} accounts`, "success");
+      showNotification(`${allFollowing.length} accounts imported`, "success");
     } catch (error) {
-      console.error("Error connecting Twitter:", error);
-      showNotification("Error connecting to Twitter", "error");
+      console.error("Error connecting X:", error);
+      showNotification("Error connecting to X", "error");
     } finally {
       setIsConnectingTwitter(false);
     }
