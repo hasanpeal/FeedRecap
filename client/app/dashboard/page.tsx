@@ -1,56 +1,78 @@
 //
 //
-"use client"
-import { useState, useEffect, useCallback, type ChangeEvent, useRef } from "react"
-import axios from "axios"
-import { useEmail } from "@/context/UserContext"
-import Image from "next/image"
-import _ from "lodash"
-import Navbar3 from "@/components/navbar3"
-import { ChevronLeft, ChevronRight, MessageCircle, X, UserPlus, Check, Loader2, MoveUp, MoveDown } from "lucide-react"
-import html2canvas from "html2canvas"
-import { TutorialOverlay } from "@/components/tutorial-overlay"
+"use client";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  type ChangeEvent,
+  useRef,
+} from "react";
+import axios from "axios";
+import { useEmail } from "@/context/UserContext";
+import Image from "next/image";
+import _ from "lodash";
+import Navbar3 from "@/components/navbar3";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle,
+  X,
+  UserPlus,
+  Check,
+  Loader2,
+  MoveUp,
+  MoveDown,
+} from "lucide-react";
+import html2canvas from "html2canvas";
+import { TutorialOverlay } from "@/components/tutorial-overlay";
 
 // Testing test setup
 interface Post {
-  username: string
-  time: string
-  likes: number
-  category: string
-  text: string
-  tweet_id: string
-  thumbnailUrl?: string
-  avatar?: string
-  isExpanded?: boolean
-  mediaThumbnail?: string
-  video?: string
-  videoThumbnail?: string
+  username: string;
+  time: string;
+  likes: number;
+  category: string;
+  text: string;
+  tweet_id: string;
+  thumbnailUrl?: string;
+  avatar?: string;
+  isExpanded?: boolean;
+  mediaThumbnail?: string;
+  video?: string;
+  videoThumbnail?: string;
   quotedTweet?: {
-    tweet_id: string
-    text: string
-    likes: number
-    createdAt: Date
-    mediaThumbnail: string
-    video: string
-    videoThumbnail: string
-    avatar: string
-    username: string
-  }
+    tweet_id: string;
+    text: string;
+    likes: number;
+    createdAt: Date;
+    mediaThumbnail: string;
+    video: string;
+    videoThumbnail: string;
+    avatar: string;
+    username: string;
+  };
 }
 
 interface UserProfile {
-  username: string
-  avatar: string
+  username: string;
+  avatar: string;
 }
 
 interface ChatMessage {
-  role: "user" | "assistant"
-  content: string
+  role: "user" | "assistant";
+  content: string;
 }
 
 // Add this custom X logo component after the imports
 const XLogo = ({ size = 24, className = "" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0,0,256,256" className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0,0,256,256"
+    className={className}
+  >
     <g
       fill="currentColor"
       fillRule="nonzero"
@@ -773,7 +795,7 @@ export default function Dashboard() {
     return (
       <div className="container mx-auto px-4 py-12">
         {/* Navigation Skeleton */}
-        <div className="mb-8 flex items-center justify-between border-b border-gray-800 pb-4">
+        <div className="mb-8 flex items-center justify-center border-b border-gray-800 pb-4">
           <div className="flex gap-8">
             <div className="h-8 w-20 rounded-md bg-gray-800"></div>
             <div className="h-8 w-20 rounded-md bg-gray-800"></div>
