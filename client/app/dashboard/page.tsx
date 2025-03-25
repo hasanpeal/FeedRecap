@@ -1243,11 +1243,18 @@ export default function Dashboard() {
       return (
         <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
           <Image
-            src={post.mediaThumbnail || "/placeholder.svg"}
+            src={post.mediaThumbnail}
             alt="Tweet media"
             width={500}
             height={240}
             className="object-cover rounded-lg"
+            onError={(e) => {
+              console.error("Image loading error:", post.mediaThumbnail);
+              e.currentTarget.src = "/placeholder.svg";
+            }}
+            priority={false}
+            loading="lazy"
+            unoptimized={true}
           />
         </div>
       );
@@ -2735,4 +2742,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
