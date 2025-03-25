@@ -72,7 +72,7 @@ const XLogo = ({ size = 24, className = "" }) => (
       </g>
     </g>
   </svg>
-)
+);
 
 export default function Dashboard() {
   const { emailContext, setEmailContext } = useEmail();
@@ -1323,7 +1323,7 @@ export default function Dashboard() {
     while (hasMore && allFollowing.length < maxProfiles) {
       setIsLoadingMoreProfiles(true);
       try {
-        const response:any = await axios.request({
+        const response: any = await axios.request({
           method: "GET",
           url: "https://twitter-api45.p.rapidapi.com/following.php",
           params: {
@@ -1428,7 +1428,7 @@ export default function Dashboard() {
       "profiles-manage":
         "Add or remove specific accounts to follow. You can search for profiles or import them from your X/Twitter account",
       "time-settings":
-        "Choose when you’d like to receive your newsletter: Morning (after 9 AM ET), Afternoon (after 3 PM ET), or Night (after 8 PM ET)",
+        "Choose when you'd like to receive your newsletter: Morning (after 9 AM ET), Afternoon (after 3 PM ET), or Night (after 8 PM ET)",
     };
 
     if (!showSettingInfo || showSettingInfo !== setting) return null;
@@ -1509,9 +1509,7 @@ export default function Dashboard() {
           ? new Date(b.time).getTime() - new Date(a.time).getTime()
           : new Date(a.time).getTime() - new Date(b.time).getTime();
       } else {
-        return sortOrder === "desc"
-          ? b.likes - a.likes
-          : a.likes - b.likes;
+        return sortOrder === "desc" ? b.likes - a.likes : a.likes - b.likes;
       }
     });
 
@@ -1649,18 +1647,23 @@ export default function Dashboard() {
                                     src={
                                       post.mediaThumbnail ||
                                       post.videoThumbnail ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
-                                      "/placeholder.svg" ||
                                       "/placeholder.svg"
                                     }
                                     alt="Tweet media"
                                     width={300}
                                     height={128}
                                     className="object-cover w-full h-full"
+                                    onError={(e) => {
+                                      console.error(
+                                        "Trending image loading error:",
+                                        post.mediaThumbnail ||
+                                          post.videoThumbnail
+                                      );
+                                      e.currentTarget.src = "/placeholder.svg";
+                                    }}
+                                    priority={false}
+                                    loading="lazy"
+                                    unoptimized={true}
                                   />
                                 </div>
                               ) : (
