@@ -974,17 +974,41 @@ export default function Dashboard() {
   };
 
   const renderAvatar = (username: string, avatar: string) => {
+    const fetchAndUpdateAvatar = async () => {
+      try {
+        const profile = await fetchUserProfile(username);
+        // Update the avatar in profiles state
+        setProfiles((prev) =>
+          prev.map((p) =>
+            p.username === username ? { ...p, avatar: profile.avatar } : p
+          )
+        );
+        return profile.avatar;
+      } catch (error) {
+        console.error("Error fetching avatar:", error);
+        return "/placeholder.svg";
+      }
+    };
+
+    if (!avatar || avatar === "/placeholder.svg") {
+      // Fetch profile if avatar is not available
+      fetchAndUpdateAvatar();
+    }
+
     if (avatar && avatar !== "/placeholder.svg") {
       return (
         <Image
-          src={avatar || "/placeholder.svg"}
+          src={avatar}
           alt={username}
           width={24}
           height={24}
           className="rounded-full"
           onError={(e) => {
+            console.error("Avatar loading error:", username);
             e.currentTarget.style.display = "none";
             e.currentTarget.nextElementSibling?.classList.remove("hidden");
+            // Try to fetch new avatar when current one fails
+            fetchAndUpdateAvatar();
           }}
         />
       );
@@ -998,17 +1022,41 @@ export default function Dashboard() {
   };
 
   const renderAvatar2 = (username: string, avatar: string) => {
+    const fetchAndUpdateAvatar = async () => {
+      try {
+        const profile = await fetchUserProfile(username);
+        // Update the avatar in profiles state
+        setProfiles((prev) =>
+          prev.map((p) =>
+            p.username === username ? { ...p, avatar: profile.avatar } : p
+          )
+        );
+        return profile.avatar;
+      } catch (error) {
+        console.error("Error fetching avatar:", error);
+        return "/placeholder.svg";
+      }
+    };
+
+    if (!avatar || avatar === "/placeholder.svg") {
+      // Fetch profile if avatar is not available
+      fetchAndUpdateAvatar();
+    }
+
     if (avatar && avatar !== "/placeholder.svg") {
       return (
         <Image
-          src={avatar || "/placeholder.svg"}
+          src={avatar}
           alt={username}
           width={40}
           height={40}
           className="rounded-full"
           onError={(e) => {
+            console.error("Avatar loading error:", username);
             e.currentTarget.style.display = "none";
             e.currentTarget.nextElementSibling?.classList.remove("hidden");
+            // Try to fetch new avatar when current one fails
+            fetchAndUpdateAvatar();
           }}
         />
       );
@@ -1232,6 +1280,16 @@ export default function Dashboard() {
               width={500}
               height={240}
               className="object-cover rounded-lg border border-gray-800"
+              onError={(e) => {
+                console.error(
+                  "iOS video thumbnail loading error:",
+                  post.videoThumbnail
+                );
+                e.currentTarget.src = "/placeholder.svg";
+              }}
+              priority={false}
+              loading="lazy"
+              unoptimized={true}
             />
           </div>
         );
