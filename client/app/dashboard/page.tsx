@@ -1,5 +1,3 @@
-//
-//
 "use client";
 import {
   useState,
@@ -192,15 +190,6 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState<"time" | "likes">("time");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [filterMinLikes, setFilterMinLikes] = useState<number | null>(null);
-
-  // Add these new state variables after the existing sort state declarations
-  const [timeFilter, setTimeFilter] = useState<
-    "all" | "hour" | "6hours" | "12hours"
-  >("all");
-  const [engagementFilter, setEngagementFilter] = useState<
-    "all" | "high" | "medium" | "low"
-  >("all");
-  const [hasMedia, setHasMedia] = useState<"all" | "yes" | "no">("all");
 
   // Check if this is the user's first login
   useEffect(() => {
@@ -765,9 +754,7 @@ export default function Dashboard() {
   const handleResetFilters = () => {
     setSortBy("time");
     setSortOrder("desc");
-    setTimeFilter("all");
-    setEngagementFilter("all");
-    setHasMedia("all");
+    setFilterMinLikes(null);
     setSelectedCategory(null);
     setSelectedProfile(null);
   };
@@ -1586,73 +1573,23 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  // Add this function to handle time filtering
-  const getTimeFilteredPosts = (posts: Post[]) => {
-    const now = new Date().getTime();
-    switch (timeFilter) {
-      case "hour":
-        return posts.filter(
-          (post) => now - new Date(post.time).getTime() <= 60 * 60 * 1000
-        );
-      case "6hours":
-        return posts.filter(
-          (post) => now - new Date(post.time).getTime() <= 6 * 60 * 60 * 1000
-        );
-      case "12hours":
-        return posts.filter(
-          (post) => now - new Date(post.time).getTime() <= 12 * 60 * 60 * 1000
-        );
-      default:
-        return posts;
-    }
-  };
-
-  // Add this function to handle engagement filtering
-  const getEngagementFilteredPosts = (posts: Post[]) => {
-    switch (engagementFilter) {
-      case "high":
-        return posts.filter((post) => post.likes >= 100);
-      case "medium":
-        return posts.filter((post) => post.likes >= 30 && post.likes < 100);
-      case "low":
-        return posts.filter((post) => post.likes < 30);
-      default:
-        return posts;
-    }
-  };
-
-  // Add this function to handle media filtering
-  const getMediaFilteredPosts = (posts: Post[]) => {
-    switch (hasMedia) {
-      case "yes":
-        return posts.filter((post) => post.mediaThumbnail || post.video);
-      case "no":
-        return posts.filter((post) => !post.mediaThumbnail && !post.video);
-      default:
-        return posts;
-    }
-  };
-
-  // Update the filteredPosts definition to include the new filters
-  const filteredPosts = getMediaFilteredPosts(
-    getEngagementFilteredPosts(
-      getTimeFilteredPosts(
-        posts.filter(
-          (post) =>
-            (selectedCategory ? post.category === selectedCategory : true) &&
-            (selectedProfile ? post.username === selectedProfile : true)
-        )
-      )
+  // Replace the filteredPosts definition (around line 1000) with this enhanced version
+  const filteredPosts = posts
+    .filter(
+      (post) =>
+        (selectedCategory ? post.category === selectedCategory : true) &&
+        (selectedProfile ? post.username === selectedProfile : true) &&
+        (filterMinLikes ? post.likes >= filterMinLikes : true)
     )
-  ).sort((a, b) => {
-    if (sortBy === "time") {
-      return sortOrder === "desc"
-        ? new Date(b.time).getTime() - new Date(a.time).getTime()
-        : new Date(a.time).getTime() - new Date(b.time).getTime();
-    } else {
-      return sortOrder === "desc" ? b.likes - a.likes : a.likes - b.likes;
-    }
-  });
+    .sort((a, b) => {
+      if (sortBy === "time") {
+        return sortOrder === "desc"
+          ? new Date(b.time).getTime() - new Date(a.time).getTime()
+          : new Date(a.time).getTime() - new Date(b.time).getTime();
+      } else {
+        return sortOrder === "desc" ? b.likes - a.likes : a.likes - b.likes;
+      }
+    });
 
   return (
     <div className="min-h-screen bg-black text-white" data-tutorial="dashboard">
@@ -1950,7 +1887,6 @@ export default function Dashboard() {
               {/* Add this filter UI right after the profiles scrolling section (around line 1400, after the scrollProfiles buttons) */}
               {/* Find the closing </div> after the profilesContainerRef and add this before it: */}
               <div className="flex flex-wrap items-center gap-4 mt-4 mb-4">
-                {/* Sort controls */}
                 <div className="flex items-center gap-2 bg-[#111] rounded-lg p-2 border border-gray-800">
                   <span className="text-sm text-gray-400">Sort by:</span>
                   <button
@@ -1975,12 +1911,11 @@ export default function Dashboard() {
                   </button>
                 </div>
 
-                {/* Order controls */}
                 <div className="flex items-center gap-2 bg-[#111] rounded-lg p-2.5 border border-gray-800">
                   <span className="text-sm text-gray-400">Order:</span>
                   <button
                     onClick={() => setSortOrder("desc")}
-                    className={`px-3 rounded-md text-sm ${
+                    className={`px-3  rounded-md text-sm ${
                       sortOrder === "desc"
                         ? "bg-[#7FFFD4] text-black"
                         : "text-gray-300 hover:bg-gray-800"
@@ -1990,7 +1925,7 @@ export default function Dashboard() {
                   </button>
                   <button
                     onClick={() => setSortOrder("asc")}
-                    className={`px-3 rounded-md text-sm ${
+                    className={`px-3  rounded-md text-sm ${
                       sortOrder === "asc"
                         ? "bg-[#7FFFD4] text-black"
                         : "text-gray-300 hover:bg-gray-800"
@@ -2000,138 +1935,32 @@ export default function Dashboard() {
                   </button>
                 </div>
 
-                {/* Time filter */}
-                <div className="flex items-center gap-2 bg-[#111] rounded-lg p-2 border border-gray-800">
-                  <span className="text-sm text-gray-400">Time:</span>
-                  <button
-                    onClick={() => setTimeFilter("all")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      timeFilter === "all"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
+                {/* <div className="flex items-center gap-2 bg-[#111] rounded-lg p-2 border border-gray-800">
+                  <span className="text-sm text-gray-400">Min likes:</span>
+                  <select
+                    value={filterMinLikes || ""}
+                    onChange={(e) =>
+                      setFilterMinLikes(
+                        e.target.value ? Number(e.target.value) : null
+                      )
+                    }
+                    className="bg-black border border-gray-700 rounded-md px-2 py-1 text-sm"
                   >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setTimeFilter("hour")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      timeFilter === "hour"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    1h
-                  </button>
-                  <button
-                    onClick={() => setTimeFilter("6hours")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      timeFilter === "6hours"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    6h
-                  </button>
-                  <button
-                    onClick={() => setTimeFilter("12hours")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      timeFilter === "12hours"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    12h
-                  </button>
-                </div>
+                    <option value="">Any</option>
+                    <option value="10">10+</option>
+                    <option value="50">50+</option>
+                    <option value="100">100+</option>
+                    <option value="500">500+</option>
+                    <option value="1000">1000+</option>
+                  </select>
+                </div> */}
 
-                {/* Engagement filter */}
-                <div className="flex items-center gap-2 bg-[#111] rounded-lg p-2 border border-gray-800">
-                  <span className="text-sm text-gray-400">Engagement:</span>
-                  <button
-                    onClick={() => setEngagementFilter("all")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      engagementFilter === "all"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setEngagementFilter("high")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      engagementFilter === "high"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    High
-                  </button>
-                  <button
-                    onClick={() => setEngagementFilter("medium")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      engagementFilter === "medium"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    Med
-                  </button>
-                  <button
-                    onClick={() => setEngagementFilter("low")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      engagementFilter === "low"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    Low
-                  </button>
-                </div>
-
-                {/* Media filter */}
-                <div className="flex items-center gap-2 bg-[#111] rounded-lg p-2 border border-gray-800">
-                  <span className="text-sm text-gray-400">Media:</span>
-                  <button
-                    onClick={() => setHasMedia("all")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      hasMedia === "all"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setHasMedia("yes")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      hasMedia === "yes"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={() => setHasMedia("no")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      hasMedia === "no"
-                        ? "bg-[#7FFFD4] text-black"
-                        : "text-gray-300 hover:bg-gray-800"
-                    }`}
-                  >
-                    No
-                  </button>
-                </div>
-
-                {/* Reset filters button */}
-                <button
+                {/* <button
                   onClick={handleResetFilters}
-                  className="px-3 py-3 rounded-lg text-sm bg-[#7FFFD4] border border-gray-800 text-black hover:bg-gray-800 hover:text-gray-300"
+                  className="px-3 py-3 rounded-md text-sm bg-[#7FFFD4] text-black hover:bg-gray-700"
                 >
                   Reset Filters
-                </button>
+                </button> */}
               </div>
               <div
                 className="sm:masonry-grid columns-1 md:columns-2 lg:columns-3 gap-4"
