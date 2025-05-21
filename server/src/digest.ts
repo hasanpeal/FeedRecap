@@ -206,12 +206,12 @@ const fetchAvatar = async (username: string): Promise<string | null> => {
   while (retries < maxRetries) {
     try {
       const response = await axios.get(
-        "https://twitter-api45.p.rapidapi.com/screenname.php",
+        `https://${process.env.TWITTER_API_HOST}/screenname.php`,
         {
           params: { screenname: username },
           headers: {
-            "x-rapidapi-key": process.env.RAPID_API_KEY,
-            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+            "x-rapidapi-key": process.env.TWITTER_API_KEY,
+            "x-rapidapi-host": process.env.TWITTER_API_HOST,
           },
         }
       );
@@ -265,12 +265,12 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
       try {
         // Make the API call to fetch tweets
         const response = await axios.get(
-          "https://twitter-api45.p.rapidapi.com/timeline.php",
+          `https://${process.env.TWITTER_API_HOST}/timeline.php`,
           {
             params: { screenname: screenName },
             headers: {
-              "x-rapidapi-key": process.env.RAPID_API_KEY || "",
-              "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+              "x-rapidapi-key": process.env.TWITTER_API_KEY,
+              "x-rapidapi-host": process.env.TWITTER_API_HOST,
             },
           }
         );
@@ -372,7 +372,7 @@ export async function generateNewsletter(
           "8. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.\n" +
           "9. **Use emojis often** to add emphasis and excitement to the newsletter.\n" +
           "10. **Format the newsletter as bullet points** for each category.\n" +
-          "11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.\n" +
+          "11. **Restrict yourself to only the information explicitly included in the tweets**—don't add outside information or opinions.\n" +
           "12. **Ensure bullet points are separated by category** and well-structured.\n" +
           "13. Instead of `this weeks' say 'todays'. Instead of 'tweet' say 'post'. Instead of twitter say 'X'. Don't say the word 'whirlwind' \n" +
           "14. Make sure you don't purely sounds like AI, you must sound as humanly as possible \n" +
@@ -947,12 +947,12 @@ export async function fetchAndStoreTweetsForProfiles(
       console.log(`🔄 [Fetching Fresh Tweets]: Fetching tweets for ${profile}`);
 
       const response = await axios.get(
-        "https://twitter-api45.p.rapidapi.com/timeline.php",
+        `https://${process.env.TWITTER_API_HOST}/timeline.php`,
         {
           params: { screenname: profile },
           headers: {
-            "x-rapidapi-key": process.env.RAPID_API_KEY || "",
-            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+            "x-rapidapi-key": process.env.TWITTER_API_KEY,
+            "x-rapidapi-host": process.env.TWITTER_API_HOST,
           },
         }
       );
@@ -1073,7 +1073,7 @@ export async function getStoredTweetsForUser(
     }).exec();
 
     if (!posts.length) {
-      console.warn(`⚠️ No stored tweets found for user’s profiles.`);
+      console.warn(`⚠️ No stored tweets found for user's profiles.`);
       return { tweetsByProfiles, top15Tweets: [] };
     }
 
@@ -1179,7 +1179,7 @@ export async function generateCustomProfileNewsletter(
           "6. **Do NOT cite sources**—just summarize the tweets without citations.\n" +
           "7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.\n" +
           "8. **Use emojis often** to add emphasis and excitement to the newsletter.\n" +
-          "9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.\n" +
+          "9. **Restrict yourself to only the information explicitly included in the tweets**—don't add outside information or opinions.\n" +
           "10. Instead of `this weeks' say 'todays'. Instead of 'tweet' say 'post'. Instead of twitter say 'X'. Don't say the word 'whirlwind' \n" +
           "11. Make sure you don't purely sounds like AI, you must sound as humanly as possible \n" +
           "12. **Make sure each heading (bold) and its content has consistent font, size, and style. **\n\n",

@@ -445,16 +445,12 @@ export default function Dashboard() {
 
     while (retries < maxRetries) {
       try {
-        const response = await axios.get(
-          "https://twitter-api45.p.rapidapi.com/screenname.php",
-          {
-            params: { screenname: username },
-            headers: {
-              "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY,
-              "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-            },
-          }
-        );
+        const response = await axios.get(`/api/twitter`, {
+          params: {
+            endpoint: "screenname.php",
+            screenname: username,
+          },
+        });
 
         // If we successfully get an avatar, return immediately
         if (response.data && response.data.avatar) {
@@ -474,9 +470,73 @@ export default function Dashboard() {
       }
     }
 
-    // This line should never be reached due to the return in the if statement above,
-    // but we'll keep it as a fallback
     return { username, avatar: "/placeholder.svg" };
+  };
+
+  const fetchSuggestions = async (keyword: string): Promise<string[]> => {
+    try {
+      const response = await axios.get(`/api/twitter`, {
+        params: {
+          endpoint: "search.php",
+          query: keyword,
+          searchType: "People",
+        },
+      });
+
+      if (response.data && response.data.timeline) {
+        return response.data.timeline
+          .filter((item: any) => item.screen_name)
+          .slice(0, 4)
+          .map((item: any) => item.screen_name);
+      } else {
+        console.warn("No suggestions found for keyword:", keyword);
+        return [];
+      }
+    } catch (err) {
+      console.error("Error fetching suggestions:", err);
+      return [];
+    }
+  };
+
+  const fetchTwitterFollowingWithPagination = async (
+    screenname: string,
+    maxProfiles = 500
+  ): Promise<any[]> => {
+    let allFollowing: any[] = [];
+    let cursor: string | null = "-1";
+    let hasMore = true;
+
+    while (hasMore && allFollowing.length < maxProfiles) {
+      setIsLoadingMoreProfiles(true);
+      try {
+        const response: { data: { following: any[]; next_cursor: string } } =
+          await axios.get(`/api/twitter`, {
+            params: {
+              endpoint: "following.php",
+              screenname: screenname,
+              cursor: cursor,
+            },
+          });
+
+        if (response.data && response.data.following) {
+          allFollowing = [...allFollowing, ...response.data.following];
+
+          if (response.data.next_cursor && response.data.next_cursor !== "0") {
+            cursor = response.data.next_cursor;
+          } else {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
+      } catch (error) {
+        console.error("Error fetching Twitter following page:", error);
+        hasMore = false;
+      }
+    }
+
+    setIsLoadingMoreProfiles(false);
+    return allFollowing;
   };
 
   const fetchData = async () => {
@@ -577,34 +637,6 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error fetching profile:", error);
       // Profile already added with placeholder, so no need to handle error specifically
-    }
-  };
-
-  const fetchSuggestions = async (keyword: string): Promise<string[]> => {
-    try {
-      const response = await axios.get(
-        "https://twitter-api45.p.rapidapi.com/search.php",
-        {
-          params: { query: keyword, search_type: "People" },
-          headers: {
-            "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
-            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-          },
-        }
-      );
-
-      if (response.data && response.data.timeline) {
-        return response.data.timeline
-          .filter((item: any) => item.screen_name)
-          .slice(0, 4) // Changed from 6 to 4
-          .map((item: any) => item.screen_name);
-      } else {
-        console.warn("No suggestions found for keyword:", keyword);
-        return [];
-      }
-    } catch (err) {
-      console.error("Error fetching suggestions:", err);
-      return [];
     }
   };
 
@@ -972,27 +1004,6 @@ export default function Dashboard() {
   };
 
   const renderAvatar = (username: string, avatar: string) => {
-    const fetchAndUpdateAvatar = async () => {
-      try {
-        const profile = await fetchUserProfile(username);
-        // Update the avatar in profiles state
-        setProfiles((prev) =>
-          prev.map((p) =>
-            p.username === username ? { ...p, avatar: profile.avatar } : p
-          )
-        );
-        return profile.avatar;
-      } catch (error) {
-        console.error("Error fetching avatar:", error);
-        return "/placeholder.svg";
-      }
-    };
-
-    if (!avatar || avatar === "/placeholder.svg") {
-      // Fetch profile if avatar is not available
-      fetchAndUpdateAvatar();
-    }
-
     if (avatar && avatar !== "/placeholder.svg") {
       return (
         <Image
@@ -1005,8 +1016,6 @@ export default function Dashboard() {
             console.error("Avatar loading error:", username);
             e.currentTarget.style.display = "none";
             e.currentTarget.nextElementSibling?.classList.remove("hidden");
-            // Try to fetch new avatar when current one fails
-            fetchAndUpdateAvatar();
           }}
         />
       );
@@ -1020,27 +1029,6 @@ export default function Dashboard() {
   };
 
   const renderAvatar2 = (username: string, avatar: string) => {
-    const fetchAndUpdateAvatar = async () => {
-      try {
-        const profile = await fetchUserProfile(username);
-        // Update the avatar in profiles state
-        setProfiles((prev) =>
-          prev.map((p) =>
-            p.username === username ? { ...p, avatar: profile.avatar } : p
-          )
-        );
-        return profile.avatar;
-      } catch (error) {
-        console.error("Error fetching avatar:", error);
-        return "/placeholder.svg";
-      }
-    };
-
-    if (!avatar || avatar === "/placeholder.svg") {
-      // Fetch profile if avatar is not available
-      fetchAndUpdateAvatar();
-    }
-
     if (avatar && avatar !== "/placeholder.svg") {
       return (
         <Image
@@ -1053,8 +1041,6 @@ export default function Dashboard() {
             console.error("Avatar loading error:", username);
             e.currentTarget.style.display = "none";
             e.currentTarget.nextElementSibling?.classList.remove("hidden");
-            // Try to fetch new avatar when current one fails
-            fetchAndUpdateAvatar();
           }}
         />
       );
@@ -1387,64 +1373,6 @@ export default function Dashboard() {
     } finally {
       setIsConnectingTwitter(false);
     }
-  };
-
-  // Add this new function to fetch Twitter following with pagination
-  const fetchTwitterFollowingWithPagination = async (
-    screenname: string,
-    maxProfiles = 500
-  ): Promise<any[]> => {
-    let allFollowing: any[] = [];
-    let cursor: string | null = "-1"; // Start with -1 for first page
-    let hasMore = true;
-
-    while (hasMore && allFollowing.length < maxProfiles) {
-      setIsLoadingMoreProfiles(true);
-      try {
-        const response: any = await axios.request({
-          method: "GET",
-          url: "https://twitter-api45.p.rapidapi.com/following.php",
-          params: {
-            screenname: screenname,
-            cursor: cursor,
-          },
-          headers: {
-            "x-rapidapi-key": process.env.NEXT_PUBLIC_RAPID_API_KEY || "",
-            "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
-          },
-        });
-
-        if (response.data && response.data.following) {
-          allFollowing = [...allFollowing, ...response.data.following];
-
-          // // Update notification to show progress
-          // showNotification(
-          //   `Loading profiles: ${allFollowing.length} so far...`,
-          //   "success"
-          // );
-
-          // Check if there's more data to fetch
-          if (response.data.next_cursor && response.data.next_cursor !== "0") {
-            cursor = response.data.next_cursor;
-          } else {
-            hasMore = false;
-          }
-        } else {
-          hasMore = false;
-        }
-      } catch (error) {
-        console.error("Error fetching Twitter following page:", error);
-        hasMore = false;
-      }
-
-      // // Avoid rate limiting
-      // if (hasMore) {
-      //   await new Promise((resolve) => setTimeout(resolve, 1000));
-      // }
-    }
-
-    setIsLoadingMoreProfiles(false);
-    return allFollowing;
   };
 
   // Replace the handleShowFollowedProfiles function with this enhanced version

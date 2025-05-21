@@ -110,10 +110,14 @@ app.get("/data", async (req, res) => {
     }
     try {
         // Fetch user data
-        const user = await userModel_1.User.findOne({ email }).select("categories time timezone newsletter wise profiles");
+        const user = await userModel_1.User.findOne({ email }).select("categories time timezone newsletter wise profiles twitterUsername");
         if (!user) {
             return res.status(404).json({ error: "User not found", code: 1 });
         }
+        // Fetch the latest newsletter for the user
+        const latestNewsletter = await newsletterModel_1.Newsletter.findOne({ user: user._id })
+            .sort({ createdAt: -1 }) // Get the latest newsletter
+            .select("_id"); // Only return the ID
         let posts = [];
         if (user.wise === "categorywise") {
             // Fetch posts based on category-wise selection
@@ -187,6 +191,8 @@ app.get("/data", async (req, res) => {
                 newsletter: user.newsletter,
                 wise: user.wise,
                 profiles: user.profiles,
+                twitterUsername: user.twitterUsername,
+                latestNewsletterId: latestNewsletter ? latestNewsletter._id : null, // Send the latest newsletter ID
             },
             posts,
             code: 0,
@@ -197,6 +203,35 @@ app.get("/data", async (req, res) => {
         res
             .status(500)
             .json({ error: "An error occurred while fetching data", code: 1 });
+    }
+});
+app.post("/unlinkX", async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email)
+            return res.status(400).json({ error: "Email is required" });
+        await userModel_1.User.findOneAndUpdate({ email }, { twitterUsername: null });
+        res.json({
+            success: true,
+            message: "Twitter account unlinked successfully",
+        });
+    }
+    catch (err) {
+        res.status(500).json({ error: "Server error" });
+    }
+});
+app.post("/saveX", async (req, res) => {
+    try {
+        const { email, twitterUsername } = req.body;
+        if (!email || !twitterUsername)
+            return res
+                .status(400)
+                .json({ error: "Email and Twitter username required" });
+        await userModel_1.User.findOneAndUpdate({ email }, { twitterUsername });
+        res.json({ success: true, message: "Twitter account linked successfully" });
+    }
+    catch (err) {
+        res.status(500).json({ error: "Server error" });
     }
 });
 // Route to get posts by user-selected categories
@@ -375,6 +410,19 @@ app.post("/updateFeedType", async (req, res) => {
         res
             .status(200)
             .json({ message: "Feed type updated successfully", code: 0 });
+        let newsletter = null;
+        if (updatedUser.wise === "categorywise") {
+            const { tweetsByCategory, top15Tweets } = await (0, digest_1.fetchTweetsForCategories)(updatedUser.categories);
+            newsletter = await (0, digest_1.generateNewsletter)(tweetsByCategory, top15Tweets);
+        }
+        else if (updatedUser.wise === "customProfiles") {
+            const { tweetsByProfiles, top15Tweets } = await (0, digest_1.getStoredTweetsForUser)(updatedUser._id);
+            newsletter = await (0, digest_1.generateCustomProfileNewsletter)(tweetsByProfiles, top15Tweets);
+        }
+        if (newsletter) {
+            await (0, digest_1.sendNewsletterEmail)(updatedUser, newsletter);
+            console.log(`✅ [Debug] Newsletter sent to: ${updatedUser.email}`);
+        }
     }
     catch (error) {
         console.error("Error updating feed type:", error);
@@ -728,8 +776,22 @@ app.post("/register", async (req, res) => {
             subject: `New User Alert`,
             text: digestMessage,
         };
+        const msg2 = {
+            to: "jeremy.shoykhet+1@gmail.com",
+            from: process.env.FROM_EMAIL || "",
+            subject: `New User Alert`,
+            text: digestMessage,
+        };
+        const msg3 = {
+            to: "support@overtonnews.com",
+            from: process.env.FROM_EMAIL || "",
+            subject: `New User Alert`,
+            text: digestMessage,
+        };
         try {
             await mail_1.default.send(msg);
+            await mail_1.default.send(msg2);
+            await mail_1.default.send(msg3);
         }
         catch (error) {
             console.error(`❌ [Error]: Error Sending Total User count`);
@@ -801,12 +863,64 @@ passport_1.default.use(new passport_google_oauth20_1.Strategy({
                 lastName,
                 email,
                 password: "", // Empty password as the user signed up via Google OAuth
-                isNewUser: true,
-                time: [],
+                isNewUser: false,
+                time: ["Morning", "Afternoon", "Night"],
                 newsletter: "Thank you for signing up. Please wait for your first newsletter to generate",
-                categories: [],
+                categories: [
+                    "Politics",
+                    "Geopolitics",
+                    "Finance",
+                    "AI",
+                    "Tech",
+                    "Crypto",
+                    "Meme",
+                    "Sports",
+                    "Entertainment",
+                ],
             });
             await user.save();
+            const { tweetsByCategory, top15Tweets } = await (0, digest_1.fetchTweetsForCategories)([
+                "Politics",
+                "Geopolitics",
+                "Finance",
+                "AI",
+                "Tech",
+                "Crypto",
+                "Meme",
+                "Sports",
+                "Entertainment",
+            ]);
+            const newsletter = await (0, digest_1.generateNewsletter)(tweetsByCategory, top15Tweets);
+            if (newsletter) {
+                await (0, digest_1.sendNewsletterEmail)(user, newsletter);
+            }
+            const digestMessage = `First Name:${firstName}\nLast Name: ${lastName}\nEmail: ${email}`;
+            const msg = {
+                to: "pealh0320@gmail.com",
+                from: process.env.FROM_EMAIL || "",
+                subject: `New User Alert`,
+                text: digestMessage,
+            };
+            const msg2 = {
+                to: "jeremy.shoykhet+1@gmail.com",
+                from: process.env.FROM_EMAIL || "",
+                subject: `New User Alert`,
+                text: digestMessage,
+            };
+            const msg3 = {
+                to: "support@overtonnews.com",
+                from: process.env.FROM_EMAIL || "",
+                subject: `New User Alert`,
+                text: digestMessage,
+            };
+            try {
+                await mail_1.default.send(msg);
+                await mail_1.default.send(msg2);
+                await mail_1.default.send(msg3);
+            }
+            catch (error) {
+                console.error(`❌ [Error]: Error Sending Total User count`);
+            }
             return done(null, user);
         }
         else {
@@ -1029,7 +1143,6 @@ app.post("/updateCategories", async (req, res) => {
 });
 // Route to update Times
 app.post("/updateTimes", async (req, res) => {
-    // console.log("/updateTimes");
     const { email, time } = req.body;
     try {
         const updatedUser = await userModel_1.User.findOneAndUpdate({ email }, { time }, { new: true });

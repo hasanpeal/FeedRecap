@@ -39,6 +39,7 @@ const UserSchema = new mongoose_1.Schema({
         default: "categorywise",
     },
     profiles: { type: [String], default: [] },
+    twitterUsername: { type: String, default: null },
 });
 const User = db_1.default.model("User", UserSchema);
 exports.User = User;

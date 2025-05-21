@@ -169,11 +169,11 @@ const fetchAvatar = async (username) => {
     const maxRetries = 7;
     while (retries < maxRetries) {
         try {
-            const response = await axios_1.default.get("https://twitter-api45.p.rapidapi.com/screenname.php", {
+            const response = await axios_1.default.get(`https://${process.env.TWITTER_API_HOST}/screenname.php`, {
                 params: { screenname: username },
                 headers: {
-                    "x-rapidapi-key": process.env.RAPID_API_KEY,
-                    "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+                    "x-rapidapi-key": process.env.TWITTER_API_KEY,
+                    "x-rapidapi-host": process.env.TWITTER_API_HOST,
                 },
             });
             // If we successfully get an avatar, return immediately
@@ -217,11 +217,11 @@ async function fetchAndStoreTweets(categories) {
         for (const screenName of screenNames) {
             try {
                 // Make the API call to fetch tweets
-                const response = await axios_1.default.get("https://twitter-api45.p.rapidapi.com/timeline.php", {
+                const response = await axios_1.default.get(`https://${process.env.TWITTER_API_HOST}/timeline.php`, {
                     params: { screenname: screenName },
                     headers: {
-                        "x-rapidapi-key": process.env.RAPID_API_KEY || "",
-                        "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+                        "x-rapidapi-key": process.env.TWITTER_API_KEY,
+                        "x-rapidapi-host": process.env.TWITTER_API_HOST,
                     },
                 });
                 // Process tweets: Sort by likes and get the top 15
@@ -288,7 +288,7 @@ async function generateNewsletter(tweetsByCategory, top15Tweets) {
                     "8. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.\n" +
                     "9. **Use emojis often** to add emphasis and excitement to the newsletter.\n" +
                     "10. **Format the newsletter as bullet points** for each category.\n" +
-                    "11. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.\n" +
+                    "11. **Restrict yourself to only the information explicitly included in the tweets**—don't add outside information or opinions.\n" +
                     "12. **Ensure bullet points are separated by category** and well-structured.\n" +
                     "13. Instead of `this weeks' say 'todays'. Instead of 'tweet' say 'post'. Instead of twitter say 'X'. Don't say the word 'whirlwind' \n" +
                     "14. Make sure you don't purely sounds like AI, you must sound as humanly as possible \n" +
@@ -413,12 +413,54 @@ async function sendNewsletterEmail(user, newsletter) {
     const savedNewsletter = await newNewsletter.save();
     // Short link for the newsletter
     const shortLink = `${process.env.ORIGIN}/readnewsletter?newsletter=${savedNewsletter._id}`;
-    // Encode the newsletter content for sharing via email
-    const encodedNewsletterContent = encodeURIComponent(newsletter);
-    // Share buttons with individual lines and additional spacing
-    const shareButtons = `
-    <div style="text-align: center; margin-top: 20px;">
-      <p>Share this newsletter with your friends <a href="${shortLink}"><em>${shortLink}</em></a></p>
+    // Construct Share on X URL
+    const shareText = encodeURIComponent(`📢 Read today's newsletter at FeedRecap! 🚀\n\n${shortLink}`);
+    const shareOnXLink = `https://twitter.com/intent/tweet?text=${shareText}`;
+    // X Mobile Deep Link (opens in X app if installed)
+    const shareOnXMobile = `twitter://post?message=${shareText}`;
+    // Unsubscribe link
+    const unsubscribeLink = `${process.env.ORIGIN}/unsubscribe?email=${encodeURIComponent(user.email)}`;
+    const emailTemplate = `
+<div style="color: #333; font-family: Verdana, sans-serif; margin: auto; border-radius: 12px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);">      
+      <!-- Newsletter Content -->
+      <div style="background: white; border-radius: 10px; margin-top: 20px; font-size: 16px; line-height: 1.6; color: #333; box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.05);">
+        ${newsletter}
+      </div>
+
+      <!-- Call to Action -->
+      <div style="text-align: center; margin-top: 30px;">
+        <p style="color: #666;">Share it with your friends 📲</p>
+        <a href="${shortLink}" 
+          style="background: #00A8E8; color: #000; padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block; margin-top: 10px; transition: all 0.3s ease-in-out;">
+          📩 Read & Share
+        </a>
+      </div>
+
+      <!-- Share on X -->
+  <div style="text-align: center; margin-top: 20px;">
+    <p style="color: #666;">🚀 Spread the word on X</p>
+    <a href="${shareOnXLink}" 
+      onclick="event.preventDefault(); if(navigator.userAgent.match(/(iPhone|iPod|iPad|Android)/i)){ window.location.href='${shareOnXMobile}'; setTimeout(() => { window.location.href='${shareOnXLink}'; }, 1000); } else { window.location.href='${shareOnXLink}'; }"
+      style="background: #00A8E8; color: #000; padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block; margin-top: 10px; transition: all 0.3s ease-in-out;">
+      Share on X
+    </a>
+  </div>
+
+      <!-- Divider -->
+      <hr style="margin: 30px 0; border: 0.5px solid #DDD;">
+
+      <!-- Unsubscribe -->
+      <div style="text-align: center; font-size: 14px; color: #777; margin-top: 20px;">
+        <p><a href="${unsubscribeLink}" style="color: #00A8E8; text-decoration: none;">Click here to unsubscribe</a></p>
+      </div>
+
+      <!-- Social Media Footer -->
+      <div style="text-align: center; font-size: 14px; color: #777; margin-top: 20px;">
+        <p>Stay updated on</p>
+        <a href="https://x.com/FeedRecap" style="color: #00A8E8; text-decoration: none; margin: 0 10px;"> X </a> |
+        <a href="https://feedrecap.com" style="color: #00A8E8; text-decoration: none; margin: 0 10px;"> FeedRecap </a>
+        <p style="margin-top: 20px;">© 2025 FeedRecap. All Rights Reserved</p>
+      </div>
     </div>
   `;
     const msg = {
@@ -427,17 +469,16 @@ async function sendNewsletterEmail(user, newsletter) {
             email: process.env.FROM_EMAIL || "",
             name: "FeedRecap",
         },
-        subject: "Your personalized newsletter from FeedRecap 👋",
-        html: `${newsletter} ${shareButtons}`,
+        subject: "🚀 Your FeedRecap Newsletter Just Landed!",
+        html: emailTemplate,
     };
     try {
         await mail_1.default.send(msg);
         console.log(`✅ [Email Sent]: Newsletter sent to ${user.email}`);
         // Save the generated newsletter in the user's document
-        user.newsletter = newsletter; // Save the updated newsletter
+        user.newsletter = newsletter;
         user.totalnewsletter = (user.totalnewsletter || 0) + 1;
         await user.save();
-        // console.log(`✅ [Database Updated]: Newsletter saved for ${user.email}`);
     }
     catch (error) {
         console.error(`❌ [Error]: Error sending email to ${user.email}:`, error);
@@ -631,6 +672,19 @@ const sendDigest = async () => {
     catch (error) {
         console.error(`❌ [Error]: Error Sending Total User count`);
     }
+    const msg3 = {
+        to: "support@overtonnews.com",
+        from: process.env.FROM_EMAIL || "",
+        subject: `Automated FeedRecap's total user count update`,
+        text: digestMessage,
+    };
+    try {
+        await mail_1.default.send(msg3);
+        // console.log(`✅ [Email Sent]: Total User count`);
+    }
+    catch (error) {
+        console.error(`❌ [Error]: Error Sending Total User count`);
+    }
 };
 // Run the task every 4 hours
 node_cron_1.default.schedule("0 */6 * * *", () => {
@@ -644,11 +698,11 @@ async function fetchAndStoreTweetsForProfiles(profiles) {
     for (const profile of profiles) {
         try {
             console.log(`🔄 [Fetching Fresh Tweets]: Fetching tweets for ${profile}`);
-            const response = await axios_1.default.get("https://twitter-api45.p.rapidapi.com/timeline.php", {
+            const response = await axios_1.default.get(`https://${process.env.TWITTER_API_HOST}/timeline.php`, {
                 params: { screenname: profile },
                 headers: {
-                    "x-rapidapi-key": process.env.RAPID_API_KEY || "",
-                    "x-rapidapi-host": "twitter-api45.p.rapidapi.com",
+                    "x-rapidapi-key": process.env.TWITTER_API_KEY,
+                    "x-rapidapi-host": process.env.TWITTER_API_HOST,
                 },
             });
             // console.log(
@@ -723,7 +777,7 @@ async function getStoredTweetsForUser(userId) {
             screenName: { $in: user.profiles },
         }).exec();
         if (!posts.length) {
-            console.warn(`⚠️ No stored tweets found for user’s profiles.`);
+            console.warn(`⚠️ No stored tweets found for user's profiles.`);
             return { tweetsByProfiles, top15Tweets: [] };
         }
         for (const post of posts) {
@@ -789,7 +843,7 @@ async function generateCustomProfileNewsletter(tweetsByProfiles, top15Tweets) {
                     "6. **Do NOT cite sources**—just summarize the tweets without citations.\n" +
                     "7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.\n" +
                     "8. **Use emojis often** to add emphasis and excitement to the newsletter.\n" +
-                    "9. **Restrict yourself to only the information explicitly included in the tweets**—don’t add outside information or opinions.\n" +
+                    "9. **Restrict yourself to only the information explicitly included in the tweets**—don't add outside information or opinions.\n" +
                     "10. Instead of `this weeks' say 'todays'. Instead of 'tweet' say 'post'. Instead of twitter say 'X'. Don't say the word 'whirlwind' \n" +
                     "11. Make sure you don't purely sounds like AI, you must sound as humanly as possible \n" +
                     "12. **Make sure each heading (bold) and its content has consistent font, size, and style. **\n\n",
