@@ -119,8 +119,6 @@ export default function Dashboard() {
   const [selectedTab, setSelectedTab] = useState("newsfeed");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
-  // const [visiblePosts, setVisiblePosts] = useState(20);
-  // const [showAllPosts, setShowAllPosts] = useState(false);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [newProfile, setNewProfile] = useState("");
   const [wise, setWise] = useState<"categorywise" | "customProfiles">(
@@ -677,30 +675,6 @@ export default function Dashboard() {
     }
   };
 
-  // Add this debounced search function for Twitter username
-  const debouncedTwitterSearch = useCallback(
-    _.debounce(async (keyword: string) => {
-      try {
-        if (cache[keyword]) {
-          setTwitterSuggestions(cache[keyword]);
-          setLoadingTwitterSuggestions(false);
-        } else {
-          const fetchedSuggestions = await fetchSuggestions(keyword);
-          setTwitterSuggestions(fetchedSuggestions);
-          setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
-        }
-      } catch (error) {
-        console.error("Error fetching Twitter suggestions:", error);
-        setTwitterSuggestions([]);
-      } finally {
-        setLoadingTwitterSuggestions(false);
-      }
-
-      setShowTwitterDropdown(true);
-    }, 300),
-    [cache]
-  );
-
   // Add this function to handle Twitter username input changes
   const handleTwitterUsernameChange = (
     event: ChangeEvent<HTMLInputElement>
@@ -709,12 +683,6 @@ export default function Dashboard() {
     // Remove @ if it's at the beginning of the input
     const cleanedInput = input.startsWith("@") ? input.substring(1) : input;
     setTwitterUsername(cleanedInput);
-  };
-
-  // Add this function to handle selecting a Twitter username suggestion
-  const handleSelectTwitterUsername = (username: string) => {
-    setTwitterUsername(username);
-    setShowTwitterDropdown(false);
   };
 
   const handleProfileUpdateFn = async () => {
@@ -782,50 +750,11 @@ export default function Dashboard() {
     }
   };
 
-  // Add this function after the other handler functions
-  const handleResetFilters = () => {
-    setSortBy("time");
-    setSortOrder("desc");
-    setFilterMinLikes(null);
-    setSelectedCategory(null);
-    setSelectedProfile(null);
-  };
-
-  const handleTimezoneUpdate = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/updateTimezone`,
-        {
-          email: emailContext,
-          timezone,
-        }
-      );
-      setLoading(false);
-      if (response.data.code === 0)
-        showNotification("Timezone Updated", "success");
-      else showNotification("Server Error", "error");
-    } catch (err) {
-      showNotification("Server Error", "error");
-    }
-  };
-
-  const SpinnerWithMessage = ({ message }: { message: string }) => {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-        <div className="bg-[#111] p-6 rounded-lg shadow-xl text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#7FFFD4] mx-auto mb-4"></div>
-          <p className="text-[#7FFFD4]">{message}</p>
-        </div>
-      </div>
-    );
-  };
-
   const SkeletonLoader = () => {
     return (
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-4">
         {/* Navigation Skeleton */}
-        <div className="mb-8 flex items-center justify-center border-b border-gray-800 pb-4">
+        <div className="flex items-center justify-center border-b border-gray-800 pb-4">
           <div className="flex gap-8">
             <div className="h-8 w-20 rounded-md bg-gray-800"></div>
             <div className="h-8 w-20 rounded-md bg-gray-800"></div>
@@ -834,7 +763,7 @@ export default function Dashboard() {
         </div>
 
         {/* Filter Skeleton */}
-        <div className="mb-6 flex overflow-x-auto gap-2 px-8">
+        <div className="mt-4 mb-6 flex overflow-x-auto gap-2 px-8">
           <div className="h-10 w-32 flex-shrink-0 rounded-full bg-gray-800"></div>
           <div className="h-10 w-28 flex-shrink-0 rounded-full bg-gray-800"></div>
           <div className="h-10 w-28 flex-shrink-0 rounded-full bg-gray-800"></div>
@@ -1129,38 +1058,6 @@ export default function Dashboard() {
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
-
-  const formatNewsletter = (newsletter: string | null): string => {
-    if (!newsletter) return "<p>No newsletters available.</p>";
-
-    // Find the "TOP POSTS OF TODAY" section
-    const topPostsIndex = newsletter.indexOf("TOP POSTS OF TODAY:");
-    if (topPostsIndex === -1) return newsletter; // If no top posts section, return as is
-
-    // Split newsletter into before and after "TOP POSTS OF TODAY"
-    const beforeTopPosts = newsletter.slice(0, topPostsIndex);
-    const topPostsSection = newsletter.slice(topPostsIndex);
-
-    // Extract each post that ends with "View Post"
-    const postRegex = /^(.*?View Post)$/gm;
-    const postLines = Array.from(topPostsSection.matchAll(postRegex)).map(
-      (match) => match[0]
-    );
-
-    // Convert to an ordered list format
-    const numberedPosts = postLines
-      .map((line, index) => `<li>${line.trim()}</li>`)
-      .join("");
-
-    // Replace old list with new `<ol>` format
-    return `
-    ${beforeTopPosts}
-    <h3>TOP POSTS OF TODAY:</h3>
-    <ol>
-      ${numberedPosts}
-    </ol>
-  `;
   };
 
   // ✅ Utility function to detect iOS devices
