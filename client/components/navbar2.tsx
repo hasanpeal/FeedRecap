@@ -33,7 +33,7 @@ export default function Navbar2() {
           params: { email: emailContext },
         }
       );
-      if (response.data.code === 0) {
+      if (response.status === 200) {
         setFirstName(response.data.firstName || "");
         setLastName(response.data.lastName || "");
         setEmail(emailContext);

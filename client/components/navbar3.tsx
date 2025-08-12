@@ -8,7 +8,7 @@ import { useEmail } from "@/context/UserContext";
 import axios from "axios";
 import emailjs from "@emailjs/browser";
 import { Toaster, toast } from "react-hot-toast";
-import { useNotification } from "@/utils/notifications"
+import { useNotification } from "@/utils/notifications";
 
 export default function Navbar2() {
   const router = useRouter();
@@ -35,7 +35,7 @@ export default function Navbar2() {
           params: { email: emailContext },
         }
       );
-      if (response.data.code === 0) {
+      if (response.status === 200) {
         setFirstName(response.data.firstName || "");
         setLastName(response.data.lastName || "");
         setEmail(emailContext);
@@ -65,7 +65,7 @@ export default function Navbar2() {
         }
       );
 
-      if (response.data.code === 0) {
+      if (response.status === 200) {
         toast.success("Account updated successfully");
         setEmailContext(email);
         localStorage.setItem("email", email);
@@ -85,7 +85,7 @@ export default function Navbar2() {
         {},
         { withCredentials: true }
       );
-      if (response.data.code === 0) {
+      if (response.status === 200) {
         localStorage.removeItem("cookieConsent");
         localStorage.removeItem("email");
         router.push("/");
@@ -147,7 +147,7 @@ export default function Navbar2() {
     };
   }, [menuOpen]);
 
-  function handleReload(){
+  function handleReload() {
     window.location.reload();
   }
 
@@ -155,7 +155,11 @@ export default function Navbar2() {
     <header className="bg-black border-b border-gray-800">
       <Toaster />
       <div className="py-4 px-6 flex items-center justify-between max-w-7xl mx-auto">
-        <Link href="/dashboard" className="flex items-center" onClick={handleReload}>
+        <Link
+          href="/dashboard"
+          className="flex items-center"
+          onClick={handleReload}
+        >
           <span className="text-3xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
               Feed

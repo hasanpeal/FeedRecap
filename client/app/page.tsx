@@ -73,9 +73,9 @@ export default function Home() {
           }
         );
 
-        if (response.data.code == 0 && response.data.isNewUser)
+        if (response.status === 200 && response.data.isNewUser)
           router.push("/newuser");
-        else if (response.data.code == 0 && !response.data.isNewUser)
+        else if (response.status === 200 && !response.data.isNewUser)
           router.push("/dashboard");
       }
     };
@@ -246,18 +246,18 @@ export default function Home() {
                 >
                   <g
                     fill="#7fffd4"
-                    fill-rule="nonzero"
+                    fillRule="nonzero"
                     stroke="none"
-                    stroke-width="1"
-                    stroke-linecap="butt"
-                    stroke-linejoin="miter"
-                    stroke-miterlimit="10"
-                    stroke-dasharray=""
-                    stroke-dashoffset="0"
-                    font-family="none"
-                    font-weight="none"
-                    font-size="none"
-                    text-anchor="none"
+                    strokeWidth="1"
+                    strokeLinecap="butt"
+                    strokeLinejoin="miter"
+                    strokeMiterlimit="10"
+                    strokeDasharray=""
+                    strokeDashoffset="0"
+                    fontFamily="none"
+                    fontWeight="none"
+                    fontSize="none"
+                    textAnchor="none"
                     style={{ mixBlendMode: "normal" }}
                   >
                     <g transform="scale(10.66667,10.66667)">
