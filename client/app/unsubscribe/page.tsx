@@ -28,7 +28,7 @@ export default function Unsubscribe() {
           `${process.env.NEXT_PUBLIC_SERVER}/updateTimes`,
           { email, time: [] } // Empty array to indicate unsubscription
         );
-        if (response.data.code === 0) {
+        if (response.status === 200) {
           setStatus("success");
         } else {
           setStatus("error");

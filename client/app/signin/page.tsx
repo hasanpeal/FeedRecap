@@ -7,7 +7,6 @@ import Link from "next/link";
 import { Eye, Mail, Lock } from "lucide-react";
 import { useEmail } from "@/context/UserContext";
 import Navbar2 from "@/components/navbar2";
-import Footer from "@/components/footer";
 
 export default function Signin() {
   const [email, setEmail] = useState("");
@@ -95,18 +94,7 @@ export default function Signin() {
       const savedEmail = localStorage.getItem("email");
       if (savedEmail) {
         setEmailContext(savedEmail);
-        // const response = await axios.get(
-        //   `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
-        //   {
-        //     params: { email: savedEmail },
-        //   }
-        // );
-
-        // if (response.data.code == 0 && response.data.isNewUser)
-        //   router.push("/newuser");
-        // else if (response.data.code == 0 && !response.data.isNewUser)
         router.push("/dashboard");
-        // else setFormErrors((prev) => ({ ...prev, password: "Server Error" }));
       }
     };
     storage();
@@ -120,8 +108,8 @@ export default function Signin() {
           params: { email: email },
         }
       );
-      const code = result.data.code;
-      return code !== 0;
+      // Email doesn't exist if status is 404, exists if status is 200
+      return result.status === 404;
     } catch (err) {
       return true;
     }
@@ -137,26 +125,32 @@ export default function Signin() {
             password,
           }
         );
-        const { code, message } = result.data;
-        if (code === 0) {
+        if (result.status === 200) {
           setEmailContext(email);
           router.push("/dashboard");
         } else {
           setFormErrors((prev) => ({
             ...prev,
-            password: message || "Invalid email or password",
+            password: "Invalid email or password",
           }));
           setTimeout(
             () => setFormErrors((prev) => ({ ...prev, password: "" })),
             3000
           );
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error in handleLogin function in Login.tsx");
-        setFormErrors((prev) => ({
-          ...prev,
-          password: "An error occurred. Please try again.",
-        }));
+        if (err.response?.status === 401) {
+          setFormErrors((prev) => ({
+            ...prev,
+            password: err.response.data.message || "Invalid email or password",
+          }));
+        } else {
+          setFormErrors((prev) => ({
+            ...prev,
+            password: "An error occurred. Please try again.",
+          }));
+        }
         setTimeout(
           () => setFormErrors((prev) => ({ ...prev, password: "" })),
           3000
@@ -345,7 +339,7 @@ export default function Signin() {
             newPassword: confirmNewPassword,
           }
         );
-        if (result.data.code === 0) {
+        if (result.status === 200) {
           setFormErrors((prev) => ({
             ...prev,
             password: "Password reset successful",
@@ -354,16 +348,24 @@ export default function Signin() {
           setTimeout(() => {
             window.location.reload();
           }, 1000);
-        } else
+        } else {
           setFormErrors((prev) => ({
             ...prev,
             password: "Error resetting password",
           }));
-      } catch (err) {
-        setFormErrors((prev) => ({
-          ...prev,
-          password: "Error resetting password",
-        }));
+        }
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          setFormErrors((prev) => ({
+            ...prev,
+            password: "User doesn't exist",
+          }));
+        } else {
+          setFormErrors((prev) => ({
+            ...prev,
+            password: "Error resetting password",
+          }));
+        }
       }
     } else {
       setTimeout(() => {

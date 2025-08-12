@@ -7,7 +7,6 @@ import { Eye, Mail, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEmail } from "@/context/UserContext";
 import Navbar from "@/components/navbar";
-import Footer from "@/components/footer";
 
 const Signup: React.FC = () => {
   const [flag, setFlag] = useState(true);
@@ -37,18 +36,7 @@ const Signup: React.FC = () => {
       const savedEmail = localStorage.getItem("email");
       if (savedEmail) {
         setEmailContext(savedEmail);
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
-          {
-            params: { email: savedEmail },
-          }
-        );
-
-        // if (response.data.code == 0 && response.data.isNewUser)
-        //   router.push("/newuser");
-        // else if (response.data.code == 0 && !response.data.isNewUser)
         router.push("/dashboard");
-        // else toast.error("Server Error");
       }
     };
     storage();
@@ -88,9 +76,8 @@ const Signup: React.FC = () => {
           params: { email: email },
         }
       );
-      const code = result.data.code;
-      if (code === 0) return true;
-      else return false;
+      // Email exists if status is 200, doesn't exist if status is 404
+      return result.status === 200;
     } catch (err) {
       console.error("Error in emailAlreadyExist function");
       return false;
@@ -166,13 +153,19 @@ const Signup: React.FC = () => {
             }
           );
 
-          if (result.data.code == 0) {
+          if (result.status === 201) {
             setEmailContext(email);
             router.push("/dashboard");
-          } else toast.error("Server error");
-        } catch (error) {
+          } else {
+            toast.error("Server error");
+          }
+        } catch (error: any) {
           console.error(error);
-          toast.error("An error occurred during signup");
+          if (error.response?.status === 409) {
+            toast.error("User already exists");
+          } else {
+            toast.error("An error occurred during signup");
+          }
         }
       } else {
         setVerified(true);
@@ -211,56 +204,6 @@ const Signup: React.FC = () => {
 
             {flag && (
               <div className="space-y-4">
-                {/* <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    First Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      className={`w-full bg-black border ${
-                        formErrors.firstName
-                          ? "border-red-500"
-                          : "border-gray-700"
-                      } rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] transition-colors`}
-                      placeholder="Enter your first name"
-                      value={firstName}
-                      onChange={(event) => setFirstName(event.target.value)}
-                    />
-                  </div>
-                  {formErrors.firstName && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {formErrors.firstName}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Last Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      className={`w-full bg-black border ${
-                        formErrors.lastName
-                          ? "border-red-500"
-                          : "border-gray-700"
-                      } rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] transition-colors`}
-                      placeholder="Enter your last name"
-                      value={lastName}
-                      onChange={(event) => setLastName(event.target.value)}
-                    />
-                  </div>
-                  {formErrors.lastName && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {formErrors.lastName}
-                    </p>
-                  )}
-                </div> */}
-
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
                     Email

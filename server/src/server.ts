@@ -2,35 +2,30 @@ import express from "express";
 import bodyParser from "body-parser";
 import env from "dotenv";
 import passport from "passport";
-import db from "./db";
 import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
 import cors from "cors";
 import sgMail from "@sendgrid/mail";
 import RedisStore from "connect-redis";
 import { createClient } from "redis";
-import { Client } from "pg";
 import bcrypt from "bcrypt";
-import Mailjet from "node-mailjet";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import mongoose from "mongoose";
 import { User } from "./userModel";
 import "./digest";
-import dbTweet from "./dbTweet";
 import { Newsletter } from "./newsletterModel";
 import {
   fetchTweetsForCategories,
   generateNewsletter,
   sendNewsletterEmail,
-  ITweet,
-  tweetSchema,
-  StoredTweets,
   fetchAndStoreTweetsForProfiles,
   generateCustomProfileNewsletter,
-  CustomProfilePosts,
-  fetchAndStoreTweets,
   getStoredTweetsForUser,
 } from "./digest";
+import {
+  StoredTweets,
+  CustomProfilePosts,
+} from "./tweetModel";
 
 env.config();
 const app = express();
@@ -97,7 +92,6 @@ passport.use(
 );
 
 passport.serializeUser((user, done) => {
-  // Explicitly cast the user object to have an id property
   done(null, (user as any).id);
 });
 
@@ -321,56 +315,6 @@ app.post("/saveX", async (req, res) => {
   }
 });
 
-// Route to get posts by user-selected categories
-app.get("/api/posts", async (req, res) => {
-  // console.log("Posts routes called");
-  const { email } = req.query;
-
-  if (!email) {
-    return res
-      .status(400)
-      .json({ error: "Email query parameter is required", code: 1 });
-  }
-
-  try {
-    // Fetch the user by email to get their selected categories
-    const user = await User.findOne({ email }).select("categories");
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found", code: 1 });
-    }
-
-    const selectedCategories = user.categories;
-
-    // Fetch posts from StoredTweets based on user's selected categories
-    const posts = await StoredTweets.find({
-      category: { $in: selectedCategories },
-    }).select("screenName createdAt tweets category avatar");
-
-    // console.log("Posts coming from server", posts)
-    // Format the data to return an array of tweets with necessary fields
-    const formattedPosts = posts.flatMap((post) => {
-      return post.tweets.map((tweet) => ({
-        username: post.screenName,
-        time: tweet.createdAt,
-        likes: tweet.likes,
-        category: post.category,
-        text: tweet.text,
-        avatar: post.avatar,
-        tweet_id: tweet.tweet_id,
-      }));
-    });
-
-    // Respond with the formatted data, adding code: 0 to indicate success
-    res.status(200).json({ data: formattedPosts, code: 0 });
-  } catch (error) {
-    console.error("Error fetching posts:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while fetching posts", code: 1 });
-  }
-});
-
 app.get("/newsletter/:id", async (req, res) => {
   try {
     const newsletter = await Newsletter.findById(req.params.id);
@@ -462,30 +406,6 @@ app.post("/updateProfiles", async (req, res) => {
   }
 });
 
-app.get("/getProfiles", async (req, res) => {
-  const { email } = req.query;
-
-  try {
-    const user = await User.findOne({ email }).select("profiles").exec();
-    if (user) {
-      return res.status(200).json({
-        code: 0,
-        profiles: user.profiles || [],
-      });
-    } else {
-      return res.status(200).json({
-        code: 1,
-        message: "User not found",
-      });
-    }
-  } catch (err) {
-    console.error("Error fetching profiles:", err);
-    return res.status(200).json({
-      code: 1,
-      message: "Error fetching profiles",
-    });
-  }
-});
 
 app.post("/updateFeedType", async (req, res) => {
   const { email, wise, categories, profiles } = req.body;
@@ -560,96 +480,13 @@ app.post("/updateFeedType", async (req, res) => {
   }
 });
 
-app.get("/getWise", async (req, res) => {
-  const { email } = req.query;
-
-  try {
-    const user = await User.findOne({ email }).select("wise").exec();
-    // console.log("users wise", user?.wise)
-    if (user) {
-      return res.status(200).json({
-        code: 0,
-        wise: user.wise,
-      });
-    } else {
-      return res.status(200).json({
-        code: 1,
-        message: "User not found",
-      });
-    }
-  } catch (err) {
-    console.error("Error fetching feed type (wise):", err);
-    return res.status(200).json({
-      code: 1,
-      message: "Error fetching feed type (wise)",
-    });
-  }
-});
-
-// Route to get posts by user-selected custom profiles
-app.get("/api/customPosts", async (req, res) => {
-  // console.log("Custom Posts route");
-  const { email } = req.query;
-
-  if (!email) {
-    return res
-      .status(400)
-      .json({ error: "Email query parameter is required", code: 1 });
-  }
-
-  try {
-    // Fetch the user by email to get their selected profiles
-    const user = await User.findOne({ email }).select("profiles");
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found", code: 1 });
-    }
-
-    const selectedProfiles = user.profiles;
-
-    if (!selectedProfiles || selectedProfiles.length === 0) {
-      return res
-        .status(200)
-        .json({ data: [], message: "No custom profiles selected", code: 0 });
-    }
-
-    // Fetch posts from CustomProfilePosts based on user's selected custom profiles
-    const posts = await CustomProfilePosts.find({
-      screenName: { $in: selectedProfiles },
-    }).select("screenName tweets avatar");
-
-    // Format the data to return an array of tweets with necessary fields
-    const formattedPosts = posts.flatMap((post) =>
-      post.tweets.map((tweet) => ({
-        username: post.screenName,
-        time: tweet.createdAt, // Use the `createdAt` from the tweet object
-        likes: tweet.likes,
-        text: tweet.text,
-        avatar: post.avatar,
-        tweet_id: tweet.tweet_id,
-      }))
-    );
-
-    // Respond with the formatted data, adding code: 0 to indicate success
-    res.status(200).json({ data: formattedPosts, code: 0 });
-  } catch (error) {
-    console.error("Error fetching custom posts:", error);
-    res.status(500).json({
-      error: "An error occurred while fetching custom posts",
-      code: 1,
-    });
-  }
-});
-
 // Login route
 app.post("/login", (req, res, next) => {
-  // console.log("Directed to POST Route -> /login");
   passport.authenticate("local", (err: any, user: any, info: any) => {
     if (err) return next(err);
     if (!user) return res.status(200).json({ code: 1, message: info.message });
     req.logIn(user, (err) => {
       if (err) return next(err);
-      // console.log("Login success");
       return res.status(200).json({ code: 0, message: "Login successful" });
     });
   })(req, res, next);
@@ -657,7 +494,6 @@ app.post("/login", (req, res, next) => {
 
 // Logout route
 app.post("/logout", (req, res) => {
-  // console.log("Directed to POST Route -> /logout");
   req.logout((err) => {
     if (err) {
       return res.status(200).json({ code: 1, message: "Error logging out" });
@@ -688,212 +524,6 @@ app.get("/validateEmail", async (req, res) => {
     res.status(500).json({ code: 1, message: "Error validating email" });
   }
 });
-
-// Check is new user
-// Route to check if the user is new or not
-app.get("/isNewUser", async (req, res) => {
-  const email: string = req.query.email as string;
-
-  try {
-    // Find the user by email
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      // If the user is not found, send code 2 (indicating an error)
-      return res.status(200).json({ code: 2, message: "User not found" });
-    }
-
-    // Check the value of isNewUser and send the corresponding response
-    if (user.isNewUser) {
-      return res.status(200).json({ code: 0, message: "User is new" });
-    } else {
-      return res.status(200).json({ code: 1, message: "User is not new" });
-    }
-  } catch (err) {
-    // Handle any unexpected errors
-    // console.log("Error checking isNewUser:", err);
-    return res.status(200).json({ code: 2, message: "Error occurred" });
-  }
-});
-
-// app.post("/updateUserPreferences", async (req, res) => {
-//   const { email, categories, time, timezone } = req.body;
-
-//   try {
-//     console.log(email, categories, time, timezone);
-//     // Find the user by email and update their categories, times, and timezone
-//     const updatedUser = await User.findOneAndUpdate(
-//       { email },
-//       {
-//         categories,
-//         time, // Assuming 'time' refers to the array of times
-//         timezone,
-//         isNewUser: false,
-//       },
-//       { new: true } // Return the updated document
-//     );
-
-//     console.log(updatedUser);
-//     if (updatedUser) {
-//       // Asynchronous operation to generate and send the newsletter
-//       (async () => {
-//         try {
-//           // Fetch the latest tweets based on the newly updated preferences
-//           const { tweetsByCategory, top15Tweets } =
-//             await fetchTweetsForCategories(categories);
-
-//           // Generate the newsletter
-//           const newsletter = await generateNewsletter(
-//             tweetsByCategory,
-//             top15Tweets
-//           );
-
-//           if (newsletter) {
-//             // Send the generated newsletter to the updated user
-//             await sendNewsletterEmail(updatedUser, newsletter);
-//             console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
-//           } else {
-//             console.error(
-//               `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
-//             );
-//           }
-//         } catch (err) {
-//           console.error(
-//             `❌ [Error]: Error generating or sending newsletter for ${email}:`,
-//             err
-//           );
-//         }
-//       })(); // Immediately invoked async function
-
-//       return res
-//         .status(200)
-//         .json({ code: 0, message: "User preferences updated successfully" });
-//     } else {
-//       return res.status(200).json({ code: 1, message: "User not found" });
-//     }
-//   } catch (err) {
-//     console.log("Error updating user preferences:", err);
-//     return res
-//       .status(200)
-//       .json({ code: 1, message: "Error updating user preferences" });
-//   }
-// });
-
-// app.post("/updateUserPreferences", async (req, res) => {
-//   const { email, categories, time, timezone, wise, profiles } = req.body;
-
-//   try {
-//     // console.log(email, categories, time, timezone, wise, profiles);
-
-//     // Define fields to update dynamically
-//     const updateFields: any = {
-//       time, // Update time preferences
-//       timezone, // Update timezone
-//       wise, // Update feed type (categorywise or customProfiles)
-//       isNewUser: false, // Mark user as no longer new
-//     };
-
-//     // Handle categorywise and customProfiles cases
-//     if (wise === "categorywise") {
-//       updateFields.categories = categories || []; // Update categories
-//       updateFields.profiles = []; // Clear profiles if switching to categorywise
-//     } else if (wise === "customProfiles") {
-//       updateFields.profiles = profiles || []; // Update profiles
-//       updateFields.categories = []; // Clear categories if switching to customProfiles
-//     }
-
-//     // Update user preferences in the database
-//     const updatedUser = await User.findOneAndUpdate(
-//       { email },
-//       updateFields,
-//       { new: true } // Return the updated document
-//     );
-
-//     // console.log(updatedUser);
-
-//     if (updatedUser) {
-//       // Asynchronous operation to generate and send the newsletter
-//       if (wise === "categorywise") {
-//         (async () => {
-//           try {
-//             // Fetch the latest tweets based on the updated categories
-//             const { tweetsByCategory, top15Tweets } =
-//               await fetchTweetsForCategories(categories);
-
-//             // Generate the newsletter
-//             const newsletter = await generateNewsletter(
-//               tweetsByCategory,
-//               top15Tweets
-//             );
-
-//             if (newsletter) {
-//               // Send the generated newsletter to the updated user
-//               await sendNewsletterEmail(updatedUser, newsletter);
-//               // console.log(`✅ [Newsletter Sent]: Newsletter sent to ${email}`);
-//             } else {
-//               console.error(
-//                 `❌ [Newsletter Generation Error]: Failed to generate newsletter for ${email}`
-//               );
-//             }
-//           } catch (err) {
-//             console.error(
-//               `❌ [Error]: Error generating or sending newsletter for ${email}:`,
-//               err
-//             );
-//           }
-//         })(); // Immediately invoked async function
-//       }
-
-//       // Leave customProfiles implementation to you
-//       if (wise === "customProfiles") {
-//         (async () => {
-//           try {
-//             // Fetch the latest tweets for the selected profiles
-//             const { tweetsByProfiles, top15Tweets } =
-//               await fetchTweetsForProfiles(
-//                 profiles,
-//                 updatedUser._id as mongoose.Types.ObjectId
-//               );
-
-//             // Generate the newsletter for custom profiles
-//             const newsletter = await generateCustomProfileNewsletter(
-//               tweetsByProfiles,
-//               top15Tweets
-//             );
-
-//             if (newsletter) {
-//               // Send the generated newsletter to the updated user
-//               await sendNewsletterEmail(updatedUser, newsletter);
-//               // console.log(
-//               //   `✅ [Newsletter Sent]: Custom profiles newsletter sent to ${email}`
-//               // );
-//             } else {
-//               console.error(
-//                 `❌ [Newsletter Generation Error]: Failed to generate custom profiles newsletter for ${email}`
-//               );
-//             }
-//           } catch (err) {
-//             console.error(
-//               `❌ [Error]: Error generating or sending custom profiles newsletter for ${email}:`,
-//               err
-//             );
-//           }
-//         })(); // Immediately invoked async function
-//       }
-
-//       return res
-//         .status(200)
-//         .json({ code: 0, message: "User preferences updated successfully" });
-//     } else {
-//       return res.status(200).json({ code: 1, message: "User not found" });
-//     }
-//   } catch (err) {
-//     console.error("Error updating user preferences:", err);
-//     return res
-//       .status(500)
-//       .json({ code: 1, message: "Error updating user preferences" });
-//   }
-// });
 
 // Register route
 app.post("/register", async (req, res) => {
@@ -1205,7 +835,6 @@ app.get("/getCookieConsent", (req, res) => {
 
 // Route to update cookie consent
 app.post("/updateCookieConsent", (req, res) => {
-  // console.log("Directed to POST Route -> /updateCookieConsent");
   const { consent } = req.body;
 
   // Store consent in session
@@ -1216,115 +845,12 @@ app.post("/updateCookieConsent", (req, res) => {
 
 // Check session route
 app.get("/check-session", (req, res) => {
-  // console.log("Directed to get route to check session");
   if (req.isAuthenticated()) {
-    // console.log("User is authenticated");
     const user = req.user as { email: string };
     const email = user.email;
     res.status(200).json({ isAuthenticated: true, email });
   } else {
-    // console.log("User is not authenticated");
     res.status(200).json({ isAuthenticated: false });
-  }
-});
-
-// Get Total Newsletters
-app.get("/getTotalNewsletters", async (req, res) => {
-  // console.log("/getTotalNewsletters");
-  const email: string = req.query.email as string;
-
-  try {
-    const user = await User.findOne({ email }, "totalnewsletter"); // Fetch only the 'totalnewsletter' field
-    if (user) {
-      return res
-        .status(200)
-        .json({ code: 0, totalnewsletter: user.totalnewsletter });
-    } else {
-      return res.status(200).json({ code: 1, message: "User not found" });
-    }
-  } catch (err) {
-    console.log("Error fetching total newsletters:", err);
-    return res
-      .status(200)
-      .json({ code: 2, message: "Error fetching total newsletters" });
-  }
-});
-
-// Get Categories array
-app.get("/getCategories", async (req, res) => {
-  // console.log("/getCategories");
-  const email: string = req.query.email as string;
-
-  try {
-    const user = await User.findOne({ email }, "categories"); // Fetch only the 'categories' field
-    if (user) {
-      return res.status(200).json({ code: 0, categories: user.categories });
-    } else {
-      return res.status(200).json({ code: 1, message: "User not found" });
-    }
-  } catch (err) {
-    console.log("Error fetching categories:", err);
-    return res
-      .status(200)
-      .json({ code: 2, message: "Error fetching categories" });
-  }
-});
-
-// Get Times array
-app.get("/getTimes", async (req, res) => {
-  // console.log("/getTimes");
-  const email: string = req.query.email as string;
-
-  try {
-    const user = await User.findOne({ email }, "time"); // Fetch only the 'time' field
-    if (user) {
-      return res.status(200).json({ code: 0, time: user.time });
-    } else {
-      return res.status(200).json({ code: 1, message: "User not found" });
-    }
-  } catch (err) {
-    console.log("Error fetching times:", err);
-    return res.status(200).json({ code: 2, message: "Error fetching times" });
-  }
-});
-
-// Get Timezone
-app.get("/getTimezone", async (req, res) => {
-  // console.log("/getTimezone");
-  const email: string = req.query.email as string;
-
-  try {
-    const user = await User.findOne({ email }, "timezone"); // Fetch only the 'timezone' field
-    if (user) {
-      return res.status(200).json({ code: 0, timezone: user.timezone });
-    } else {
-      return res.status(200).json({ code: 1, message: "User not found" });
-    }
-  } catch (err) {
-    console.log("Error fetching timezone:", err);
-    return res
-      .status(200)
-      .json({ code: 2, message: "Error fetching timezone" });
-  }
-});
-
-// Get Newsletter
-app.get("/getNewsletter", async (req, res) => {
-  // console.log("/getNewsletter");
-  const email: string = req.query.email as string;
-
-  try {
-    const user = await User.findOne({ email }, "newsletter"); // Fetch only the 'newsletter' field
-    if (user) {
-      return res.status(200).json({ code: 0, newsletter: user.newsletter });
-    } else {
-      return res.status(200).json({ code: 1, message: "User not found" });
-    }
-  } catch (err) {
-    console.log("Error fetching newsletter:", err);
-    return res
-      .status(200)
-      .json({ code: 2, message: "Error fetching newsletter" });
   }
 });
 
@@ -1379,32 +905,6 @@ app.post("/updateTimes", async (req, res) => {
   }
 });
 
-// Route to update Timezone
-app.post("/updateTimezone", async (req, res) => {
-  // console.log("/updateTimezone");
-  const { email, timezone } = req.body;
-
-  try {
-    const updatedUser = await User.findOneAndUpdate(
-      { email },
-      { timezone },
-      { new: true }
-    );
-
-    if (updatedUser) {
-      return res
-        .status(200)
-        .json({ code: 0, message: "Timezone updated successfully" });
-    } else {
-      return res.status(200).json({ code: 1, message: "User not found" });
-    }
-  } catch (err) {
-    console.log("Error updating timezone:", err);
-    return res
-      .status(200)
-      .json({ code: 1, message: "Error updating timezone" });
-  }
-});
 
 // Get isNewUser
 app.get("/getIsNewUser", async (req, res) => {

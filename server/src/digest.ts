@@ -1,159 +1,23 @@
 import axios from "axios";
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose from "mongoose";
 import sgMail from "@sendgrid/mail";
 import cron from "node-cron";
 import moment from "moment-timezone";
 import { User, IUser } from "./userModel";
-import db from "./db";
-import dbTweet from "./dbTweet";
 import { marked } from "marked";
-import { htmlToText } from "html-to-text";
 import { Newsletter } from "./newsletterModel";
 import OpenAI from "openai";
-import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
+import { StoredTweets, CustomProfilePosts } from "./tweetModel";
 
 // Set up SendGrid API
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 const openai = new OpenAI({
-  baseURL: "https://api.deepseek.com",
+  baseURL: process.env.OPENAI_BASE_URL || "",
   apiKey: process.env.OPENAI,
 });
 
 const NUM_PARALLEL = 5;
 
-// MongoDB Tweet Document Interface for Category POSTS
-export interface ITweet extends Document {
-  category: string;
-  screenName: string;
-  avatar: string;
-  tweets: {
-    text: string;
-    likes: number;
-    tweet_id: string;
-    createdAt: Date;
-    mediaThumbnail: string;
-    video: string;
-    videoThumbnail: string; // ✅ Stores video preview thumbnail
-    quotedTweet: {
-      tweet_id: string;
-      text: string;
-      likes: number;
-      createdAt: Date;
-      mediaThumbnail: string;
-      video: string;
-      videoThumbnail: string;
-      avatar: string;
-      screenName: string;
-    };
-  }[];
-  createdAt: Date;
-}
-
-// Tweet Schema for cagegory posts
-export const tweetSchema: Schema = new mongoose.Schema({
-  category: { type: String, required: true },
-  screenName: { type: String, required: true },
-  avatar: { type: String, required: false },
-  tweets: [
-    {
-      text: { type: String, required: true },
-      likes: { type: Number, required: true },
-      tweet_id: { type: String, required: true },
-      createdAt: { type: Date, required: true },
-      mediaThumbnail: { type: String, required: false },
-      video: { type: String, required: false },
-      videoThumbnail: { type: String, required: false }, // ✅ Stores video preview thumbnail
-      quotedTweet: {
-        tweet_id: { type: String, required: false },
-        text: { type: String, required: false },
-        likes: { type: Number, required: false },
-        createdAt: { type: Date, required: false },
-        mediaThumbnail: { type: String, required: false },
-        video: { type: String, required: false },
-        videoThumbnail: { type: String, required: false },
-        avatar: { type: String, required: false },
-        screenName: { type: String, required: false },
-      },
-    },
-  ],
-  createdAt: { type: Date, default: Date.now },
-});
-
-// Models
-export const StoredTweets = dbTweet.model<ITweet>("StoredTweets", tweetSchema);
-
-export interface ICustomProfilePost extends Document {
-  screenName: string;
-  avatar: string;
-  tweets: {
-    text: string;
-    likes: number;
-    tweet_id: string;
-    createdAt: Date;
-    mediaThumbnail: string;
-    video: string;
-    videoThumbnail: string; // ✅ Stores video preview thumbnail
-    quotedTweet: {
-      tweet_id: string;
-      text: string;
-      likes: number;
-      createdAt: Date;
-      mediaThumbnail: string;
-      video: string;
-      videoThumbnail: string;
-      avatar: string;
-      screenName: string;
-    };
-  }[];
-  createdAt: Date;
-}
-
-const CustomProfilePostSchema: Schema = new Schema({
-  screenName: { type: String, required: true },
-  avatar: { type: String, required: false },
-  tweets: [
-    {
-      text: { type: String, required: true },
-      likes: { type: Number, required: true },
-      tweet_id: { type: String, required: true },
-      createdAt: { type: Date, required: true },
-      mediaThumbnail: { type: String, required: false },
-      video: { type: String, required: false },
-      videoThumbnail: { type: String, required: false }, // ✅ Stores video preview thumbnail
-      quotedTweet: {
-        tweet_id: { type: String, required: false },
-        text: { type: String, required: false },
-        likes: { type: Number, required: false },
-        createdAt: { type: Date, required: false },
-        mediaThumbnail: { type: String, required: false },
-        video: { type: String, required: false },
-        videoThumbnail: { type: String, required: false },
-        avatar: { type: String, required: false },
-        screenName: { type: String, required: false },
-      },
-    },
-  ],
-  createdAt: { type: Date, default: Date.now },
-});
-
-export const CustomProfilePosts = db.model<ICustomProfilePost>(
-  "CustomProfilePosts",
-  CustomProfilePostSchema
-);
-
-// Ensure both databases are connected before running any logic
-async function ensureDatabaseConnections() {
-  return Promise.all([
-    new Promise<void>((resolve, reject) => {
-      db.once("connected", resolve);
-      db.once("error", reject);
-    }),
-    new Promise<void>((resolve, reject) => {
-      dbTweet.once("connected", resolve);
-      dbTweet.once("error", reject);
-    }),
-  ]);
-}
 
 function extractQuotedTweet(quoted: any): any | null {
   if (!quoted || !quoted.tweet_id) return null;
@@ -232,16 +96,8 @@ const fetchAvatar = async (username: string): Promise<string | null> => {
   return null; // Return null if all retries fail
 };
 
-// Helper function to clean up markdown-like symbols (*, **, etc.)
-async function cleanNewsletterText(text: string) {
-  return text.replace(/\*\*|\*/g, "");
-}
-
 // Fetch and store tweets for specified categories
 export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
-  // console.log(
-  //   "🔄 [Tweet Fetching Cron]: Fetching fresh tweets for all categories..."
-  // );
   const categoryAccounts: { [key: string]: string[] } = {
     Politics: ["Politico", "Shellenberger", "Axios", "TheChiefNerd"],
     Geopolitics: ["Faytuks", "sentdefender", "Global_Mil_Info"],
@@ -257,7 +113,6 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
   for (const category of categories) {
     const screenNames = categoryAccounts[category];
     if (!screenNames) {
-      // console.log(`⚠️ No screen names found for category: ${category}`);
       continue;
     }
 
@@ -321,10 +176,6 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
           { tweets: topTweets, avatar, createdAt: new Date() },
           { upsert: true }
         );
-
-        // console.log(
-        //   `✅ [Stored]: Tweets for @${screenName} in ${category} have been stored.`
-        // );
       } catch (err: any) {
         console.error(
           `❌ [Error]: Error fetching tweets for ${screenName}:`,
@@ -334,12 +185,6 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
       }
     }
   }
-
-  // console.log(
-  //   `✅ [Completion]: All tweets for ${categories.join(
-  //     ", "
-  //   )} have been fetched and stored.`
-  // );
 }
 
 // DEEPSEEK API:
@@ -360,23 +205,7 @@ export async function generateNewsletter(
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {
         role: "system",
-        content:
-          "You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 15 OF THESE RULES!! (Take as long as you want to process):\n\n" +
-          "1. **Begin with a concise 'Summary' section** that provides an overall 2-3 line overview of the main themes or highlights across all categories. Title this section 'Summary'.\n" +
-          "2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.\n" +
-          "3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 2-3 relevant emojis.\n" +
-          "4. **Follow the themes of each category**, ensuring the content feels cohesive and relevant. Each category should feel distinct.\n" +
-          "5. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.\n" +
-          "6. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.\n" +
-          "7. **Do NOT cite sources**—just summarize the tweets without citations.\n" +
-          "8. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.\n" +
-          "9. **Use emojis often** to add emphasis and excitement to the newsletter.\n" +
-          "10. **Format the newsletter as bullet points** for each category.\n" +
-          "11. **Restrict yourself to only the information explicitly included in the tweets**—don't add outside information or opinions.\n" +
-          "12. **Ensure bullet points are separated by category** and well-structured.\n" +
-          "13. Instead of `this weeks' say 'todays'. Instead of 'tweet' say 'post'. Instead of twitter say 'X'. Don't say the word 'whirlwind' \n" +
-          "14. Make sure you don't purely sounds like AI, you must sound as humanly as possible \n" +
-          "15. **Make sure each heading (bold) and its content has consistent font, size, and style. **\n\n",
+        content: process.env.CATEGORY_NEWSLETTER_PROMPT || "",
       },
       {
         role: "user",
@@ -400,7 +229,7 @@ export async function generateNewsletter(
 
     const response = await openai.chat.completions.create({
       messages,
-      model: "deepseek-chat",
+      model: process.env.OPENAI_MODEL || "",
     });
 
     let result = response.choices[0].message.content;
@@ -536,10 +365,6 @@ export async function fetchTweetsForCategories(
 
     uniqueTop15Tweets.push(...remainingTweets);
   }
-
-  // Final logging to verify selection of tweets
-  // console.log(`🔄 [Top 15 Tweets]: Collected ${uniqueTop15Tweets.length} tweets`);
-  // console.log(uniqueTop15Tweets);
 
   return { tweetsByCategory, top15Tweets: uniqueTop15Tweets };
 }
@@ -957,10 +782,6 @@ export async function fetchAndStoreTweetsForProfiles(
         }
       );
 
-      // console.log(
-      //   `📥 [API Response]: First tweet for @${profile}:`,
-      //   response.data.timeline[0]
-      // );
 
       const now = moment();
       const past24Hours = now.subtract(24, "hours");
@@ -972,17 +793,6 @@ export async function fetchAndStoreTweetsForProfiles(
         );
         return tweetTime.isAfter(past24Hours);
       });
-
-      // console.log(
-      //   `📊 [Filtered]: ${recentTweets.length} tweets found in the last 24 hours for @${profile}`
-      // );
-
-      // if (!recentTweets.length) {
-      //   console.warn(
-      //     `⚠️ No recent tweets found for @${profile}. Skipping storage.`
-      //   );
-      //   continue;
-      // }
 
       if (!recentTweets.length) {
         throw new Error(`No tweets found for @${profile}`);
@@ -1004,10 +814,6 @@ export async function fetchAndStoreTweetsForProfiles(
           videoThumbnail: extractVideoThumbnail(tweet),
           quotedTweet: extractQuotedTweet(tweet.quoted),
         }));
-
-      // console.log(
-      //   `📌 [Top Tweets]: Storing ${topTweets.length} tweets for @${profile}`
-      // );
 
       let storedUser = await CustomProfilePosts.findOne({
         screenName: profile,
@@ -1169,20 +975,7 @@ export async function generateCustomProfileNewsletter(
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {
         role: "system",
-        content:
-          "You're a skilled news reporter summarizing key tweets in an engaging and insightful newsletter. YOU MUST FOLLOW ALL 11 OF THESE RULES!! (Take as long as you want to process):\n\n" +
-          "1. **Begin with a concise 'Summary' section** that provides an overall 2-3 line overview of the main themes or highlights across all tweets. Title this section 'Summary'.\n" +
-          "2. **Consider ALL tweets across ALL categories**—do not focus on a few tweets. Make sure each category is fairly represented in the newsletter.\n" +
-          "3. **Use emojis liberally** throughout the newsletter to make it engaging and visually appealing. Every section should contain at least 1 relevant emojis.\n" +
-          "4. **NO SUBJECT or FOOTER should be included**—only provide the newsletter content.\n" +
-          "5. **Do NOT include links** or any references to external sources. You may mention persons or organizations, but no URLs.\n" +
-          "6. **Do NOT cite sources**—just summarize the tweets without citations.\n" +
-          "7. **Make it entertaining and creative**—use a casual tone, with short, punchy sentences. Think of this like a Twitter thread with personality and style.\n" +
-          "8. **Use emojis often** to add emphasis and excitement to the newsletter.\n" +
-          "9. **Restrict yourself to only the information explicitly included in the tweets**—don't add outside information or opinions.\n" +
-          "10. Instead of `this weeks' say 'todays'. Instead of 'tweet' say 'post'. Instead of twitter say 'X'. Don't say the word 'whirlwind' \n" +
-          "11. Make sure you don't purely sounds like AI, you must sound as humanly as possible \n" +
-          "12. **Make sure each heading (bold) and its content has consistent font, size, and style. **\n\n",
+        content: process.env.CUSTOM_PROFILE_NEWSLETTER_PROMPT || "",
       },
       {
         role: "user",
@@ -1199,7 +992,7 @@ export async function generateCustomProfileNewsletter(
 
     const response = await openai.chat.completions.create({
       messages,
-      model: "deepseek-chat",
+      model: process.env.OPENAI_MODEL || "",
     });
 
     let result = response.choices[0].message.content;
@@ -1236,103 +1029,3 @@ export async function generateCustomProfileNewsletter(
     return undefined;
   }
 }
-
-// async function testProfileswiseByEmail(userEmail: string) {
-//   try {
-//     // Step 1: Fetch the user by email
-//     const user = await User.findOne({ email: userEmail }).exec();
-//     if (!user) {
-//       console.error(`❌ [Test]: User with email ${userEmail} not found.`);
-//       return;
-//     }
-
-//     console.log("✅ [Test]: User fetched:", user.email);
-
-//     // Step 2: Check if the user is using "customProfiles"
-//     if (user.wise !== "customProfiles") {
-//       console.error(
-//         `❌ [Test]: User ${user.email} is not using customProfiles. Current mode: ${user.wise}`
-//       );
-//       return;
-//     }
-
-//     if (!user.profiles || user.profiles.length === 0) {
-//       console.error(
-//         `❌ [Test]: User ${user.email} has no profiles configured.`
-//       );
-//       return;
-//     }
-
-//     console.log(
-//       `✅ [Test]: User ${user.email} has profiles configured:`,
-//       user.profiles
-//     );
-
-//     // Step 3: Fetch tweets for the profiles
-//     const { tweetsByProfiles, top15Tweets } = await getStoredTweetsForUser(
-//       user._id as mongoose.Types.ObjectId
-//     );
-
-//     console.log(`✅ [Test]: Fetched tweets for profiles:`, tweetsByProfiles);
-//     console.log(`✅ [Test]: Top 15 tweets:`, top15Tweets);
-
-//     // Step 4: Generate the newsletter
-//     const newsletter = await generateCustomProfileNewsletter(
-//       tweetsByProfiles,
-//       top15Tweets
-//     );
-
-//     if (!newsletter) {
-//       console.error(`❌ [Test]: Failed to generate the newsletter.`);
-//       return;
-//     }
-
-//     console.log(`✅ [Test]: Newsletter generated successfully.`);
-//     console.log(newsletter);
-//     await sendNewsletterEmail(user, newsletter);
-//     console.log(
-//       `✅ [Test]: Newsletter saved for user ${user.email}.`
-//     );
-//   } catch (error) {
-//     console.error("❌ [Test]: An error occurred during the test:", error);
-//   }
-// }
-
-// // Call the function with a test user email
-// testProfileswiseByEmail("pealh0320@gmail.com");
-
-// async function testNewsletter() {
-//   try {
-//     // Fetch the user
-//     const user = await User.findOne({ email: "pealh0320@gmail.com" }).exec();
-//     if (!user) {
-//       console.error("❌ User not found with email: pealh0320@gmail.com");
-//       return;
-//     }
-
-//     // Define categories for the test (based on user preferences)
-//     const categories = ["Politics", "Geopolitics", "Finance", "AI"];
-
-//     // Fetch tweets for the categories
-//     const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
-//       categories
-//     );
-
-//     // Generate the newsletter
-//     const newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
-
-//     if (!newsletter) {
-//       console.error("❌ Failed to generate newsletter.");
-//       return;
-//     }
-
-//     // Send the newsletter
-//     await sendNewsletterEmail(user, newsletter);
-
-//     console.log("✅ Test newsletter sent successfully to pealh0320@gmail.com.");
-//   } catch (error) {
-//     console.error("❌ Error during test:", error);
-//   }
-// }
-
-// testNewsletter();

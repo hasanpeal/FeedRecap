@@ -1,5 +1,4 @@
 "use client";
-import Head from "next/head";
 import Link from "next/link";
 import "@/app/home.css";
 import Navbar2 from "@/components/navbar2";

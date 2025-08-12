@@ -14,11 +14,6 @@ export default function Navbar() {
           </span>
         </Link>
         <nav className="space-x-4 flex items-center">
-          {/* <Link href="/samplenewsletter">
-            <button className="text-[#7FFFD4] font-semibold hover:text-white transition-colors">
-              Sample Newsletter
-            </button>
-          </Link> */}
           {/* Show these buttons only on screens larger than "sm" */}
           <div className="hidden sm:flex items-center space-x-4">
             <Link href="/signin">
