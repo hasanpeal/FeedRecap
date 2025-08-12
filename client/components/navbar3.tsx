@@ -240,26 +240,6 @@ export default function Navbar2() {
           Update Account
         </h2>
         <div className="space-y-4">
-          {/* <div>
-            <label className="block text-sm font-medium mb-2">First Name</label>
-            <input
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
-              placeholder="First Name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Last Name</label>
-            <input
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
-              placeholder="Last Name"
-            />
-          </div> */}
           <div>
             <label className="block text-sm font-medium mb-2">Email</label>
             <input
@@ -322,7 +302,7 @@ export default function Navbar2() {
               <input
                 type="text"
                 name="user_name"
-                value={firstName + " " + lastName}
+                defaultValue={firstName + " " + lastName}
                 className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
                 placeholder="Your Name"
                 required

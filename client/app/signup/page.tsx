@@ -7,7 +7,6 @@ import { Eye, Mail, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEmail } from "@/context/UserContext";
 import Navbar from "@/components/navbar";
-import Footer from "@/components/footer";
 
 const Signup: React.FC = () => {
   const [flag, setFlag] = useState(true);

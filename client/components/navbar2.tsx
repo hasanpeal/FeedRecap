@@ -148,13 +148,7 @@ export default function Navbar2() {
               <input
                 type="text"
                 name="user_name"
-                value={`${firstName} ${lastName}`}
-                onChange={(e) => {
-                  const [newFirstName, ...newLastName] =
-                    e.target.value.split(" ");
-                  setFirstName(newFirstName);
-                  setLastName(newLastName.join(" "));
-                }}
+                defaultValue={`${firstName} ${lastName}`}
                 className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
                 placeholder="Your Name"
                 required

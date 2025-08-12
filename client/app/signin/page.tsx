@@ -7,7 +7,6 @@ import Link from "next/link";
 import { Eye, Mail, Lock } from "lucide-react";
 import { useEmail } from "@/context/UserContext";
 import Navbar2 from "@/components/navbar2";
-import Footer from "@/components/footer";
 
 export default function Signin() {
   const [email, setEmail] = useState("");
