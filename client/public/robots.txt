@@ -1,5 +1,9 @@
+# *
 User-agent: *
 Allow: /
-Disallow: /signin
-Disallow: /signup
+
+# Host
+Host: https://www.feedrecap.com
+
+# Sitemaps
 Sitemap: https://www.feedrecap.com/sitemap.xml
