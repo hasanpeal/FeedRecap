@@ -205,7 +205,7 @@ export default function Navbar2() {
           >
             Feedback
           </button>
-          <button
+          {/* <button
             className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
             onClick={() => {
               const modal = document.getElementById(
@@ -217,7 +217,7 @@ export default function Navbar2() {
             }}
           >
             Account
-          </button>
+          </button> */}
           <button
             className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
             onClick={handleLogout}
