@@ -90,11 +90,8 @@ export const TrendingPosts = ({ posts, loadingPosts }: TrendingPostsProps) => {
                   width={300}
                   height={128}
                   className="object-cover w-full h-full"
+                  referrerPolicy="no-referrer"
                   onError={(e) => {
-                    console.error(
-                      "Trending image loading error:",
-                      post.mediaThumbnail || post.videoThumbnail
-                    );
                     e.currentTarget.src = "/placeholder.svg";
                   }}
                   priority={false}

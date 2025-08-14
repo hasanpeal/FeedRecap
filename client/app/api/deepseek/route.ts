@@ -23,7 +23,6 @@ export async function POST(req: Request) {
       aiResponse: response.choices[0].message.content,
     });
   } catch (error) {
-    console.error("Error fetching AI response:", error);
     return NextResponse.json(
       { error: "Failed to fetch AI response." },
       { status: 500 }

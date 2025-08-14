@@ -37,7 +37,6 @@ export default function Unsubscribe() {
       } catch (err) {
         setStatus("error");
         setErrorMessage("Failed to process your request");
-        console.error(err);
       }
     };
 

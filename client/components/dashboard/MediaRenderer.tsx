@@ -17,11 +17,8 @@ export const MediaRenderer = ({ post }: MediaRendererProps) => {
             width={500}
             height={240}
             className="object-cover rounded-lg border border-gray-800"
+            referrerPolicy="no-referrer"
             onError={(e) => {
-              console.error(
-                "iOS video thumbnail loading error:",
-                post.videoThumbnail
-              );
               e.currentTarget.src = "/placeholder.svg";
             }}
             priority={false}
@@ -60,8 +57,8 @@ export const MediaRenderer = ({ post }: MediaRendererProps) => {
           width={500}
           height={240}
           className="object-cover rounded-lg"
+          referrerPolicy="no-referrer"
           onError={(e) => {
-            console.error("Image loading error:", post.mediaThumbnail);
             e.currentTarget.src = "/placeholder.svg";
           }}
           priority={false}

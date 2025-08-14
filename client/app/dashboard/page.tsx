@@ -302,7 +302,6 @@ export default function Dashboard() {
         }
         throw new Error("No avatar in response");
       } catch (error) {
-        console.error(`Error fetching profile for ${username}:`, error);
         retries++;
         if (retries >= maxRetries) {
           return { username, avatar: "/placeholder.svg" };
@@ -332,7 +331,6 @@ export default function Dashboard() {
         return [];
       }
     } catch (err) {
-      console.error("Error fetching suggestions:", err);
       return [];
     }
   };
@@ -370,7 +368,6 @@ export default function Dashboard() {
           hasMore = false;
         }
       } catch (error) {
-        console.error("Error fetching Twitter following page:", error);
         hasMore = false;
       }
     }
@@ -425,7 +422,6 @@ export default function Dashboard() {
         showNotification("Error loading data.", "error");
       }
     } catch (err) {
-      console.error("Error fetching data:", err);
       showNotification("Error fetching data.", "error");
     } finally {
       setLoadingProfiles(false);
@@ -518,7 +514,6 @@ export default function Dashboard() {
         );
       }
     } catch (error) {
-      console.error("Error sharing newsletter:", error);
       showModal("❌ Failed to share the newsletter.");
     }
   };
@@ -535,7 +530,6 @@ export default function Dashboard() {
           setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
         }
       } catch (error) {
-        console.error("Error fetching suggestions:", error);
         setSuggestions([]);
       } finally {
         setLoadingSuggestions(false);
@@ -557,7 +551,6 @@ export default function Dashboard() {
           setCache((prev) => ({ ...prev, [keyword]: fetchedSuggestions }));
         }
       } catch (error) {
-        console.error("Error fetching Twitter suggestions:", error);
         setTwitterSuggestions([]);
       } finally {
         setLoadingTwitterSuggestions(false);
@@ -616,7 +609,7 @@ export default function Dashboard() {
         prev.map((p) => (p.username === suggestion ? newProfile : p))
       );
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      showNotification("Error adding profile.", "error");
     }
   };
 
@@ -724,7 +717,6 @@ export default function Dashboard() {
         showNotification("Error updating feed type.", "error");
       }
     } catch (err) {
-      console.error("Error updating feed type:", err);
       showNotification("Error updating feed type.", "error");
     } finally {
       setUpdatingFeed(false);
@@ -774,7 +766,6 @@ export default function Dashboard() {
       setShowTwitterFollowing(true);
       showNotification(`${allFollowing.length} accounts imported`, "success");
     } catch (error) {
-      console.error("Error connecting X:", error);
       showNotification("Error connecting to X", "error");
     } finally {
       setIsConnectingTwitter(false);
@@ -814,7 +805,6 @@ export default function Dashboard() {
       setShowTwitterFollowing(true);
       showNotification(`Loaded ${allFollowing.length} accounts`, "success");
     } catch (error) {
-      console.error("Error fetching Twitter following:", error);
       showNotification("Error fetching followed profiles", "error");
     } finally {
       setIsConnectingTwitter(false);
@@ -854,7 +844,7 @@ export default function Dashboard() {
             currentProfiles.push(newProfile);
           }
         } catch (error) {
-          console.error(`Error adding profile for ${screenName}:`, error);
+          showNotification("Error adding profile.", "error");
         }
       }
     }
@@ -901,7 +891,6 @@ export default function Dashboard() {
       ]);
       playSound();
     } catch (error) {
-      console.error("Error fetching AI response:", error);
       setChatMessages((prev) => [
         ...prev,
         {

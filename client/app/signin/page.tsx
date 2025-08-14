@@ -139,7 +139,6 @@ export default function Signin() {
           );
         }
       } catch (err: any) {
-        console.error("Error in handleLogin function in Login.tsx");
         if (err.response?.status === 401) {
           setFormErrors((prev) => ({
             ...prev,

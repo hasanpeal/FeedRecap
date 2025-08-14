@@ -18,6 +18,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "abs.twimg.com",
       },
+      {
+        protocol: "https",
+        hostname: "video.twimg.com",
+      },
     ],
   },
 };

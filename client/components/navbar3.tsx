@@ -43,7 +43,6 @@ export default function Navbar2() {
         toast.error("Error fetching user details.");
       }
     } catch (err) {
-      console.error("Error fetching user details:", err);
       toast.error("Error fetching user details.");
     }
   };
@@ -73,7 +72,6 @@ export default function Navbar2() {
         toast.error(response.data.message);
       }
     } catch (err) {
-      console.error(err);
       toast.error("Error updating account.");
     }
   };
@@ -93,7 +91,6 @@ export default function Navbar2() {
         toast.error("Error logging out.");
       }
     } catch (err) {
-      console.error("Error during logout:", err);
       toast.error("Error logging out.");
     }
   };
@@ -120,7 +117,6 @@ export default function Navbar2() {
           toast.success("Report submitted successfully");
         },
         (error) => {
-          console.error("Error sending email:", error.text);
           toast.error("Failed to submit the report");
         }
       );
