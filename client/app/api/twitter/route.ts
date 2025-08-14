@@ -36,7 +36,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json(response.data);
   } catch (error: any) {
-    console.error("Twitter API Error:", error.response?.data || error.message);
     return NextResponse.json(
       { error: "Failed to fetch from Twitter API" },
       { status: error.response?.status || 500 }

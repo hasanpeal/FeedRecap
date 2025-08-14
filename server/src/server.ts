@@ -484,7 +484,7 @@ app.post("/updateFeedType", async (req, res) => {
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err: any, user: any, info: any) => {
     if (err) return next(err);
-    if (!user) return res.status(200).json({ code: 1, message: info.message });
+    if (!user) return res.status(401).json({ code: 1, message: info.message });
     req.logIn(user, (err) => {
       if (err) return next(err);
       return res.status(200).json({ code: 0, message: "Login successful" });
@@ -518,7 +518,7 @@ app.get("/validateEmail", async (req, res) => {
     if (user) {
       res.status(200).json({ code: 0, message: "Email exists" });
     } else {
-      res.status(200).json({ code: 1, message: "Email does not exist" });
+      res.status(404).json({ code: 1, message: "Email does not exist" });
     }
   } catch (err) {
     res.status(500).json({ code: 1, message: "Error validating email" });
@@ -531,7 +531,7 @@ app.post("/register", async (req, res) => {
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(200).send({ code: 1, message: "User already exists" });
+      return res.status(409).send({ code: 1, message: "User already exists" });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
@@ -541,7 +541,7 @@ app.post("/register", async (req, res) => {
       password: hashedPassword,
     });
     await newUser.save();
-    res.status(200).send({ code: 0, message: "User registered successfully" });
+    res.status(201).send({ code: 0, message: "User registered successfully" });
     const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories([
       "Politics",
       "Geopolitics",
@@ -566,29 +566,14 @@ app.post("/register", async (req, res) => {
       text: digestMessage,
     };
 
-    const msg2 = {
-      to: "jeremy.shoykhet+1@gmail.com",
-      from: process.env.FROM_EMAIL || "",
-      subject: `New User Alert`,
-      text: digestMessage,
-    };
-
-    const msg3 = {
-      to: "support@overtonnews.com",
-      from: process.env.FROM_EMAIL || "",
-      subject: `New User Alert`,
-      text: digestMessage,
-    };
 
     try {
       await sgMail.send(msg);
-      await sgMail.send(msg2);
-      await sgMail.send(msg3);
     } catch (error) {
       console.error(`❌ [Error]: Error Sending Total User count`);
     }
   } catch (err) {
-    res.status(200).send({ code: 1, message: "Error registering user" });
+    res.status(500).send({ code: 1, message: "Error registering user" });
   }
 });
 

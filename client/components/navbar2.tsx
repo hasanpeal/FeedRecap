@@ -41,7 +41,6 @@ export default function Navbar2() {
         showNotification("Error fetching user details.", "error");
       }
     } catch (err) {
-      console.error("Error fetching user details:", err);
       showNotification("Error fetching user details.", "error");
     }
   };
@@ -69,7 +68,6 @@ export default function Navbar2() {
           setMessage(""); // Clear the message field after sending
         },
         (error) => {
-          console.error("Error sending email:", error.text);
           showNotification("Failed to send the message", "error");
         }
       );

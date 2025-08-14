@@ -79,7 +79,6 @@ const Signup: React.FC = () => {
       // Email exists if status is 200, doesn't exist if status is 404
       return result.status === 200;
     } catch (err) {
-      console.error("Error in emailAlreadyExist function");
       return false;
     }
   }
@@ -160,7 +159,6 @@ const Signup: React.FC = () => {
             toast.error("Server error");
           }
         } catch (error: any) {
-          console.error(error);
           if (error.response?.status === 409) {
             toast.error("User already exists");
           } else {
