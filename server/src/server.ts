@@ -54,6 +54,11 @@ app.use(
 
 // Middleware to handle raw body for webhook
 app.use((req, res, next) => {
+  // Allow Google OAuth redirects to pass through without origin/referer checks
+  if (req.path && req.path.startsWith("/auth/google/")) {
+    return next();
+  }
+
   const origin = req.headers.origin;
   const referer = req.headers.referer;
 
