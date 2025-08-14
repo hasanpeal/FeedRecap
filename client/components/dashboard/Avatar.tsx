@@ -15,29 +15,58 @@ export const Avatar = ({ username, avatar, size = "small" }: AvatarProps) => {
   const initials = getInitials(username);
 
   const hasValidAvatar = Boolean(avatar && avatar !== "/placeholder.svg");
+  const isExternalUrl =
+    hasValidAvatar &&
+    (avatar.startsWith("http://") || avatar.startsWith("https://"));
 
   if (hasValidAvatar) {
-    return (
-      <div className={`inline-flex items-center justify-center ${className}`}>
-        <Image
-          src={avatar}
-          alt={username}
-          width={dimensions}
-          height={dimensions}
-          className={`rounded-full ${className}`}
-          referrerPolicy="no-referrer"
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-            e.currentTarget.nextElementSibling?.classList.remove("hidden");
-          }}
-        />
-        <div
-          className={`hidden ${className} bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold ${textSize}`}
-        >
-          {initials}
+    if (isExternalUrl) {
+      // Use regular img tag for external URLs to avoid Next.js image optimization issues
+      return (
+        <div className={`inline-flex items-center justify-center ${className}`}>
+          <img
+            src={avatar}
+            alt={username}
+            width={dimensions}
+            height={dimensions}
+            className={`rounded-full ${className}`}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              e.currentTarget.nextElementSibling?.classList.remove("hidden");
+            }}
+          />
+          <div
+            className={`hidden ${className} bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold ${textSize}`}
+          >
+            {initials}
+          </div>
         </div>
-      </div>
-    );
+      );
+    } else {
+      // Use Next.js Image for internal/local images
+      return (
+        <div className={`inline-flex items-center justify-center ${className}`}>
+          <Image
+            src={avatar}
+            alt={username}
+            width={dimensions}
+            height={dimensions}
+            className={`rounded-full ${className}`}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              e.currentTarget.nextElementSibling?.classList.remove("hidden");
+            }}
+          />
+          <div
+            className={`hidden ${className} bg-[#7FFFD4]/20 rounded-full flex items-center justify-center text-[#7FFFD4] font-bold ${textSize}`}
+          >
+            {initials}
+          </div>
+        </div>
+      );
+    }
   }
 
   return (

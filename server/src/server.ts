@@ -6,8 +6,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
 import cors from "cors";
 import sgMail from "@sendgrid/mail";
-import RedisStore from "connect-redis";
-import { createClient } from "redis";
+import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import mongoose from "mongoose";
@@ -22,10 +21,7 @@ import {
   generateCustomProfileNewsletter,
   getStoredTweetsForUser,
 } from "./digest";
-import {
-  StoredTweets,
-  CustomProfilePosts,
-} from "./tweetModel";
+import { StoredTweets, CustomProfilePosts } from "./tweetModel";
 
 env.config();
 const app = express();
@@ -33,20 +29,12 @@ const port = 3001;
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
-// Redis client setup
-const redisClient = createClient({
-  url: process.env.REDIS || "",
-});
-redisClient.on("error", (err: any) => console.log("Redis Client Error", err));
-
-(async () => {
-  await redisClient.connect();
-  console.log("Connected to Redis");
-})();
-
-// Initialize Redis store
-const redisStore = new RedisStore({
-  client: redisClient,
+// MongoDB session store setup
+const mongoStore = MongoStore.create({
+  mongoUrl: `mongodb+srv://${process.env.MONGO_USERNAME}:${process.env.MONGO_PASSWORD}@user.44ggn.mongodb.net/?retryWrites=true&w=majority&appName=user`,
+  collectionName: "sessions",
+  ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+  autoRemove: "native", // Use MongoDB's TTL index
 });
 
 // Trust the first proxy
@@ -63,6 +51,31 @@ app.use(
     credentials: true,
   })
 );
+
+// Middleware to handle raw body for webhook
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+
+  // For same-origin requests, origin will be undefined, so we check referer
+  if (!origin && referer) {
+    const refererUrl = new URL(referer);
+    const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
+    if (refererOrigin === process.env.ORIGIN) {
+      return express.json()(req, res, next);
+    }
+  }
+
+  // For cross-origin requests, check origin
+  if (origin === process.env.ORIGIN) {
+    return express.json()(req, res, next);
+  }
+
+  console.log(`🚫 Blocked request - Origin: ${origin}, Referer: ${referer}`);
+  return res
+    .status(403)
+    .json({ error: "Forbidden: Invalid origin or referer" });
+});
 
 process.on("SIGTERM", () => {
   console.log("SIGTERM received. Closing gracefully.");
@@ -113,7 +126,7 @@ declare module "express-session" {
 
 app.use(
   session({
-    store: redisStore,
+    store: mongoStore,
     secret: "secret",
     resave: false,
     saveUninitialized: false,
@@ -406,7 +419,6 @@ app.post("/updateProfiles", async (req, res) => {
   }
 });
 
-
 app.post("/updateFeedType", async (req, res) => {
   const { email, wise, categories, profiles } = req.body;
 
@@ -565,7 +577,6 @@ app.post("/register", async (req, res) => {
       subject: `New User Alert`,
       text: digestMessage,
     };
-
 
     try {
       await sgMail.send(msg);
@@ -889,7 +900,6 @@ app.post("/updateTimes", async (req, res) => {
     return res.status(200).json({ code: 1, message: "Error updating time" });
   }
 });
-
 
 // Get isNewUser
 app.get("/getIsNewUser", async (req, res) => {
