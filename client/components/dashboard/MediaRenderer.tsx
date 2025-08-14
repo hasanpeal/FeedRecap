@@ -7,26 +7,51 @@ interface MediaRendererProps {
 }
 
 export const MediaRenderer = ({ post }: MediaRendererProps) => {
+  const isExternalUrl = (url: string) =>
+    url.startsWith("http://") || url.startsWith("https://");
+
   if (isIOS()) {
     if (post.video) {
-      return (
-        <div className="mb-4 mt-2 rounded-lg overflow-hidden">
-          <Image
-            src={post.videoThumbnail || "/placeholder.svg?height=240&width=400"}
-            alt="Video Poster"
-            width={500}
-            height={240}
-            className="object-cover rounded-lg border border-gray-800"
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.src = "/placeholder.svg";
-            }}
-            priority={false}
-            loading="lazy"
-            unoptimized={true}
-          />
-        </div>
-      );
+      const thumbnailUrl =
+        post.videoThumbnail || "/placeholder.svg?height=240&width=400";
+      const isExternalThumbnail = isExternalUrl(thumbnailUrl);
+
+      if (isExternalThumbnail) {
+        return (
+          <div className="mb-4 mt-2 rounded-lg overflow-hidden">
+            <img
+              src={thumbnailUrl}
+              alt="Video Poster"
+              width={500}
+              height={240}
+              className="object-cover rounded-lg border border-gray-800 w-full h-auto"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
+            />
+          </div>
+        );
+      } else {
+        return (
+          <div className="mb-4 mt-2 rounded-lg overflow-hidden">
+            <Image
+              src={thumbnailUrl}
+              alt="Video Poster"
+              width={500}
+              height={240}
+              className="object-cover rounded-lg border border-gray-800"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
+              priority={false}
+              loading="lazy"
+              unoptimized={true}
+            />
+          </div>
+        );
+      }
     }
   }
 
@@ -49,24 +74,44 @@ export const MediaRenderer = ({ post }: MediaRendererProps) => {
       </div>
     );
   } else if (post.mediaThumbnail) {
-    return (
-      <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
-        <Image
-          src={post.mediaThumbnail}
-          alt="Tweet media"
-          width={500}
-          height={240}
-          className="object-cover rounded-lg"
-          referrerPolicy="no-referrer"
-          onError={(e) => {
-            e.currentTarget.src = "/placeholder.svg";
-          }}
-          priority={false}
-          loading="lazy"
-          unoptimized={true}
-        />
-      </div>
-    );
+    const isExternalMedia = isExternalUrl(post.mediaThumbnail);
+
+    if (isExternalMedia) {
+      return (
+        <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
+          <img
+            src={post.mediaThumbnail}
+            alt="Tweet media"
+            width={500}
+            height={240}
+            className="object-cover rounded-lg w-full h-auto"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.src = "/placeholder.svg";
+            }}
+          />
+        </div>
+      );
+    } else {
+      return (
+        <div className="mb-4 mt-2 rounded-lg border border-gray-800 overflow-hidden max-h-[500px] flex justify-center">
+          <Image
+            src={post.mediaThumbnail}
+            alt="Tweet media"
+            width={500}
+            height={240}
+            className="object-cover rounded-lg"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.src = "/placeholder.svg";
+            }}
+            priority={false}
+            loading="lazy"
+            unoptimized={true}
+          />
+        </div>
+      );
+    }
   }
 
   return null;

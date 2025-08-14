@@ -1,9 +1,6 @@
 "use client";
-import type { Metadata } from "next";
-import Head from "next/head";
 import { Inter } from "next/font/google";
 import { EmailProvider } from "@/context/UserContext";
-import Script from "next/script";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -21,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="light">
       <head>
-        <title>FeedRecap - AI Powered X Newsletters</title>
+        <title>FeedRecap</title>
         <meta
           name="description"
           content="FeedRecap curates top X posts with AI, delivering personalized newsletters curated from your preferred X accounts. Stay informed without endless scrolling 🚀"
@@ -45,21 +42,16 @@ export default function RootLayout({
         <meta property="og:type" content="website" />
         <meta
           property="og:image"
-          content="https://www.feedrecap.com/favicon.ico"
+          content="https://www.feedrecap.com/favicon.svg"
         />
 
-        <link
-          rel="icon"
-          type="image/png"
-          href="/favicon-96x96.png"
-          sizes="96x96"
-        />
+        <link rel="icon" type="image/png" href="/favicon.svg" sizes="96x96" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="shortcut icon" href="/favicon.svg" />
         <link
           rel="apple-touch-icon"
           sizes="180x180"
-          href="/apple-touch-icon.png"
+          href="/favicon.svg"
         />
         <meta name="apple-mobile-web-app-title" content="FeedRecap" />
         <link rel="manifest" href="%/site.webmanifest" />

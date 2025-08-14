@@ -9,6 +9,9 @@ interface TrendingPostsProps {
 }
 
 export const TrendingPosts = ({ posts, loadingPosts }: TrendingPostsProps) => {
+  const isExternalUrl = (url: string) =>
+    url.startsWith("http://") || url.startsWith("https://");
+
   if (loadingPosts) {
     return (
       <div className="mb-8 mx-1">
@@ -80,24 +83,46 @@ export const TrendingPosts = ({ posts, loadingPosts }: TrendingPostsProps) => {
           >
             {post.mediaThumbnail || post.videoThumbnail ? (
               <div className="h-32 overflow-hidden">
-                <Image
-                  src={
+                {(() => {
+                  const mediaUrl =
                     post.mediaThumbnail ||
                     post.videoThumbnail ||
-                    "/placeholder.svg"
+                    "/placeholder.svg";
+                  const isExternalMedia = isExternalUrl(mediaUrl);
+
+                  if (isExternalMedia) {
+                    return (
+                      <img
+                        src={mediaUrl}
+                        alt="Tweet media"
+                        width={300}
+                        height={128}
+                        className="object-cover w-full h-full"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg";
+                        }}
+                      />
+                    );
+                  } else {
+                    return (
+                      <Image
+                        src={mediaUrl}
+                        alt="Tweet media"
+                        width={300}
+                        height={128}
+                        className="object-cover w-full h-full"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg";
+                        }}
+                        priority={false}
+                        loading="lazy"
+                        unoptimized={true}
+                      />
+                    );
                   }
-                  alt="Tweet media"
-                  width={300}
-                  height={128}
-                  className="object-cover w-full h-full"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    e.currentTarget.src = "/placeholder.svg";
-                  }}
-                  priority={false}
-                  loading="lazy"
-                  unoptimized={true}
-                />
+                })()}
               </div>
             ) : (
               <div className="h-32 flex items-center justify-center p-4">
