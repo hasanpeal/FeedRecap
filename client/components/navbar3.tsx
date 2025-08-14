@@ -310,6 +310,7 @@ export default function Navbar2() {
                 type="email"
                 name="user_email"
                 value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
                 placeholder="Your Email"
                 required
