@@ -163,12 +163,7 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
             quotedTweet: extractQuotedTweet(tweet.quoted),
           }));
 
-        // Fetch avatar (only if it's missing in DB)
-        let storedUser = await StoredTweets.findOne({
-          category,
-          screenName,
-        }).select("avatar");
-        let avatar = storedUser?.avatar || (await fetchAvatar(screenName));
+        let avatar = await fetchAvatar(screenName);
 
         // Store the tweets in MongoDB
         await StoredTweets.findOneAndUpdate(
@@ -478,7 +473,7 @@ const fetchTweetsPeriodically = async () => {
     // Skip execution at 9 AM, 3 PM, and 8 PM
     if ([9, 15, 20].includes(hours)) {
       console.log(`⏸️ [Tweet Fetching]: Skipped execution at ${hours}:00`);
-    } else if (minutes % 30 === 0) {
+    } else if (minutes % 60 === 0) {
       console.log(
         "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
       );
@@ -815,10 +810,7 @@ export async function fetchAndStoreTweetsForProfiles(
           quotedTweet: extractQuotedTweet(tweet.quoted),
         }));
 
-      let storedUser = await CustomProfilePosts.findOne({
-        screenName: profile,
-      }).select("avatar");
-      let avatar = storedUser?.avatar || (await fetchAvatar(profile));
+      let avatar = await fetchAvatar(profile);
 
       // ✅ Store tweets in MongoDB
       const post = await CustomProfilePosts.findOneAndUpdate(

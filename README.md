@@ -17,6 +17,7 @@
 ## ✨ Features
 
 ### 📰 **Category Mode**
+
 - Choose from predefined categories:
   - **Politics**
   - **Geopolitics**
@@ -31,17 +32,20 @@
 - Receive AI-curated newsletters with the top 15 tweets from your selected categories and share them easily with friends via WhatsApp, Telegram, or Email.
 
 ### 🔧 **Custom Profile Mode**
+
 - Add Twitter profiles via an auto-suggestion feature.
 - Follow as many Twitter profiles as you like.
 - Get personalized newsletters based on your custom profile feed, curated by AI.
 
 ### 📊 **Dashboard**
+
 - Access your personalized dashboard with these tabs:
   1. **Newsfeed**: View top tweets based on your selected categories or custom profiles.
   2. **Latest Newsletter**: Access the most recent newsletters.
   3. **Settings**: Update your categories, custom profiles, timezone, and delivery time.
 
 ### 📩 **Newsletter Features**
+
 - **Newsletter**: AI-powered newsletter content delivered straight to your inbox.
 - **Top Tweets**: Curated top tweets of the day.
 - **Share Easily**: Share tweets or newsletters to:
@@ -55,12 +59,14 @@
 ## 🛠️ Tech Stack
 
 ### **Frontend**
+
 - **Framework**: Next.js, React
 - **Language**: TypeScript
 - **Analytics**: Google Analytics, Vercel Analytics
 - **Deployed On**: [Vercel](https://vercel.com)
 
 ### **Backend**
+
 - **Framework**: Express.js
 - **Authentication**: Google OAuth, Email-based login with two-step verification
 - **Database**: MongoDB
@@ -86,6 +92,7 @@ FeedRecap/
 ## 🧑‍💻 Getting Started
 
 ### **Frontend**
+
 1. Navigate to the `client` folder:
    ```bash
    cd client
@@ -100,6 +107,7 @@ FeedRecap/
    ```
 
 ### **Backend**
+
 1. Navigate to the `server` folder:
    ```bash
    cd server
@@ -118,10 +126,12 @@ FeedRecap/
 ## 🔒 Authentication
 
 ### **Sign Up**
+
 - Users can sign up with their email.
 - Two-step email verification is required for account creation.
 
 ### **Sign In**
+
 - **Options**:
   1. Sign in with email.
   2. Sign in with Google.
@@ -130,17 +140,17 @@ FeedRecap/
 
 ## 📚 Routes
 
-| Route                | Description                                |
-|----------------------|--------------------------------------------|
-| `/signin`            | User sign-in page                         |
-| `/signup`            | User sign-up page                         |
-| `/`                  | Homepage                                  |
-| `/samplenewsletter`  | Preview a sample newsletter               |
-| `/aboutus`           | Learn more about FeedRecap                |
-| `/dashboard`         | User dashboard with 3 tabs:               |
-|                      | - **Newsfeed**: View top tweets           |
-|                      | - **Latest Newsletter**: Access recent    |
-|                      | - **Settings**: Manage preferences        |
+| Route               | Description                            |
+| ------------------- | -------------------------------------- |
+| `/signin`           | User sign-in page                      |
+| `/signup`           | User sign-up page                      |
+| `/`                 | Homepage                               |
+| `/samplenewsletter` | Preview a sample newsletter            |
+| `/aboutus`          | Learn more about FeedRecap             |
+| `/dashboard`        | User dashboard with 3 tabs:            |
+|                     | - **Newsfeed**: View top tweets        |
+|                     | - **Latest Newsletter**: Access recent |
+|                     | - **Settings**: Manage preferences     |
 
 ---
 
@@ -186,6 +196,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ---
 
 ## ⭐ Support the Project
+
 If you like this project, please consider **starring** 🌟 the repository on GitHub to support its growth and visibility!
 
 ---
@@ -193,5 +204,6 @@ If you like this project, please consider **starring** 🌟 the repository on Gi
 ## 📧 Contact
 
 For questions or suggestions, feel free to reach out:
+
 - **Author**: [Peal Hasan](https://www.linkedin.com/in/hasanpeal/)
 - **Email**: [contact@feedrecap.com](mailto:contact@feedrecap.com)
