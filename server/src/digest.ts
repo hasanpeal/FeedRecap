@@ -415,7 +415,7 @@ export async function sendNewsletterEmail(
 
       <!-- Share on X -->
   <div style="text-align: center; margin-top: 20px;">
-    <p style="color: #666;">🚀 Spread the word on X</p>
+    <p style="color: #666;">Spread the word on X</p>
     <a href="${shareOnXLink}" 
       onclick="event.preventDefault(); if(navigator.userAgent.match(/(iPhone|iPod|iPad|Android)/i)){ window.location.href='${shareOnXMobile}'; setTimeout(() => { window.location.href='${shareOnXLink}'; }, 1000); } else { window.location.href='${shareOnXLink}'; }"
       style="background: #00A8E8; color: #000; padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block; margin-top: 10px; transition: all 0.3s ease-in-out;">
@@ -447,7 +447,7 @@ export async function sendNewsletterEmail(
       email: process.env.FROM_EMAIL || "",
       name: "FeedRecap",
     },
-    subject: "🚀 Your FeedRecap Newsletter Just Landed!",
+    subject: "Your FeedRecap Newsletter Just Landed!",
     html: emailTemplate,
   };
 
