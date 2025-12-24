@@ -6,6 +6,7 @@ interface IUser extends Document {
   email: string;
   password: string;
   isNewUser: boolean;
+  isAdmin: boolean;
   time: string[];
   newsletter: string;
   categories: string[];
@@ -13,7 +14,7 @@ interface IUser extends Document {
   totalnewsletter: number;
   wise: "categorywise" | "customProfiles";
   profiles: string[];
-  twitterUsername: string,
+  twitterUsername: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -22,6 +23,7 @@ const UserSchema: Schema = new Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: false },
   isNewUser: { type: Boolean, default: false },
+  isAdmin: { type: Boolean, default: false },
   time: { type: [String], default: ["Morning", "Afternoon", "Night"] },
   newsletter: {
     type: String,
@@ -54,4 +56,4 @@ const UserSchema: Schema = new Schema({
 });
 
 const User = db.model<IUser>("User", UserSchema);
-export { User, IUser};
+export { User, IUser };

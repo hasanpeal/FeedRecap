@@ -22,6 +22,7 @@ import {
   getStoredTweetsForUser,
 } from "./digest";
 import { StoredTweets, CustomProfilePosts } from "./tweetModel";
+import { logActivity, ActivityType } from "./auditLogger";
 
 env.config();
 
@@ -76,6 +77,52 @@ function authenticateJWT(
 
   try {
     const decoded = verifyJWT(token);
+    // Attach user info to request
+    (req as any).user = { id: decoded.userId, email: decoded.email };
+    next();
+  } catch (error: any) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ code: 1, message: "Token expired" });
+    } else if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({ code: 1, message: "Invalid token" });
+    }
+    return res.status(401).json({ code: 1, message: "Authentication failed" });
+  }
+}
+
+// Admin Authentication Middleware
+async function authenticateAdmin(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res
+      .status(401)
+      .json({ code: 1, message: "No authorization header" });
+  }
+
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.substring(7)
+    : authHeader;
+
+  if (!token) {
+    return res.status(401).json({ code: 1, message: "No token provided" });
+  }
+
+  try {
+    const decoded = verifyJWT(token);
+
+    // Check if user is admin from database
+    const user = await User.findById(decoded.userId).select("isAdmin");
+    if (!user || !user.isAdmin) {
+      return res
+        .status(403)
+        .json({ code: 1, message: "Admin access required" });
+    }
+
     // Attach user info to request
     (req as any).user = { id: decoded.userId, email: decoded.email };
     next();
@@ -171,6 +218,26 @@ app.use(passport.initialize());
 
 // Use JWT authentication middleware instead of session-based
 // authenticateJWT is defined above in JWT utilities section
+
+// API endpoint to log page visits from frontend
+app.post("/logPageVisit", authenticateJWT, async (req, res) => {
+  try {
+    const userFromToken = (req as any).user;
+    const { page } = req.body;
+
+    await logActivity(req, {
+      userId: userFromToken.id,
+      email: userFromToken.email,
+      activityType: ActivityType.PAGE_VISIT,
+      activityDescription: `Visited ${page}`,
+      page: page || "unknown",
+    });
+
+    res.status(200).json({ code: 0, message: "Page visit logged" });
+  } catch (error) {
+    res.status(500).json({ code: 1, message: "Error logging page visit" });
+  }
+});
 
 app.get("/data", authenticateJWT, async (req, res) => {
   try {
@@ -312,10 +379,20 @@ app.post("/unlinkX", authenticateJWT, async (req, res) => {
   try {
     const userFromToken = (req as any).user;
 
-    await User.findOneAndUpdate(
+    const user = await User.findOneAndUpdate(
       { email: userFromToken.email },
       { twitterUsername: null }
     );
+
+    if (user) {
+      // Log Twitter account unlinking
+      await logActivity(req, {
+        userId: userFromToken.id,
+        email: userFromToken.email,
+        activityType: ActivityType.TWITTER_ACCOUNT_UNLINKED,
+        activityDescription: "Unlinked Twitter account",
+      });
+    }
 
     res.json({
       success: true,
@@ -334,7 +411,20 @@ app.post("/saveX", async (req, res) => {
         .status(400)
         .json({ error: "Email and Twitter username required" });
 
-    await User.findOneAndUpdate({ email }, { twitterUsername });
+    const user = await User.findOneAndUpdate({ email }, { twitterUsername });
+
+    if (user) {
+      // Log Twitter account linking
+      await logActivity(req, {
+        userId: (user._id as mongoose.Types.ObjectId).toString(),
+        email: user.email,
+        activityType: ActivityType.TWITTER_ACCOUNT_LINKED,
+        activityDescription: `Linked Twitter account: ${twitterUsername}`,
+        metadata: {
+          twitterUsername,
+        },
+      });
+    }
 
     res.json({ success: true, message: "Twitter account linked successfully" });
   } catch (err) {
@@ -346,6 +436,25 @@ app.get("/newsletter/:id", async (req, res) => {
   try {
     const newsletter = await Newsletter.findById(req.params.id);
     if (!newsletter) return res.status(404).send("Newsletter not found");
+
+    // Log newsletter view if user is authenticated
+    if (req.headers.authorization) {
+      try {
+        const token = req.headers.authorization.startsWith("Bearer ")
+          ? req.headers.authorization.substring(7)
+          : req.headers.authorization;
+        const decoded = verifyJWT(token);
+        await logActivity(req, {
+          userId: decoded.userId,
+          email: decoded.email,
+          activityType: ActivityType.NEWSLETTER_VIEWED,
+          activityDescription: `Viewed newsletter: ${req.params.id}`,
+          metadata: { newsletterId: req.params.id },
+        });
+      } catch (error) {
+        // Not authenticated, skip logging
+      }
+    }
 
     return res.status(200).json({ code: 0, newsletter: newsletter.content });
   } catch (error) {
@@ -419,6 +528,15 @@ app.post("/updateProfiles", authenticateJWT, async (req, res) => {
       }))
     );
 
+    // Log profiles update
+    await logActivity(req, {
+      userId: userFromToken.id,
+      email: userFromToken.email,
+      activityType: ActivityType.PROFILES_UPDATED,
+      activityDescription: `Updated profiles: ${profiles.join(", ")}`,
+      metadata: { profiles, changedProfiles },
+    });
+
     return res.status(200).json({
       code: 0,
       message: "Profiles updated successfully",
@@ -475,6 +593,15 @@ app.post("/updateFeedType", authenticateJWT, async (req, res) => {
     if (wise === "customProfiles") {
       await fetchAndStoreTweetsForProfiles(updatedUser.profiles); // Fetch tweets for followed profiles
     }
+
+    // Log feed type update
+    await logActivity(req, {
+      userId: userFromToken.id,
+      email: userFromToken.email,
+      activityType: ActivityType.FEED_TYPE_UPDATED,
+      activityDescription: `Updated feed type to: ${wise}`,
+      metadata: { wise, categories, profiles },
+    });
 
     res
       .status(200)
@@ -537,6 +664,15 @@ app.post("/login", async (req, res) => {
       email: user.email,
     });
 
+    // Log login activity
+    await logActivity(req, {
+      userId: (user._id as mongoose.Types.ObjectId).toString(),
+      email: user.email,
+      activityType: ActivityType.LOGIN,
+      activityDescription: "User logged in",
+      page: "/signin",
+    });
+
     return res.status(200).json({
       code: 0,
       message: "Login successful",
@@ -549,7 +685,17 @@ app.post("/login", async (req, res) => {
 });
 
 // Logout route - JWT based (client-side token removal)
-app.post("/logout", authenticateJWT, (req, res) => {
+app.post("/logout", authenticateJWT, async (req, res) => {
+  const userFromToken = (req as any).user;
+
+  // Log logout activity
+  await logActivity(req, {
+    userId: userFromToken.id,
+    email: userFromToken.email,
+    activityType: ActivityType.LOGOUT,
+    activityDescription: "User logged out",
+  });
+
   // With JWT, logout is handled client-side by removing the token
   // Optionally, you could maintain a token blacklist in Redis/MongoDB
   // For now, we just confirm logout
@@ -592,6 +738,19 @@ app.post("/register", async (req, res) => {
     const token = signJWT({
       userId: (newUser._id as mongoose.Types.ObjectId).toString(),
       email: newUser.email,
+    });
+
+    // Log account creation
+    await logActivity(req, {
+      userId: (newUser._id as mongoose.Types.ObjectId).toString(),
+      email: newUser.email,
+      activityType: ActivityType.ACCOUNT_CREATED,
+      activityDescription: "New account created",
+      page: "/signup",
+      metadata: {
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+      },
     });
 
     res.status(201).send({
@@ -645,6 +804,15 @@ app.post("/resetPassword", async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
+
+    // Log password change
+    await logActivity(req, {
+      userId: (user._id as mongoose.Types.ObjectId).toString(),
+      email: user.email,
+      activityType: ActivityType.PASSWORD_CHANGED,
+      activityDescription: "Password changed",
+    });
+
     res.status(200).json({ code: 0, message: "Password updated successfully" });
   } catch (err) {
     res.status(200).json({ code: 1, message: "Error updating password" });
@@ -910,6 +1078,15 @@ app.post("/updateCategories", authenticateJWT, async (req, res) => {
     );
 
     if (updatedUser) {
+      // Log categories update
+      await logActivity(req, {
+        userId: userFromToken.id,
+        email: userFromToken.email,
+        activityType: ActivityType.CATEGORIES_UPDATED,
+        activityDescription: `Updated categories: ${categories.join(", ")}`,
+        metadata: { categories },
+      });
+
       return res
         .status(200)
         .json({ code: 0, message: "Categories updated successfully" });
@@ -977,13 +1154,14 @@ app.get("/getUserDetails", authenticateJWT, async (req, res) => {
   try {
     const user = await User.findOne(
       { email: userFromToken.email },
-      "firstName lastName password"
-    ); // Fetch firstName, lastName, and password
+      "firstName lastName password isAdmin"
+    ); // Fetch firstName, lastName, password, and isAdmin
     if (user) {
       return res.status(200).json({
         code: 0,
         firstName: user.firstName,
         lastName: user.lastName,
+        isAdmin: user.isAdmin || false,
       });
     } else {
       return res.status(200).json({ code: 1, message: "User not found" });
@@ -1039,6 +1217,19 @@ app.post("/updateAccount", authenticateJWT, async (req, res) => {
       email: finalEmail,
     });
 
+    // Log account update
+    await logActivity(req, {
+      userId: userFromToken.id,
+      email: userFromToken.email,
+      activityType: ActivityType.ACCOUNT_UPDATED,
+      activityDescription: "Account details updated",
+      metadata: {
+        firstName: newFirstName,
+        lastName: newLastName,
+        email: newEmail,
+      },
+    });
+
     return res.status(200).json({
       code: 0,
       message: "Account updated successfully",
@@ -1048,6 +1239,304 @@ app.post("/updateAccount", authenticateJWT, async (req, res) => {
   } catch (err) {
     console.log("Error updating account:", err);
     return res.status(200).json({ code: 2, message: "Error updating account" });
+  }
+});
+
+// Log link click endpoint
+app.post("/logLinkClick", authenticateJWT, async (req, res) => {
+  try {
+    const userFromToken = (req as any).user;
+    const { link, page } = req.body;
+
+    await logActivity(req, {
+      userId: userFromToken.id,
+      email: userFromToken.email,
+      activityType: ActivityType.LINK_CLICKED,
+      activityDescription: `Clicked link: ${link}`,
+      page: page || "unknown",
+      metadata: { link },
+    });
+
+    res.status(200).json({ code: 0, message: "Link click logged" });
+  } catch (error) {
+    res.status(500).json({ code: 1, message: "Error logging link click" });
+  }
+});
+
+// Log feedback endpoint
+app.post("/logFeedback", authenticateJWT, async (req, res) => {
+  try {
+    const userFromToken = (req as any).user;
+    const { feedback, subject } = req.body;
+
+    await logActivity(req, {
+      userId: userFromToken.id,
+      email: userFromToken.email,
+      activityType: ActivityType.FEEDBACK_SENT,
+      activityDescription: `Feedback sent: ${subject || "No subject"}`,
+      metadata: { feedback, subject },
+    });
+
+    res.status(200).json({ code: 0, message: "Feedback logged" });
+  } catch (error) {
+    res.status(500).json({ code: 1, message: "Error logging feedback" });
+  }
+});
+
+// Admin Dashboard API Endpoints
+
+// Get page views analytics
+app.get("/admin/analytics/pageviews", authenticateAdmin, async (req, res) => {
+  try {
+    const { period, page } = req.query;
+    const { AuditLog } = await import("./auditLogModel");
+
+    let startDate = new Date();
+    switch (period) {
+      case "1d":
+        startDate.setDate(startDate.getDate() - 1);
+        break;
+      case "3d":
+        startDate.setDate(startDate.getDate() - 3);
+        break;
+      case "7d":
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case "30d":
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case "6m":
+        startDate.setMonth(startDate.getMonth() - 6);
+        break;
+      case "1y":
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 7);
+    }
+
+    const query: any = {
+      activityType: ActivityType.PAGE_VISIT,
+      createdAt: { $gte: startDate },
+    };
+
+    if (page) {
+      query.page = page;
+    }
+
+    const pageViews = await AuditLog.find(query)
+      .sort({ createdAt: -1 })
+      .select("page createdAt email")
+      .lean();
+
+    // Group by date and page
+    const grouped: { [key: string]: { [page: string]: number } } = {};
+    pageViews.forEach((log: any) => {
+      const date = new Date(log.createdAt).toISOString().split("T")[0];
+      const pageName = log.page || "unknown";
+      if (!grouped[date]) {
+        grouped[date] = {};
+      }
+      grouped[date][pageName] = (grouped[date][pageName] || 0) + 1;
+    });
+
+    const totalViews = pageViews.length;
+    const uniquePages = new Set(pageViews.map((log: any) => log.page)).size;
+
+    res.status(200).json({
+      code: 0,
+      data: {
+        totalViews,
+        uniquePages,
+        grouped,
+        pageViews: pageViews.slice(0, 100), // Last 100 page views
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching page views:", error);
+    res.status(500).json({ code: 1, message: "Error fetching analytics" });
+  }
+});
+
+// Get link clicks analytics
+app.get("/admin/analytics/linkclicks", authenticateAdmin, async (req, res) => {
+  try {
+    const { period } = req.query;
+    const { AuditLog } = await import("./auditLogModel");
+
+    let startDate = new Date();
+    switch (period) {
+      case "1d":
+        startDate.setDate(startDate.getDate() - 1);
+        break;
+      case "3d":
+        startDate.setDate(startDate.getDate() - 3);
+        break;
+      case "7d":
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case "30d":
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case "6m":
+        startDate.setMonth(startDate.getMonth() - 6);
+        break;
+      case "1y":
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 7);
+    }
+
+    const linkClicks = await AuditLog.find({
+      activityType: ActivityType.LINK_CLICKED,
+      createdAt: { $gte: startDate },
+    })
+      .sort({ createdAt: -1 })
+      .select("metadata createdAt email")
+      .lean();
+
+    const totalClicks = linkClicks.length;
+    const linkStats: { [link: string]: number } = {};
+    linkClicks.forEach((log: any) => {
+      const link = log.metadata?.link || "unknown";
+      linkStats[link] = (linkStats[link] || 0) + 1;
+    });
+
+    res.status(200).json({
+      code: 0,
+      data: {
+        totalClicks,
+        linkStats,
+        clicks: linkClicks.slice(0, 100),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching link clicks:", error);
+    res.status(500).json({ code: 1, message: "Error fetching analytics" });
+  }
+});
+
+// Get all audit logs (live activities)
+app.get("/admin/audit-logs", authenticateAdmin, async (req, res) => {
+  try {
+    const { userEmail, activityType, limit = 100, skip = 0 } = req.query;
+    const { AuditLog } = await import("./auditLogModel");
+
+    const query: any = {};
+    if (userEmail) {
+      query.email = userEmail;
+    }
+    if (activityType) {
+      query.activityType = activityType;
+    }
+
+    const logs = await AuditLog.find(query)
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip(Number(skip))
+      .select("email activityType activityDescription page metadata createdAt")
+      .lean();
+
+    const total = await AuditLog.countDocuments(query);
+
+    res.status(200).json({
+      code: 0,
+      data: {
+        logs,
+        total,
+        limit: Number(limit),
+        skip: Number(skip),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching audit logs:", error);
+    res.status(500).json({ code: 1, message: "Error fetching audit logs" });
+  }
+});
+
+// Get user metrics
+app.get("/admin/users", authenticateAdmin, async (req, res) => {
+  try {
+    const users = await User.find({})
+      .select("email wise categories profiles twitterUsername isAdmin")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const userStats = {
+      total: users.length,
+      categorywise: users.filter((u: any) => u.wise === "categorywise").length,
+      customProfiles: users.filter((u: any) => u.wise === "customProfiles")
+        .length,
+      withTwitter: users.filter((u: any) => u.twitterUsername).length,
+    };
+
+    res.status(200).json({
+      code: 0,
+      data: {
+        users,
+        stats: userStats,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ code: 1, message: "Error fetching users" });
+  }
+});
+
+// Get activity statistics
+app.get("/admin/analytics/activities", authenticateAdmin, async (req, res) => {
+  try {
+    const { period } = req.query;
+    const { AuditLog } = await import("./auditLogModel");
+
+    let startDate = new Date();
+    switch (period) {
+      case "1d":
+        startDate.setDate(startDate.getDate() - 1);
+        break;
+      case "3d":
+        startDate.setDate(startDate.getDate() - 3);
+        break;
+      case "7d":
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case "30d":
+        startDate.setDate(startDate.getDate() - 30);
+        break;
+      case "6m":
+        startDate.setMonth(startDate.getMonth() - 6);
+        break;
+      case "1y":
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 7);
+    }
+
+    const activities = await AuditLog.find({
+      createdAt: { $gte: startDate },
+    })
+      .select("activityType createdAt")
+      .lean();
+
+    const activityStats: { [type: string]: number } = {};
+    activities.forEach((log: any) => {
+      activityStats[log.activityType] =
+        (activityStats[log.activityType] || 0) + 1;
+    });
+
+    res.status(200).json({
+      code: 0,
+      data: {
+        totalActivities: activities.length,
+        activityStats,
+        period,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching activity stats:", error);
+    res.status(500).json({ code: 1, message: "Error fetching activity stats" });
   }
 });
 

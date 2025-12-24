@@ -149,6 +149,29 @@ export const TrendingPosts = ({ posts, loadingPosts }: TrendingPostsProps) => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-[#7FFFD4] hover:underline"
+                  onClick={async () => {
+                    const token = localStorage.getItem("token");
+                    if (token) {
+                      try {
+                        await fetch(
+                          `${process.env.NEXT_PUBLIC_SERVER}/logLinkClick`,
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({
+                              link: `https://twitter.com/i/web/status/${post.tweet_id}`,
+                              page: window.location.pathname,
+                            }),
+                          }
+                        );
+                      } catch (error) {
+                        // Silently fail
+                      }
+                    }
+                  }}
                 >
                   View Post
                 </a>
