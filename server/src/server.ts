@@ -10,6 +10,7 @@ import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import mongoose from "mongoose";
+import crypto from "crypto";
 import { User } from "./userModel";
 import "./digest";
 import { Newsletter } from "./newsletterModel";
@@ -24,6 +25,59 @@ import {
 import { StoredTweets, CustomProfilePosts } from "./tweetModel";
 
 env.config();
+
+// Encryption/Decryption utilities
+const ENCRYPTION_KEY =
+  process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
+const ALGORITHM = "aes-256-gcm";
+const IV_LENGTH = 16;
+const SALT_LENGTH = 64;
+const TAG_LENGTH = 16;
+const TAG_POSITION = SALT_LENGTH + IV_LENGTH;
+const ENCRYPTED_POSITION = TAG_POSITION + TAG_LENGTH;
+
+function getKeyFromPassword(password: string, salt: Buffer): Buffer {
+  return crypto.pbkdf2Sync(password, salt as any, 100000, 32, "sha512");
+}
+
+function encrypt(text: string): string {
+  const salt = crypto.randomBytes(SALT_LENGTH);
+  const key = getKeyFromPassword(ENCRYPTION_KEY, salt);
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGORITHM, key as any, iv as any);
+
+  let encrypted = cipher.update(text, "utf8", "hex");
+  encrypted += cipher.final("hex");
+
+  const tag = cipher.getAuthTag();
+
+  // Combine salt + iv + tag + encrypted
+  return (
+    salt.toString("hex") + iv.toString("hex") + tag.toString("hex") + encrypted
+  );
+}
+
+function decrypt(encryptedData: string): string {
+  const salt = Buffer.from(encryptedData.slice(0, SALT_LENGTH * 2), "hex");
+  const iv = Buffer.from(
+    encryptedData.slice(SALT_LENGTH * 2, TAG_POSITION * 2),
+    "hex"
+  );
+  const tag = Buffer.from(
+    encryptedData.slice(TAG_POSITION * 2, ENCRYPTED_POSITION * 2),
+    "hex"
+  );
+  const encrypted = encryptedData.slice(ENCRYPTED_POSITION * 2);
+
+  const key = getKeyFromPassword(ENCRYPTION_KEY, salt);
+  const decipher = crypto.createDecipheriv(ALGORITHM, key as any, iv as any);
+  decipher.setAuthTag(tag as any);
+
+  let decrypted = decipher.update(encrypted, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+
+  return decrypted;
+}
 const app = express();
 const port = 3001;
 
@@ -504,7 +558,13 @@ app.post("/login", (req, res, next) => {
     if (!user) return res.status(401).json({ code: 1, message: info.message });
     req.logIn(user, (err) => {
       if (err) return next(err);
-      return res.status(200).json({ code: 0, message: "Login successful" });
+      // Encrypt the email before returning
+      const encryptedEmail = encrypt(user.email);
+      return res.status(200).json({
+        code: 0,
+        message: "Login successful",
+        encryptedEmail,
+      });
     });
   })(req, res, next);
 });
@@ -558,7 +618,13 @@ app.post("/register", async (req, res) => {
       password: hashedPassword,
     });
     await newUser.save();
-    res.status(201).send({ code: 0, message: "User registered successfully" });
+    // Encrypt the email before returning
+    const encryptedEmail = encrypt(email);
+    res.status(201).send({
+      code: 0,
+      message: "User registered successfully",
+      encryptedEmail,
+    });
     const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories([
       "Politics",
       "Geopolitics",
@@ -767,6 +833,8 @@ app.get("/auth/google/callback", (req, res, next) => {
     }
 
     const email = user.email;
+    // Encrypt the email for the redirect URL
+    const encryptedEmail = encrypt(email);
 
     // Check if the user already exists in MongoDB
     const existingUser = await User.findOne({ email });
@@ -783,7 +851,11 @@ app.get("/auth/google/callback", (req, res, next) => {
             return next(err);
           }
           return res.redirect(
-            `${process.env.CLIENT_URL}/signin/?code=0&message=Login%20successful&email=${email}`
+            `${
+              process.env.CLIENT_URL
+            }/signin/?code=0&message=Login%20successful&token=${encodeURIComponent(
+              encryptedEmail
+            )}`
           );
         });
       }
@@ -795,7 +867,11 @@ app.get("/auth/google/callback", (req, res, next) => {
             return next(err);
           }
           return res.redirect(
-            `${process.env.CLIENT_URL}/signup/?code=0&message=Sign%20up%20successful&email=${email}`
+            `${
+              process.env.CLIENT_URL
+            }/signup/?code=0&message=Sign%20up%20successful&token=${encodeURIComponent(
+              encryptedEmail
+            )}`
           );
         });
       } else {
@@ -852,6 +928,34 @@ app.get("/check-session", (req, res) => {
     res.status(200).json({ isAuthenticated: true, email });
   } else {
     res.status(200).json({ isAuthenticated: false });
+  }
+});
+
+// Decrypt email token route
+app.post("/decrypt-email", async (req, res) => {
+  try {
+    const { encryptedToken } = req.body;
+    if (!encryptedToken) {
+      return res
+        .status(400)
+        .json({ code: 1, message: "Encrypted token is required" });
+    }
+    const email = decrypt(encryptedToken);
+
+    // Validate that the email exists in the database
+    // This prevents decryption of tokens for non-existent users
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({
+        code: 1,
+        message: "Invalid token - user not found",
+      });
+    }
+
+    res.status(200).json({ code: 0, email });
+  } catch (error) {
+    console.error("Error decrypting email:", error);
+    res.status(400).json({ code: 1, message: "Invalid or corrupted token" });
   }
 });
 
@@ -1014,9 +1118,16 @@ app.post("/updateAccount", async (req, res) => {
 
     // Save the updated user
     await user.save();
-    return res
-      .status(200)
-      .json({ code: 0, message: "Account updated successfully" });
+
+    // Return encrypted token for the updated email
+    const finalEmail = newEmail && newEmail.trim() ? newEmail : email;
+    const encryptedEmail = encrypt(finalEmail);
+
+    return res.status(200).json({
+      code: 0,
+      message: "Account updated successfully",
+      encryptedEmail,
+    });
   } catch (err) {
     console.log("Error updating account:", err);
     return res.status(200).json({ code: 2, message: "Error updating account" });
