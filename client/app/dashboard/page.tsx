@@ -169,27 +169,36 @@ export default function Dashboard() {
     }
   };
 
+  // Helper function to get email from backend using token
+  const getEmailFromBackend = async (token: string): Promise<string | null> => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/check-session`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.data.isAuthenticated) {
+        return response.data.email;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
   useEffect(() => {
     const loadEmailFromToken = async () => {
-      const savedToken = localStorage.getItem("email");
+      const savedToken = localStorage.getItem("token");
       if (savedToken) {
-        try {
-          // Decrypt the token to get the email
-          const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_SERVER}/decrypt-email`,
-            { encryptedToken: savedToken }
-          );
-          if (response.data.code === 0) {
-            const email = response.data.email;
-            setEmailContext(email);
-          } else {
-            // Invalid token, remove it
-            localStorage.removeItem("email");
-          }
-        } catch (error) {
-          console.error("Error decrypting email token:", error);
+        const email = await getEmailFromBackend(savedToken);
+        if (email) {
+          setEmailContext(email);
+        } else {
           // Invalid token, remove it
-          localStorage.removeItem("email");
+          localStorage.removeItem("token");
         }
       }
     };
@@ -207,11 +216,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (emailContext) {
-      // Note: We don't store plain email anymore, only encrypted tokens
-      // The token should already be in localStorage from login
+      // JWT token should already be in localStorage from login
       fetchData();
     } else {
-      localStorage.removeItem("email");
+      localStorage.removeItem("token");
     }
   }, [emailContext]);
 
@@ -402,10 +410,13 @@ export default function Dashboard() {
     setLoadingProfiles(true);
     setLoadingPosts(true);
     try {
+      const token = localStorage.getItem("token");
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_SERVER}/data`,
         {
-          params: { email: emailContext },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -641,11 +652,16 @@ export default function Dashboard() {
     setUpdatingFeed(true);
 
     try {
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateProfiles`,
         {
-          email: emailContext,
           profiles: profiles.map((p) => p.username),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       if (response.status === 200) {
@@ -665,11 +681,16 @@ export default function Dashboard() {
   const handleCategoryUpdate = async () => {
     playSound();
     try {
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateCategories`,
         {
-          email: emailContext,
           categories,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       await fetchData();
@@ -684,9 +705,15 @@ export default function Dashboard() {
   const handleTimeUpdate = async () => {
     playSound();
     try {
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateTimes`,
-        { email: emailContext, time }
+        { time },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (response.status === 200) {
         showNotification("Times Updated", "success");
@@ -718,14 +745,19 @@ export default function Dashboard() {
     setSelectedTab("newsfeed");
 
     try {
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateFeedType`,
         {
-          email: emailContext,
           wise,
           categories: wise === "categorywise" ? categories : [],
           profiles:
             wise === "customProfiles" ? profiles.map((p) => p.username) : [],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -748,9 +780,16 @@ export default function Dashboard() {
   const handleUnlinkTwitter = async () => {
     setIsSavingTwitter(true);
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/unlinkX`, {
-        email: emailContext,
-      });
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/unlinkX`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setLinkedTwitter(null);
       showNotification("X account unlinked", "success");
     } catch (err) {
@@ -770,10 +809,18 @@ export default function Dashboard() {
     setIsConnectingTwitter(true);
 
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_SERVER}/saveX`, {
-        email: emailContext,
-        twitterUsername,
-      });
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/saveX`,
+        {
+          twitterUsername,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       setLinkedTwitter(twitterUsername);
       const allFollowing = await fetchTwitterFollowingWithPagination(

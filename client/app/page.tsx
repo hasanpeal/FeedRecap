@@ -60,23 +60,41 @@ export default function Home() {
     }
   }, [index]);
 
+  // Helper function to get email from backend using token
+  const getEmailFromBackend = async (token: string): Promise<string | null> => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/check-session`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.data.isAuthenticated) {
+        return response.data.email;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
   React.useEffect(() => {
     const storage = async () => {
-      const savedToken = localStorage.getItem("email");
+      const savedToken = localStorage.getItem("token");
       if (savedToken) {
         try {
-          // Decrypt the token to get the email
-          const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_SERVER}/decrypt-email`,
-            { encryptedToken: savedToken }
-          );
-          if (response.data.code === 0) {
-            const email = response.data.email;
+          const email = await getEmailFromBackend(savedToken);
+          if (email) {
             setEmailContext(email);
+            const token = localStorage.getItem("token");
             const userResponse = await axios.get(
               `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
               {
-                params: { email },
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
               }
             );
 
@@ -89,12 +107,12 @@ export default function Home() {
               router.push("/dashboard");
           } else {
             // Invalid token, remove it
-            localStorage.removeItem("email");
+            localStorage.removeItem("token");
           }
         } catch (error) {
-          console.error("Error decrypting email token:", error);
+          console.error("Error validating token:", error);
           // Invalid token, remove it
-          localStorage.removeItem("email");
+          localStorage.removeItem("token");
         }
       }
     };

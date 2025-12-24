@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useEmail } from "@/context/UserContext";
 import axios from "axios";
@@ -19,18 +19,18 @@ export default function Navbar2() {
   const form = useRef<HTMLFormElement>(null);
   const { notification, showNotification } = useNotification();
 
-  useEffect(() => {
-    if (emailContext) {
-      fetchUserDetails();
-    }
-  }, [emailContext]);
-
-  const fetchUserDetails = async () => {
+  const fetchUserDetails = useCallback(async () => {
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        return; // No token, can't fetch user details
+      }
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_SERVER}/getUserDetails`,
         {
-          params: { email: emailContext },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       if (response.status === 200) {
@@ -43,7 +43,13 @@ export default function Navbar2() {
     } catch (err) {
       showNotification("Error fetching user details.", "error");
     }
-  };
+  }, [emailContext, showNotification]);
+
+  useEffect(() => {
+    if (emailContext) {
+      fetchUserDetails();
+    }
+  }, [emailContext, fetchUserDetails]);
 
   const sendEmail = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
