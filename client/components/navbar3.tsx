@@ -64,10 +64,13 @@ export default function Navbar2() {
         }
       );
 
-      if (response.status === 200) {
+      if (response.status === 200 && response.data.code === 0) {
         toast.success("Account updated successfully");
         setEmailContext(email);
-        localStorage.setItem("email", email);
+        // Store encrypted token if provided
+        if (response.data.encryptedEmail) {
+          localStorage.setItem("email", response.data.encryptedEmail);
+        }
       } else {
         toast.error(response.data.message);
       }

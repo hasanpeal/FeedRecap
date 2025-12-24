@@ -62,20 +62,40 @@ export default function Home() {
 
   React.useEffect(() => {
     const storage = async () => {
-      const savedEmail = localStorage.getItem("email");
-      if (savedEmail) {
-        setEmailContext(savedEmail);
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
-          {
-            params: { email: savedEmail },
-          }
-        );
+      const savedToken = localStorage.getItem("email");
+      if (savedToken) {
+        try {
+          // Decrypt the token to get the email
+          const response = await axios.post(
+            `${process.env.NEXT_PUBLIC_SERVER}/decrypt-email`,
+            { encryptedToken: savedToken }
+          );
+          if (response.data.code === 0) {
+            const email = response.data.email;
+            setEmailContext(email);
+            const userResponse = await axios.get(
+              `${process.env.NEXT_PUBLIC_SERVER}/getIsNewUser`,
+              {
+                params: { email },
+              }
+            );
 
-        if (response.status === 200 && response.data.isNewUser)
-          router.push("/newuser");
-        else if (response.status === 200 && !response.data.isNewUser)
-          router.push("/dashboard");
+            if (userResponse.status === 200 && userResponse.data.isNewUser)
+              router.push("/newuser");
+            else if (
+              userResponse.status === 200 &&
+              !userResponse.data.isNewUser
+            )
+              router.push("/dashboard");
+          } else {
+            // Invalid token, remove it
+            localStorage.removeItem("email");
+          }
+        } catch (error) {
+          console.error("Error decrypting email token:", error);
+          // Invalid token, remove it
+          localStorage.removeItem("email");
+        }
       }
     };
     storage();

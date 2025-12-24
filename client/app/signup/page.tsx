@@ -31,12 +31,66 @@ const Signup: React.FC = () => {
   const router = useRouter();
   const { setEmailContext } = useEmail();
 
+  // Helper function to decrypt email token
+  const decryptEmailToken = async (
+    encryptedToken: string
+  ): Promise<string | null> => {
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/decrypt-email`,
+        { encryptedToken }
+      );
+      if (response.data.code === 0) {
+        return response.data.email;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error decrypting email token:", error);
+      return null;
+    }
+  };
+
+  React.useEffect(() => {
+    const checkParams = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const message = params.get("message");
+      const encryptedToken = params.get("token");
+      if (code) {
+        if (Number.parseInt(code) === 0 && encryptedToken) {
+          // Decrypt the token to get the email
+          const email = await decryptEmailToken(encryptedToken);
+          if (email) {
+            // Store encrypted token in localStorage
+            localStorage.setItem("email", encryptedToken);
+            setEmailContext(email);
+            router.push("/dashboard");
+          }
+        }
+      }
+    };
+    checkParams();
+  }, [router, setEmailContext]);
+
   React.useEffect(() => {
     const storage = async () => {
-      const savedEmail = localStorage.getItem("email");
-      if (savedEmail) {
-        setEmailContext(savedEmail);
-        router.push("/dashboard");
+      const savedToken = localStorage.getItem("email");
+      if (savedToken) {
+        try {
+          // Decrypt the token to get the email
+          const email = await decryptEmailToken(savedToken);
+          if (email) {
+            setEmailContext(email);
+            router.push("/dashboard");
+          } else {
+            // Invalid token, remove it
+            localStorage.removeItem("email");
+          }
+        } catch (error) {
+          console.error("Error decrypting email token:", error);
+          // Invalid token, remove it
+          localStorage.removeItem("email");
+        }
       }
     };
     storage();
@@ -152,7 +206,11 @@ const Signup: React.FC = () => {
             }
           );
 
-          if (result.status === 201) {
+          if (result.status === 201 && result.data.code === 0) {
+            // Store encrypted token in localStorage
+            if (result.data.encryptedEmail) {
+              localStorage.setItem("email", result.data.encryptedEmail);
+            }
             setEmailContext(email);
             router.push("/dashboard");
           } else {

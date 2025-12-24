@@ -170,10 +170,30 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem("email");
-    if (savedEmail) {
-      setEmailContext(savedEmail);
-    }
+    const loadEmailFromToken = async () => {
+      const savedToken = localStorage.getItem("email");
+      if (savedToken) {
+        try {
+          // Decrypt the token to get the email
+          const response = await axios.post(
+            `${process.env.NEXT_PUBLIC_SERVER}/decrypt-email`,
+            { encryptedToken: savedToken }
+          );
+          if (response.data.code === 0) {
+            const email = response.data.email;
+            setEmailContext(email);
+          } else {
+            // Invalid token, remove it
+            localStorage.removeItem("email");
+          }
+        } catch (error) {
+          console.error("Error decrypting email token:", error);
+          // Invalid token, remove it
+          localStorage.removeItem("email");
+        }
+      }
+    };
+    loadEmailFromToken();
   }, [setEmailContext]);
 
   useEffect(() => {
@@ -187,7 +207,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (emailContext) {
-      localStorage.setItem("email", emailContext);
+      // Note: We don't store plain email anymore, only encrypted tokens
+      // The token should already be in localStorage from login
       fetchData();
     } else {
       localStorage.removeItem("email");

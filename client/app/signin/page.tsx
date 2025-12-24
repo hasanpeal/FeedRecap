@@ -45,6 +45,25 @@ export default function Signin() {
   const { setEmailContext } = useEmail();
   const router = useRouter();
 
+  // Helper function to decrypt email token
+  const decryptEmailToken = async (
+    encryptedToken: string
+  ): Promise<string | null> => {
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/decrypt-email`,
+        { encryptedToken }
+      );
+      if (response.data.code === 0) {
+        return response.data.email;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error decrypting email token:", error);
+      return null;
+    }
+  };
+
   React.useEffect(() => {
     const checkSession = async () => {
       try {
@@ -69,11 +88,26 @@ export default function Signin() {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
       const message = params.get("message");
-      const capturedEmail = params.get("email");
+      const encryptedToken = params.get("token");
       if (code) {
-        if (Number.parseInt(code) === 0) {
-          setEmailContext(capturedEmail || "");
-          router.push("/dashboard");
+        if (Number.parseInt(code) === 0 && encryptedToken) {
+          // Decrypt the token to get the email
+          const email = await decryptEmailToken(encryptedToken);
+          if (email) {
+            // Store encrypted token in localStorage
+            localStorage.setItem("email", encryptedToken);
+            setEmailContext(email);
+            router.push("/dashboard");
+          } else {
+            setFormErrors((prev) => ({
+              ...prev,
+              password: "Failed to decrypt authentication token",
+            }));
+            setTimeout(
+              () => setFormErrors((prev) => ({ ...prev, password: "" })),
+              3000
+            );
+          }
         } else {
           setFormErrors((prev) => ({
             ...prev,
@@ -91,10 +125,17 @@ export default function Signin() {
 
   React.useEffect(() => {
     const storage = async () => {
-      const savedEmail = localStorage.getItem("email");
-      if (savedEmail) {
-        setEmailContext(savedEmail);
-        router.push("/dashboard");
+      const savedToken = localStorage.getItem("email");
+      if (savedToken) {
+        // Decrypt the token to get the email
+        const email = await decryptEmailToken(savedToken);
+        if (email) {
+          setEmailContext(email);
+          router.push("/dashboard");
+        } else {
+          // Invalid token, remove it
+          localStorage.removeItem("email");
+        }
       }
     };
     storage();
@@ -125,7 +166,11 @@ export default function Signin() {
             password,
           }
         );
-        if (result.status === 200) {
+        if (result.status === 200 && result.data.code === 0) {
+          // Store encrypted token in localStorage
+          if (result.data.encryptedEmail) {
+            localStorage.setItem("email", result.data.encryptedEmail);
+          }
           setEmailContext(email);
           router.push("/dashboard");
         } else {
