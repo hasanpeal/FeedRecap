@@ -45,21 +45,22 @@ export default function Signin() {
   const { setEmailContext } = useEmail();
   const router = useRouter();
 
-  // Helper function to decrypt email token
-  const decryptEmailToken = async (
-    encryptedToken: string
-  ): Promise<string | null> => {
+  // Helper function to get email from backend using token
+  const getEmailFromBackend = async (token: string): Promise<string | null> => {
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/decrypt-email`,
-        { encryptedToken }
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/check-session`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      if (response.data.code === 0) {
+      if (response.data.isAuthenticated) {
         return response.data.email;
       }
       return null;
     } catch (error) {
-      console.error("Error decrypting email token:", error);
       return null;
     }
   };
@@ -67,17 +68,20 @@ export default function Signin() {
   React.useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER}/check-session`,
-          { withCredentials: true }
-        );
-        if (response.data.isAuthenticated) {
-          const { email } = response.data;
-          setEmailContext(email);
-          router.push("/dashboard");
+        const token = localStorage.getItem("token");
+        if (token) {
+          const email = await getEmailFromBackend(token);
+          if (email) {
+            setEmailContext(email);
+            router.push("/dashboard");
+          } else {
+            // Invalid token, remove it
+            localStorage.removeItem("token");
+          }
         }
       } catch (error) {
-        console.error(error);
+        // Token invalid or expired - silently fail, don't show error
+        localStorage.removeItem("token");
       }
     };
     checkSession();
@@ -88,20 +92,20 @@ export default function Signin() {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
       const message = params.get("message");
-      const encryptedToken = params.get("token");
+      const jwtToken = params.get("token");
       if (code) {
-        if (Number.parseInt(code) === 0 && encryptedToken) {
-          // Decrypt the token to get the email
-          const email = await decryptEmailToken(encryptedToken);
+        if (Number.parseInt(code) === 0 && jwtToken) {
+          // Store JWT token
+          localStorage.setItem("token", jwtToken);
+          // Get email from backend
+          const email = await getEmailFromBackend(jwtToken);
           if (email) {
-            // Store encrypted token in localStorage
-            localStorage.setItem("email", encryptedToken);
             setEmailContext(email);
             router.push("/dashboard");
           } else {
             setFormErrors((prev) => ({
               ...prev,
-              password: "Failed to decrypt authentication token",
+              password: "Invalid authentication token",
             }));
             setTimeout(
               () => setFormErrors((prev) => ({ ...prev, password: "" })),
@@ -125,16 +129,15 @@ export default function Signin() {
 
   React.useEffect(() => {
     const storage = async () => {
-      const savedToken = localStorage.getItem("email");
+      const savedToken = localStorage.getItem("token");
       if (savedToken) {
-        // Decrypt the token to get the email
-        const email = await decryptEmailToken(savedToken);
+        const email = await getEmailFromBackend(savedToken);
         if (email) {
           setEmailContext(email);
           router.push("/dashboard");
         } else {
           // Invalid token, remove it
-          localStorage.removeItem("email");
+          localStorage.removeItem("token");
         }
       }
     };
@@ -167,12 +170,26 @@ export default function Signin() {
           }
         );
         if (result.status === 200 && result.data.code === 0) {
-          // Store encrypted token in localStorage
-          if (result.data.encryptedEmail) {
-            localStorage.setItem("email", result.data.encryptedEmail);
+          // Store JWT token in localStorage
+          if (result.data.token) {
+            localStorage.setItem("token", result.data.token);
+            // Get email from backend using the token
+            const emailFromBackend = await getEmailFromBackend(
+              result.data.token
+            );
+            if (emailFromBackend) {
+              setEmailContext(emailFromBackend);
+            } else if (result.data.email) {
+              // Fallback to email from response if backend check fails
+              setEmailContext(result.data.email);
+            } else {
+              setEmailContext(email);
+            }
           }
-          setEmailContext(email);
+          // Clear any previous errors before redirecting
+          setFormErrors({ email: "", password: "" });
           router.push("/dashboard");
+          return; // Exit early on success
         } else {
           setFormErrors((prev) => ({
             ...prev,
@@ -184,21 +201,23 @@ export default function Signin() {
           );
         }
       } catch (err: any) {
-        if (err.response?.status === 401) {
+        // Only show error for actual failures (not successful logins)
+        // Check if it's a real error, not a successful response
+        const isError =
+          err.response &&
+          (err.response.status !== 200 || err.response.data?.code !== 0);
+        if (isError) {
           setFormErrors((prev) => ({
             ...prev,
-            password: err.response.data.message || "Invalid email or password",
+            password:
+              err.response?.data?.message || "Invalid email or password",
           }));
-        } else {
-          setFormErrors((prev) => ({
-            ...prev,
-            password: "An error occurred. Please try again.",
-          }));
+          setTimeout(
+            () => setFormErrors((prev) => ({ ...prev, password: "" })),
+            3000
+          );
         }
-        setTimeout(
-          () => setFormErrors((prev) => ({ ...prev, password: "" })),
-          3000
-        );
+        // If login was successful, don't show any error
       }
     } else {
       setTimeout(() => {

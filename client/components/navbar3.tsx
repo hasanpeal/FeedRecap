@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useEmail } from "@/context/UserContext";
 import axios from "axios";
@@ -21,18 +21,15 @@ export default function Navbar2() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { notification, showNotification } = useNotification();
 
-  useEffect(() => {
-    if (emailContext) {
-      fetchUserDetails();
-    }
-  }, [emailContext]);
-
-  const fetchUserDetails = async () => {
+  const fetchUserDetails = useCallback(async () => {
     try {
+      const token = localStorage.getItem("token");
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_SERVER}/getUserDetails`,
         {
-          params: { email: emailContext },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       if (response.status === 200) {
@@ -45,7 +42,13 @@ export default function Navbar2() {
     } catch (err) {
       toast.error("Error fetching user details.");
     }
-  };
+  }, [emailContext]);
+
+  useEffect(() => {
+    if (emailContext) {
+      fetchUserDetails();
+    }
+  }, [emailContext, fetchUserDetails]);
 
   const handleAccountUpdate = async () => {
     if (!firstName || !lastName || !email) {
@@ -54,22 +57,46 @@ export default function Navbar2() {
     }
 
     try {
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/updateAccount`,
         {
-          email: emailContext,
           newFirstName: firstName,
           newLastName: lastName,
           newEmail: email,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
       if (response.status === 200 && response.data.code === 0) {
         toast.success("Account updated successfully");
-        setEmailContext(email);
-        // Store encrypted token if provided
-        if (response.data.encryptedEmail) {
-          localStorage.setItem("email", response.data.encryptedEmail);
+        // Store new JWT token if provided
+        if (response.data.token) {
+          localStorage.setItem("token", response.data.token);
+          // Get email from backend using the new token
+          try {
+            const emailResponse = await axios.get(
+              `${process.env.NEXT_PUBLIC_SERVER}/check-session`,
+              {
+                headers: {
+                  Authorization: `Bearer ${response.data.token}`,
+                },
+              }
+            );
+            if (emailResponse.data.isAuthenticated) {
+              setEmailContext(emailResponse.data.email);
+            } else {
+              setEmailContext(email);
+            }
+          } catch (err) {
+            setEmailContext(email);
+          }
+        } else {
+          setEmailContext(email);
         }
       } else {
         toast.error(response.data.message);
@@ -81,20 +108,27 @@ export default function Navbar2() {
 
   const handleLogout = async () => {
     try {
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_SERVER}/logout`,
         {},
-        { withCredentials: true }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (response.status === 200) {
         localStorage.removeItem("cookieConsent");
-        localStorage.removeItem("email");
+        localStorage.removeItem("token");
         router.push("/");
       } else {
         toast.error("Error logging out.");
       }
     } catch (err) {
-      toast.error("Error logging out.");
+      // Even if logout fails, clear local storage
+      localStorage.removeItem("token");
+      router.push("/");
     }
   };
 

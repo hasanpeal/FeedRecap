@@ -31,21 +31,22 @@ const Signup: React.FC = () => {
   const router = useRouter();
   const { setEmailContext } = useEmail();
 
-  // Helper function to decrypt email token
-  const decryptEmailToken = async (
-    encryptedToken: string
-  ): Promise<string | null> => {
+  // Helper function to get email from backend using token
+  const getEmailFromBackend = async (token: string): Promise<string | null> => {
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/decrypt-email`,
-        { encryptedToken }
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/check-session`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      if (response.data.code === 0) {
+      if (response.data.isAuthenticated) {
         return response.data.email;
       }
       return null;
     } catch (error) {
-      console.error("Error decrypting email token:", error);
       return null;
     }
   };
@@ -55,14 +56,14 @@ const Signup: React.FC = () => {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
       const message = params.get("message");
-      const encryptedToken = params.get("token");
+      const jwtToken = params.get("token");
       if (code) {
-        if (Number.parseInt(code) === 0 && encryptedToken) {
-          // Decrypt the token to get the email
-          const email = await decryptEmailToken(encryptedToken);
+        if (Number.parseInt(code) === 0 && jwtToken) {
+          // Store JWT token
+          localStorage.setItem("token", jwtToken);
+          // Get email from backend
+          const email = await getEmailFromBackend(jwtToken);
           if (email) {
-            // Store encrypted token in localStorage
-            localStorage.setItem("email", encryptedToken);
             setEmailContext(email);
             router.push("/dashboard");
           }
@@ -74,22 +75,15 @@ const Signup: React.FC = () => {
 
   React.useEffect(() => {
     const storage = async () => {
-      const savedToken = localStorage.getItem("email");
+      const savedToken = localStorage.getItem("token");
       if (savedToken) {
-        try {
-          // Decrypt the token to get the email
-          const email = await decryptEmailToken(savedToken);
-          if (email) {
-            setEmailContext(email);
-            router.push("/dashboard");
-          } else {
-            // Invalid token, remove it
-            localStorage.removeItem("email");
-          }
-        } catch (error) {
-          console.error("Error decrypting email token:", error);
+        const email = await getEmailFromBackend(savedToken);
+        if (email) {
+          setEmailContext(email);
+          router.push("/dashboard");
+        } else {
           // Invalid token, remove it
-          localStorage.removeItem("email");
+          localStorage.removeItem("token");
         }
       }
     };
@@ -207,11 +201,22 @@ const Signup: React.FC = () => {
           );
 
           if (result.status === 201 && result.data.code === 0) {
-            // Store encrypted token in localStorage
-            if (result.data.encryptedEmail) {
-              localStorage.setItem("email", result.data.encryptedEmail);
+            // Store JWT token in localStorage
+            if (result.data.token) {
+              localStorage.setItem("token", result.data.token);
+              // Get email from backend using the token
+              const emailFromBackend = await getEmailFromBackend(
+                result.data.token
+              );
+              if (emailFromBackend) {
+                setEmailContext(emailFromBackend);
+              } else if (result.data.email) {
+                // Fallback to email from response if backend check fails
+                setEmailContext(result.data.email);
+              } else {
+                setEmailContext(email);
+              }
             }
-            setEmailContext(email);
             router.push("/dashboard");
           } else {
             toast.error("Server error");
