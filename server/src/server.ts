@@ -156,36 +156,6 @@ app.use(
   })
 );
 
-// Middleware to handle raw body for webhook
-app.use((req, res, next) => {
-  // Allow Google OAuth redirects to pass through without origin/referer checks
-  if (req.path && req.path.startsWith("/auth/google/")) {
-    return next();
-  }
-
-  const origin = req.headers.origin;
-  const referer = req.headers.referer;
-
-  // For same-origin requests, origin will be undefined, so we check referer
-  if (!origin && referer) {
-    const refererUrl = new URL(referer);
-    const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
-    if (refererOrigin === process.env.ORIGIN) {
-      return express.json()(req, res, next);
-    }
-  }
-
-  // For cross-origin requests, check origin
-  if (origin === process.env.ORIGIN) {
-    return express.json()(req, res, next);
-  }
-
-  console.log(`🚫 Blocked request - Origin: ${origin}, Referer: ${referer}`);
-  return res
-    .status(403)
-    .json({ error: "Forbidden: Invalid origin or referer" });
-});
-
 process.on("SIGTERM", () => {
   console.log("SIGTERM received. Closing gracefully.");
   process.exit(0);
