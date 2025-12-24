@@ -4,6 +4,7 @@ import { EmailProvider } from "@/context/UserContext";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { PageVisitLogger } from "@/components/PageVisitLogger";
 import "./globals.css";
 import { Montserrat } from "next/font/google";
 
@@ -57,7 +58,10 @@ export default function RootLayout({
         <link rel="manifest" href="%/site.webmanifest" />
       </head>
       <body className={(inter.className, montserrat.className)}>
-        <EmailProvider>{children}</EmailProvider>
+        <EmailProvider>
+          <PageVisitLogger />
+          {children}
+        </EmailProvider>
         <Analytics />
         <SpeedInsights />
       </body>

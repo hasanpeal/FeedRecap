@@ -6,6 +6,7 @@ import {
   type ChangeEvent,
   useRef,
 } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import { useEmail } from "@/context/UserContext";
 import _ from "lodash";
@@ -35,6 +36,7 @@ import {
 import { playSound, isIOS } from "@/components/dashboard/utils";
 
 export default function Dashboard() {
+  const router = useRouter();
   const { emailContext, setEmailContext } = useEmail();
 
   // Modal state
@@ -184,8 +186,14 @@ export default function Dashboard() {
         return response.data.email;
       }
       return null;
-    } catch (error) {
-      return null;
+    } catch (error: any) {
+      // Only return null for 401 (unauthorized) errors
+      // For other errors (network, 500, etc.), throw to let caller handle
+      if (error?.response?.status === 401) {
+        return null;
+      }
+      // Re-throw other errors so they can be handled appropriately
+      throw error;
     }
   };
 
@@ -193,17 +201,33 @@ export default function Dashboard() {
     const loadEmailFromToken = async () => {
       const savedToken = localStorage.getItem("token");
       if (savedToken) {
-        const email = await getEmailFromBackend(savedToken);
-        if (email) {
-          setEmailContext(email);
-        } else {
-          // Invalid token, remove it
-          localStorage.removeItem("token");
+        try {
+          const email = await getEmailFromBackend(savedToken);
+          if (email) {
+            setEmailContext(email);
+          } else {
+            // Invalid token, remove it and redirect
+            localStorage.removeItem("token");
+            router.push("/signin");
+          }
+        } catch (error: any) {
+          // Only remove token if it's a 401 (unauthorized) error
+          // Don't remove on network errors or other issues
+          if (error?.response?.status === 401) {
+            localStorage.removeItem("token");
+            router.push("/signin");
+          } else {
+            console.error("Error loading email from token:", error);
+            // For other errors, keep the token and try again later
+          }
         }
+      } else {
+        // No token, redirect to signin
+        router.push("/signin");
       }
     };
     loadEmailFromToken();
-  }, [setEmailContext]);
+  }, [setEmailContext, router]);
 
   useEffect(() => {
     setNewLatestNewsletter(
@@ -218,9 +242,8 @@ export default function Dashboard() {
     if (emailContext) {
       // JWT token should already be in localStorage from login
       fetchData();
-    } else {
-      localStorage.removeItem("token");
     }
+    // Don't remove token here - let the token validation in loadEmailFromToken handle it
   }, [emailContext]);
 
   useEffect(() => {

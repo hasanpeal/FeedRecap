@@ -3,6 +3,8 @@ import { Avatar } from "./Avatar";
 import { MediaRenderer } from "./MediaRenderer";
 import { QuotedTweet } from "./QuotedTweet";
 import { formatTime } from "./utils";
+import apiClient from "@/utils/axios";
+import { usePathname } from "next/navigation";
 
 interface PostCardProps {
   post: Post;
@@ -17,6 +19,22 @@ export const PostCard = ({
   expandedPosts,
   onToggleExpansion,
 }: PostCardProps) => {
+  const pathname = usePathname();
+
+  const logLinkClick = async (link: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      await apiClient.post("/logLinkClick", {
+        link,
+        page: pathname,
+      });
+    } catch (error) {
+      // Silently fail
+      console.error("Error logging link click:", error);
+    }
+  };
   const renderPostText = (text: string, tweetId: string) => {
     const shouldTruncate = text.length > 250;
     const isExpanded = expandedPosts[tweetId];
@@ -38,8 +56,13 @@ export const PostCard = ({
     );
   };
 
-  const handlePostClick = (e: React.MouseEvent, tweetId: string) => {
+  const handlePostClick = async (e: React.MouseEvent, tweetId: string) => {
     e.preventDefault();
+    const link = `https://twitter.com/i/web/status/${tweetId}`;
+
+    // Log link click
+    await logLinkClick(link);
+
     const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
 
     if (isMobile) {
@@ -48,11 +71,11 @@ export const PostCard = ({
 
       // If app is not installed, open in browser after a short delay
       setTimeout(() => {
-        window.location.href = `https://twitter.com/i/web/status/${tweetId}`;
+        window.location.href = link;
       }, 500);
     } else {
       // Desktop: Always open in a new tab
-      window.open(`https://twitter.com/i/web/status/${tweetId}`, "_blank");
+      window.open(link, "_blank");
     }
   };
 

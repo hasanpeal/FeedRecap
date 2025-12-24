@@ -17,6 +17,7 @@ export default function Navbar2() {
   const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>(emailContext || "");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { notification, showNotification } = useNotification();
@@ -47,6 +48,28 @@ export default function Navbar2() {
   useEffect(() => {
     if (emailContext) {
       fetchUserDetails();
+      // Check if user is admin from user details
+      const checkAdmin = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          if (token) {
+            const response = await axios.get(
+              `${process.env.NEXT_PUBLIC_SERVER}/getUserDetails`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+            if (response.data.code === 0 && response.data.isAdmin) {
+              setIsAdmin(true);
+            }
+          }
+        } catch (error) {
+          // Silently fail
+        }
+      };
+      checkAdmin();
     }
   }, [emailContext, fetchUserDetails]);
 
@@ -132,7 +155,7 @@ export default function Navbar2() {
     }
   };
 
-  const sendEmail = (e: React.FormEvent<HTMLFormElement>) => {
+  const sendEmail = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!form.current) return;
@@ -140,6 +163,28 @@ export default function Navbar2() {
     const modal = document.getElementById("report_modal") as HTMLDialogElement;
     if (modal) {
       modal.close();
+    }
+
+    // Log feedback
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const formData = new FormData(form.current);
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_SERVER}/logFeedback`,
+          {
+            feedback: formData.get("message"),
+            subject: "Feedback from user",
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+    } catch (error) {
+      // Silently fail
     }
 
     emailjs
@@ -180,19 +225,11 @@ export default function Navbar2() {
     };
   }, [menuOpen]);
 
-  function handleReload() {
-    window.location.reload();
-  }
-
   return (
     <header className="bg-black border-b border-gray-800">
       <Toaster />
       <div className="py-4 px-6 flex items-center justify-between max-w-7xl mx-auto">
-        <Link
-          href="/dashboard"
-          className="flex items-center"
-          onClick={handleReload}
-        >
+        <Link href="/dashboard" className="flex items-center">
           <span className="text-3xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
               Feed
@@ -229,6 +266,14 @@ export default function Navbar2() {
             menuOpen ? "block bg-black" : "hidden"
           } md:flex md:bg-transparent md:shadow-none flex-col md:flex-row items-center md:space-x-7 space-y-2 md:space-y-0 p-4 md:p-0 rounded md:rounded-none shadow md:shadow-none`}
         >
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
+            >
+              Admin
+            </Link>
+          )}
           <button
             className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
             onClick={() => {
