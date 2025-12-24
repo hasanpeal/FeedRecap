@@ -56,18 +56,31 @@ export const MediaRenderer = ({ post }: MediaRendererProps) => {
   }
 
   if (post.video) {
+    // Use proxy for Twitter videos to bypass tracking protection
+    const getVideoUrl = (url: string): string => {
+      if (url.includes("video.twimg.com") || url.includes("twimg.com")) {
+        return `/api/video-proxy?url=${encodeURIComponent(url)}`;
+      }
+      return url;
+    };
+
+    const videoUrl = getVideoUrl(post.video);
+
     return (
       <div className="mb-4 mt-2 rounded-lg overflow-hidden">
         <div className="video-container relative w-full aspect-video rounded-lg">
           <video
-            src={post.video}
             className="w-full h-auto object-contain rounded-lg border border-gray-800 post-video"
             controls
             controlsList="nodownload"
             poster={
               post.videoThumbnail || "/placeholder.svg?height=240&width=400"
             }
+            preload="metadata"
+            playsInline
+            crossOrigin="anonymous"
           >
+            <source src={videoUrl} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         </div>
