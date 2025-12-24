@@ -54,6 +54,62 @@
   - **Email**
 - **Web Link**: Access your newsletter via a web link for easy sharing with friends.
 
+### 📊 **Audit Logging System**
+
+FeedRecap includes a comprehensive audit logging system that tracks all user activities for security, analytics, and debugging purposes.
+
+- **Automatic Activity Tracking**: All major user actions are automatically logged:
+  - Page visits (all pages)
+  - Account creation and login/logout
+  - Password changes
+  - Account updates
+  - Twitter account linking/unlinking
+  - Category and profile updates
+  - Feed type changes
+  - Newsletter views
+  - Link clicks (with full URLs)
+  - Feedback submissions
+
+- **Metadata Storage**: Each log entry includes:
+  - User ID and email
+  - Activity type and description
+  - Page/route information
+  - IP address and user agent
+  - Timestamp
+  - Additional metadata (links, categories, etc.)
+
+- **Database Storage**: All audit logs are stored in MongoDB with indexed fields for fast queries and analytics.
+
+### 🔐 **Admin Dashboard**
+
+FeedRecap includes a powerful admin dashboard for monitoring and analytics (accessible only to admin users).
+
+- **Admin Authentication**: 
+  - Users with `isAdmin: true` in the database can access the admin dashboard
+  - Protected by JWT authentication middleware
+  - Accessible at `/admin` route
+
+- **Analytics Features**:
+  - **Page Views Analytics**: Track page visits with time period filters (1d, 3d, 7d, 30d, 6m, 1y)
+  - **Link Clicks Tracking**: Monitor all clicked links with user information and timestamps
+  - **Activity Statistics**: View activity distribution with visual charts
+  - **User Metrics**: Track total users, feed type distribution, Twitter account linking stats
+
+- **Visualizations**:
+  - Line charts for page views over time
+  - Pie charts for activity distribution
+  - Scrollable lists for link clicks and live activities
+
+- **Live Activities Feed**:
+  - Real-time audit log display
+  - Filter by user email
+  - Filter by activity type
+  - Shows timestamp, user, activity, description, and page
+
+- **User Management**:
+  - View all users with email, feed type, and Twitter account status
+  - User statistics and metrics
+
 ---
 
 ## 🛠️ Tech Stack
@@ -92,7 +148,10 @@ FeedRecap/
 │   │   ├── signup/            # Sign-up page
 │   │   └── ...                # Other pages
 │   ├── components/            # React components
-│   │   └── dashboard/         # Dashboard-specific components
+│   │   ├── dashboard/         # Dashboard-specific components
+│   │   └── PageVisitLogger.tsx # Automatic page visit logging
+│   ├── app/
+│   │   └── admin/            # Admin dashboard page
 │   ├── context/               # React Context (UserContext)
 │   ├── utils/                 # Utility functions (axios, notifications)
 │   └── public/                # Static assets
@@ -102,6 +161,8 @@ FeedRecap/
 │   │   ├── userModel.ts        # User MongoDB model
 │   │   ├── newsletterModel.ts  # Newsletter MongoDB model
 │   │   ├── tweetModel.ts       # Tweet MongoDB model
+│   │   ├── auditLogModel.ts    # Audit log MongoDB model
+│   │   ├── auditLogger.ts      # Audit logging utilities
 │   │   ├── digest.ts          # Newsletter generation logic
 │   │   └── db.ts              # Database connection
 │   └── dist/                  # Compiled JavaScript files
@@ -231,6 +292,25 @@ If you prefer to run the services separately:
    ```
    The server will run on http://localhost:3001
 
+### **Setting Up Admin Access**
+
+To grant admin access to a user, update the user's `isAdmin` field in MongoDB:
+
+```javascript
+// Using MongoDB shell or MongoDB Compass
+db.users.updateOne(
+  { email: "admin@example.com" },
+  { $set: { isAdmin: true } }
+)
+```
+
+Or use MongoDB Atlas interface to update the user document directly.
+
+Once a user has `isAdmin: true`, they can:
+- Access the admin dashboard at `/admin`
+- View all analytics and audit logs
+- Monitor user activities in real-time
+
 ---
 
 ## 🔒 Authentication
@@ -344,6 +424,7 @@ FeedRecap uses **JWT (JSON Web Tokens)** for stateless authentication, providing
 |                     | - **Settings**: Manage preferences     |               |
 | `/readnewsletter`   | Read newsletter by ID                  | No            |
 | `/unsubscribe`      | Unsubscribe from newsletters           | No            |
+| `/admin`            | Admin dashboard with analytics         | Yes (Admin)   |
 
 ### **Backend API Routes (Server)**
 
@@ -370,6 +451,14 @@ FeedRecap uses **JWT (JSON Web Tokens)** for stateless authentication, providing
 | `/auth/google/signup`   | GET    | Google OAuth sign-up               | No            |
 | `/auth/google/signin`   | GET    | Google OAuth sign-in               | No            |
 | `/auth/google/callback` | GET    | Google OAuth callback              | No            |
+| `/logPageVisit`        | POST   | Log page visit                     | Yes (JWT)     |
+| `/logLinkClick`        | POST   | Log link click                     | Yes (JWT)     |
+| `/logFeedback`         | POST   | Log feedback submission            | Yes (JWT)     |
+| `/admin/analytics/pageviews` | GET | Get page views analytics      | Yes (Admin)   |
+| `/admin/analytics/linkclicks` | GET | Get link clicks analytics      | Yes (Admin)   |
+| `/admin/analytics/activities` | GET | Get activity statistics        | Yes (Admin)   |
+| `/admin/audit-logs`    | GET    | Get all audit logs (live feed)    | Yes (Admin)   |
+| `/admin/users`         | GET    | Get all users and metrics          | Yes (Admin)   |
 
 ---
 
@@ -383,12 +472,14 @@ FeedRecap uses **JWT (JSON Web Tokens)** for stateless authentication, providing
 - **Secure Authentication**: JWT-based stateless authentication for scalability and security.
 - **Multiple Auth Options**: Sign in with email or Google OAuth.
 - **Easy Setup**: One-command startup with `start.sh` script.
+- **Comprehensive Audit Logging**: Track all user activities for security and analytics.
+- **Admin Dashboard**: Powerful analytics dashboard with visualizations and real-time activity monitoring.
 
 ---
 
 ## 🔑 Keywords
 
-AI-powered-newsletter personalized-newsletters Twitter-curation top-tweets trending-news AI-curated-content category-based-news custom-twitter-profiles AI-news-delivery tech-newsletters sports-newsletters finance-newsletters politics-newsletters Next.js React Express.js MongoDB TypeScript Google-OAuth Vercel SendGrid JWT-authentication newsletter-app social-media-curation open-source news-dashboard feedrecap curated-tweets trending-topics Axios Node-Cron Gemini-AI automation JWT-tokens stateless-authentication personalized-content AI-newsletter-platform generative-AI-tech time-based-newsletters tweet-curation-tools Twitter-news-integration news-sharing-platform newsletter-dashboard curated-news-updates Twitter-profile-suggestions category-based-curation breaking-news-aggregator AI-newsletter-software JWT-based-auth custom-profile-news delivery-time-preferences trending-tweet-insights automation-with-cron MongoDB-database-newsletter AI-driven-social-curation tailored-newsletters Google-OAuth-authentication React-front-end social-media-newsletters Gemini-AI-integration analytics-for-newsletters SendGrid-email-integration efficient-newsletter-system curated-social-updates open-source-newsletter-platform
+AI-powered-newsletter personalized-newsletters Twitter-curation top-tweets trending-news AI-curated-content category-based-news custom-twitter-profiles AI-news-delivery tech-newsletters sports-newsletters finance-newsletters politics-newsletters Next.js React Express.js MongoDB TypeScript Google-OAuth Vercel SendGrid JWT-authentication newsletter-app social-media-curation open-source news-dashboard feedrecap curated-tweets trending-topics Axios Node-Cron Gemini-AI automation JWT-tokens stateless-authentication personalized-content AI-newsletter-platform generative-AI-tech time-based-newsletters tweet-curation-tools Twitter-news-integration news-sharing-platform newsletter-dashboard curated-news-updates Twitter-profile-suggestions category-based-curation breaking-news-aggregator AI-newsletter-software JWT-based-auth custom-profile-news delivery-time-preferences trending-tweet-insights automation-with-cron MongoDB-database-newsletter AI-driven-social-curation tailored-newsletters Google-OAuth-authentication React-front-end social-media-newsletters Gemini-AI-integration analytics-for-newsletters SendGrid-email-integration efficient-newsletter-system curated-social-updates open-source-newsletter-platform audit-logging admin-dashboard user-activity-tracking analytics-dashboard activity-monitoring user-analytics page-visit-tracking link-click-analytics real-time-monitoring admin-panel user-management-dashboard
 
 ---
 
