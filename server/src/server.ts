@@ -1072,12 +1072,13 @@ app.post("/updateCategories", authenticateJWT, async (req, res) => {
 });
 
 // Route to update Times
-app.post("/updateTimes", async (req, res) => {
-  const { email, time } = req.body;
+app.post("/updateTimes", authenticateJWT, async (req, res) => {
+  const { time } = req.body;
+  const userFromToken = (req as any).user;
 
   try {
     const updatedUser = await User.findOneAndUpdate(
-      { email },
+      { email: userFromToken.email },
       { time },
       { new: true }
     );
@@ -1092,6 +1093,30 @@ app.post("/updateTimes", async (req, res) => {
   } catch (err) {
     console.log("Error updating time:", err);
     return res.status(200).json({ code: 1, message: "Error updating time" });
+  }
+});
+
+// Public route to unsubscribe from email newsletters
+app.post("/unsubscribeEmail", async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const updatedUser = await User.findOneAndUpdate(
+      { email },
+      { time: [] },
+      { new: true }
+    );
+
+    if (updatedUser) {
+      return res
+        .status(200)
+        .json({ code: 0, message: "Unsubscribed successfully" });
+    } else {
+      return res.status(200).json({ code: 1, message: "User not found" });
+    }
+  } catch (err) {
+    console.log("Error unsubscribing:", err);
+    return res.status(200).json({ code: 1, message: "Error unsubscribing" });
   }
 });
 

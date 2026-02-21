@@ -25,8 +25,8 @@ export default function Unsubscribe() {
 
       try {
         const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_SERVER}/updateTimes`,
-          { email, time: [] } // Empty array to indicate unsubscription
+          `${process.env.NEXT_PUBLIC_SERVER}/unsubscribeEmail`,
+          { email }
         );
         if (response.status === 200) {
           setStatus("success");
