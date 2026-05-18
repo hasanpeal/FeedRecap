@@ -1072,12 +1072,13 @@ app.post("/updateCategories", authenticateJWT, async (req, res) => {
 });
 
 // Route to update Times
-app.post("/updateTimes", async (req, res) => {
-  const { email, time } = req.body;
+app.post("/updateTimes", authenticateJWT, async (req, res) => {
+  const { time } = req.body;
+  const userFromToken = (req as any).user;
 
   try {
     const updatedUser = await User.findOneAndUpdate(
-      { email },
+      { email: userFromToken.email },
       { time },
       { new: true }
     );

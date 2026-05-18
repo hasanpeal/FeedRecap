@@ -2,521 +2,300 @@
 
 ![FeedRecap Logo](https://www.feedrecap.com/feedrecaplogo.png)
 
-**FeedRecap** is a cutting-edge AI-powered newsletter platform that curates top tweets from Twitter, delivering them directly to your inbox. Whether you're following trending categories like politics, tech, finance, or entertainment, or customizing your feed with specific Twitter profiles, FeedRecap ensures you stay informed effortlessly and efficiently.
+**FeedRecap** is an AI-powered newsletter platform that curates top tweets from Twitter and delivers them to your inbox. You can follow trending categories like politics, tech, finance, or entertainment, or build a custom feed from specific Twitter profiles.
 
 ---
 
-## 🚀 Live Demo
+## Live Demo
 
-🌐 **Website**: [FeedRecap](https://www.feedrecap.com)
-
-🔗 **Repository**: [GitHub](https://github.com/hasanpeal/FeedRecap.git)
-
----
-
-## ✨ Features
-
-### 📰 **Category Mode**
-
-- Choose from predefined categories:
-  - **Politics**
-  - **Geopolitics**
-  - **Finance**
-  - **AI**
-  - **Tech**
-  - **Crypto**
-  - **Meme**
-  - **Sports**
-  - **Entertainment**
-- Set your preferred newsletter delivery times (Morning, Afternoon, Night).
-- Receive AI-curated newsletters with the top 15 tweets from your selected categories and share them easily with friends via WhatsApp, Telegram, or Email.
-
-### 🔧 **Custom Profile Mode**
-
-- Add Twitter profiles via an auto-suggestion feature.
-- Follow as many Twitter profiles as you like.
-- Get personalized newsletters based on your custom profile feed, curated by AI.
-
-### 📊 **Dashboard**
-
-- Access your personalized dashboard with these tabs:
-  1. **Newsfeed**: View top tweets based on your selected categories or custom profiles.
-  2. **Latest Newsletter**: Access the most recent newsletters.
-  3. **Settings**: Update your categories, custom profiles, timezone, and delivery time.
-
-### 📩 **Newsletter Features**
-
-- **Newsletter**: AI-powered newsletter content delivered straight to your inbox.
-- **Top Tweets**: Curated top tweets of the day.
-- **Share Easily**: Share tweets or newsletters to:
-  - **WhatsApp**
-  - **Telegram**
-  - **Email**
-- **Web Link**: Access your newsletter via a web link for easy sharing with friends.
-
-### 📊 **Audit Logging System**
-
-FeedRecap includes a comprehensive audit logging system that tracks all user activities for security, analytics, and debugging purposes.
-
-- **Automatic Activity Tracking**: All major user actions are automatically logged:
-  - Page visits (all pages)
-  - Account creation and login/logout
-  - Password changes
-  - Account updates
-  - Twitter account linking/unlinking
-  - Category and profile updates
-  - Feed type changes
-  - Newsletter views
-  - Link clicks (with full URLs)
-  - Feedback submissions
-
-- **Metadata Storage**: Each log entry includes:
-  - User ID and email
-  - Activity type and description
-  - Page/route information
-  - IP address and user agent
-  - Timestamp
-  - Additional metadata (links, categories, etc.)
-
-- **Database Storage**: All audit logs are stored in MongoDB with indexed fields for fast queries and analytics.
-
-### 🔐 **Admin Dashboard**
-
-FeedRecap includes a powerful admin dashboard for monitoring and analytics (accessible only to admin users).
-
-- **Admin Authentication**: 
-  - Users with `isAdmin: true` in the database can access the admin dashboard
-  - Protected by JWT authentication middleware
-  - Accessible at `/admin` route
-
-- **Analytics Features**:
-  - **Page Views Analytics**: Track page visits with time period filters (1d, 3d, 7d, 30d, 6m, 1y)
-  - **Link Clicks Tracking**: Monitor all clicked links with user information and timestamps
-  - **Activity Statistics**: View activity distribution with visual charts
-  - **User Metrics**: Track total users, feed type distribution, Twitter account linking stats
-
-- **Visualizations**:
-  - Line charts for page views over time
-  - Pie charts for activity distribution
-  - Scrollable lists for link clicks and live activities
-
-- **Live Activities Feed**:
-  - Real-time audit log display
-  - Filter by user email
-  - Filter by activity type
-  - Shows timestamp, user, activity, description, and page
-
-- **User Management**:
-  - View all users with email, feed type, and Twitter account status
-  - User statistics and metrics
+- Website: [feedrecap.com](https://www.feedrecap.com)
+- Repository: [GitHub](https://github.com/hasanpeal/FeedRecap.git)
 
 ---
 
-## 🛠️ Tech Stack
+## Features
 
-### **Frontend**
+### Category Mode
 
-- **Framework**: Next.js, React
-- **Language**: TypeScript
-- **State Management**: React Context API
-- **HTTP Client**: Axios with JWT interceptors
-- **Analytics**: Google Analytics, Vercel Analytics
-- **Deployed On**: [Vercel](https://vercel.com)
+- Choose from predefined categories: Politics, Geopolitics, Finance, AI, Tech, Crypto, Meme, Sports, Entertainment
+- Set preferred newsletter delivery times (Morning, Afternoon, Night)
+- Receive AI-curated newsletters with the top tweets from your selected categories
 
-### **Backend**
+### Custom Profile Mode
 
-- **Framework**: Express.js
-- **Authentication**: JWT (JSON Web Tokens), Google OAuth, Email-based login with two-step verification
-- **Database**: MongoDB with Mongoose
-- **API**: SendGrid (Email), Gemini AI, Axios
-- **Language**: TypeScript
-- **Dev Tools**: Nodemon, MongoDB Atlas, Postman, Node.js
-- **Automation**: Node Cron for scheduling newsletter tasks
-- **Generative AI**: Google Gemini AI
+- Add Twitter profiles via an auto-suggestion search
+- Follow any number of Twitter profiles
+- Get newsletters based on your custom profile feed
+
+### Dashboard
+
+- **Newsfeed**: View top tweets based on your selected categories or custom profiles
+- **Newsletter**: Access the most recent newsletter sent to you
+- **Settings**: Update categories, custom profiles, timezone, and delivery time
+
+### Newsletter
+
+- AI-generated newsletter content delivered to your inbox
+- Curated top tweets of the day
+- Web link for easy sharing
+- Share on X directly from the dashboard
+
+### Audit Logging
+
+All major user actions are logged automatically:
+
+- Page visits
+- Account creation, login, and logout
+- Password changes and account updates
+- Twitter account linking/unlinking
+- Category and profile updates
+- Feed type changes
+- Newsletter views and link clicks
+
+Each log entry stores the user ID, email, activity type, page/route, IP address, user agent, timestamp, and relevant metadata. Logs are stored in MongoDB with indexed fields.
+
+### Admin Dashboard
+
+Accessible only to users with `isAdmin: true` in the database, at the `/admin` route.
+
+- Page views analytics with time period filters (1d, 3d, 7d, 30d, 6m, 1y)
+- Link click tracking with user info and timestamps
+- Activity distribution statistics
+- User metrics: total users, feed type breakdown, Twitter linking stats
+- Live audit log feed, filterable by user or activity type
 
 ---
 
-## 🗂️ Project Structure
+## Tech Stack
 
-```plaintext
+### Frontend
+
+- Framework: Next.js, React
+- Language: TypeScript
+- State Management: React Context API
+- HTTP Client: Axios with JWT interceptors
+- Analytics: Google Analytics, Vercel Analytics
+- Deployed on: Vercel
+
+### Backend
+
+- Framework: Express.js
+- Authentication: JWT, Google OAuth, email-based login with OTP verification
+- Database: MongoDB with Mongoose
+- Email: SendGrid
+- AI: OpenAI-compatible API (configurable model)
+- Language: TypeScript
+- Automation: node-cron for newsletter scheduling
+
+---
+
+## Project Structure
+
+```
 FeedRecap/
 ├── client/                    # Frontend (Next.js)
 │   ├── app/                   # Next.js app directory
 │   │   ├── api/               # API routes (DeepSeek, Twitter, video-proxy)
 │   │   ├── dashboard/         # User dashboard page
+│   │   ├── admin/             # Admin dashboard page
 │   │   ├── signin/            # Sign-in page
 │   │   ├── signup/            # Sign-up page
 │   │   └── ...                # Other pages
 │   ├── components/            # React components
 │   │   ├── dashboard/         # Dashboard-specific components
-│   │   └── PageVisitLogger.tsx # Automatic page visit logging
-│   ├── app/
-│   │   └── admin/            # Admin dashboard page
+│   │   └── PageVisitLogger.tsx
 │   ├── context/               # React Context (UserContext)
 │   ├── utils/                 # Utility functions (axios, notifications)
 │   └── public/                # Static assets
 ├── server/                    # Backend (Express.js)
-│   ├── src/                   # TypeScript source files
+│   ├── src/
 │   │   ├── server.ts          # Main server file with JWT auth
-│   │   ├── userModel.ts        # User MongoDB model
-│   │   ├── newsletterModel.ts  # Newsletter MongoDB model
-│   │   ├── tweetModel.ts       # Tweet MongoDB model
-│   │   ├── auditLogModel.ts    # Audit log MongoDB model
-│   │   ├── auditLogger.ts      # Audit logging utilities
+│   │   ├── userModel.ts       # User MongoDB model
+│   │   ├── newsletterModel.ts # Newsletter MongoDB model
+│   │   ├── tweetModel.ts      # Tweet MongoDB model
+│   │   ├── auditLogModel.ts   # Audit log MongoDB model
+│   │   ├── auditLogger.ts     # Audit logging utilities
 │   │   ├── digest.ts          # Newsletter generation logic
 │   │   └── db.ts              # Database connection
-│   └── dist/                  # Compiled JavaScript files
-├── start.sh                   # Startup script for client + server
-└── README.md                  # This file
+│   └── dist/                  # Compiled JavaScript
+├── start.sh                   # Startup script
+└── README.md
 ```
 
 ---
 
-## 🧑‍💻 Getting Started
+## Getting Started
 
-### **Prerequisites**
+### Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js v18 or higher
 - npm or yarn
-- MongoDB database (local or MongoDB Atlas)
-- Environment variables configured (see Environment Variables section below)
+- MongoDB (local or Atlas)
+- Environment variables configured (see below)
 
-### **Environment Variables**
+### Environment Variables
 
-Before running the application, you need to configure environment variables:
-
-#### **Server Environment Variables** (`server/.env`)
+#### Server (`server/.env`)
 
 ```env
-# MongoDB Configuration
 MONGO_USERNAME=your_mongodb_username
 MONGO_PASSWORD=your_mongodb_password
 
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_key (or auto-generated if not provided)
-JWT_EXPIRES_IN=7d (default: 7 days)
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRES_IN=7d
 
-# SendGrid Email Configuration
 SENDGRID_API_KEY=your_sendgrid_api_key
 FROM_EMAIL=your_sender_email@example.com
 
-# Google OAuth Configuration
 CLIENT=your_google_oauth_client_id
 SECRET=your_google_oauth_client_secret
 
-# Server URLs
 SERVER=http://localhost:3001
 ORIGIN=http://localhost:3000
-ORIGINTEST=http://localhost:3000 (optional, for testing)
 CLIENT_URL=http://localhost:3000
 ```
 
-#### **Client Environment Variables** (`client/.env.local`)
+#### Client (`client/.env.local`)
 
 ```env
-# Backend Server URL
 NEXT_PUBLIC_SERVER=http://localhost:3001
-
-# EmailJS Configuration (optional, for contact forms)
-NEXT_PUBLIC_SERVICE_ID=your_emailjs_service_id
-NEXT_PUBLIC_TEMPLATE_ID=your_emailjs_template_id
-NEXT_PUBLIC_PUBLIC_KEY=your_emailjs_public_key
 ```
 
-**Note**: Create `.env` file in the `server` directory and `.env.local` file in the `client` directory with the above variables.
-
-### **Quick Start (Recommended)**
-
-Use the provided `start.sh` script to automatically start both client and server:
+### Quick Start
 
 ```bash
-# Make the script executable (first time only)
 chmod +x start.sh
-
-# Run the application
 ./start.sh
 ```
 
-The script will:
+This will install dependencies for both client and server, build the TypeScript server, and start both services.
 
-- ✅ Check and install dependencies for both client and server
-- ✅ Build the TypeScript server code
-- ✅ Start the Express.js server on port 3001
-- ✅ Start the Next.js client on port 3000
-- ✅ Handle graceful shutdown with Ctrl+C
+- Client: http://localhost:3000
+- Server: http://localhost:3001
 
-**Access the application:**
+### Manual Setup
 
-- 🌐 **Client**: http://localhost:3000
-- 🔧 **Server**: http://localhost:3001
+#### Frontend
 
-### **Manual Setup**
+```bash
+cd client
+npm install
+npm run dev
+```
 
-If you prefer to run the services separately:
+#### Backend
 
-#### **Frontend**
+```bash
+cd server
+npm install
+npm run build
+npm run start
+```
 
-1. Navigate to the `client` folder:
-   ```bash
-   cd client
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Create a `.env.local` file with required environment variables
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-   The client will run on http://localhost:3000
+### Setting Up Admin Access
 
-#### **Backend**
-
-1. Navigate to the `server` folder:
-   ```bash
-   cd server
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Create a `.env` file with required environment variables
-4. Build the TypeScript code:
-   ```bash
-   npm run build
-   ```
-5. Start the backend server:
-   ```bash
-   npm run start
-   ```
-   The server will run on http://localhost:3001
-
-### **Setting Up Admin Access**
-
-To grant admin access to a user, update the user's `isAdmin` field in MongoDB:
+Update the `isAdmin` field for a user in MongoDB:
 
 ```javascript
-// Using MongoDB shell or MongoDB Compass
 db.users.updateOne(
   { email: "admin@example.com" },
   { $set: { isAdmin: true } }
 )
 ```
 
-Or use MongoDB Atlas interface to update the user document directly.
-
-Once a user has `isAdmin: true`, they can:
-- Access the admin dashboard at `/admin`
-- View all analytics and audit logs
-- Monitor user activities in real-time
+Once set, the user can access `/admin` to view analytics, audit logs, and user metrics.
 
 ---
 
-## 🔒 Authentication
+## Authentication
 
-FeedRecap uses **JWT (JSON Web Tokens)** for stateless authentication, providing secure and scalable user authentication.
+FeedRecap uses JWT for stateless authentication.
 
-### **Authentication Methods**
+### Methods
 
-#### **1. Email-Based Authentication**
+**Email-based**: Sign up with email and password. OTP verification required. Password hashed with bcrypt.
 
-- **Sign Up**: Users register with email and password
+**Google OAuth**: Sign up or sign in via Google. Handled with Passport.js. JWT issued after successful authentication.
 
-  - Two-step email verification (OTP) required for account creation
-  - Password is hashed using bcrypt before storage
-  - JWT token issued upon successful registration
+### JWT Details
 
-- **Sign In**: Users sign in with email and password
-  - Credentials verified against MongoDB
-  - JWT token issued upon successful authentication
-
-#### **2. Google OAuth Authentication**
-
-- Users can sign up or sign in using their Google account
-- OAuth flow handled via Passport.js Google Strategy
-- JWT token issued after successful OAuth authentication
-- New users are automatically created with default settings
-
-### **JWT Implementation**
-
-#### **Backend (Server)**
-
-- **Token Generation**:
-
-  - Tokens are signed with `userId` and `email` in the payload
-  - Default expiration: 7 days (configurable via `JWT_EXPIRES_IN`)
-  - Secret key stored in environment variable `JWT_SECRET`
-  - Issuer: "feedrecap"
-
-- **Token Verification**:
-
-  - `authenticateJWT` middleware protects authenticated routes
-  - Validates token signature and expiration
-  - Extracts user information from token payload
-  - Attaches user data to request object for route handlers
-
-- **Protected Routes**:
-  - `/data` - Fetch user dashboard data
-  - `/updateProfiles` - Update custom Twitter profiles
-  - `/updateFeedType` - Change feed type (category/custom)
-  - `/updateCategories` - Update selected categories
-  - `/getIsNewUser` - Check if user is new
-  - `/getUserDetails` - Get user account details
-  - `/updateAccount` - Update account information
-  - `/check-session` - Validate current session
-  - `/unlinkX` - Unlink Twitter account
-  - And more...
-
-#### **Frontend (Client)**
-
-- **Token Storage**:
-
-  - JWT tokens stored in `localStorage` as `token`
-  - Persists across browser sessions
-  - Automatically removed on logout or expiration
-
-- **Token Usage**:
-
-  - Axios interceptor automatically adds `Authorization: Bearer <token>` header to all API requests
-  - Token validated on app initialization
-  - Automatic redirect to sign-in page on token expiration (401 errors)
-
-- **Token Management**:
-  - Token retrieved from URL parameters after OAuth redirects
-  - Token validated via `/check-session` endpoint
-  - Email extracted from token for user context
-
-### **Security Features**
-
-- ✅ Password hashing with bcrypt (10 salt rounds)
-- ✅ JWT token expiration (default 7 days)
-- ✅ Token signature verification
-- ✅ CORS protection with origin validation
-- ✅ Request origin/referer validation
-- ✅ Automatic token cleanup on expiration
-- ✅ Secure HTTP-only token handling
-
-### **Authentication Flow**
-
-1. **Login/Registration** → Server validates credentials → JWT token generated
-2. **Token Storage** → Frontend stores token in localStorage
-3. **API Requests** → Axios interceptor adds token to Authorization header
-4. **Route Protection** → Backend middleware validates token
-5. **Token Expiration** → Frontend detects 401 → Removes token → Redirects to sign-in
+- Payload: `userId`, `email`
+- Default expiration: 7 days
+- All authenticated routes use the `authenticateJWT` middleware
+- Frontend stores the token in `localStorage` and attaches it as `Authorization: Bearer <token>` on every request
+- On 401 responses, the token is removed and the user is redirected to sign-in
 
 ---
 
-## 📚 Routes
+## API Routes
 
-### **Frontend Routes (Client)**
+### Frontend Routes
 
-| Route               | Description                            | Auth Required |
-| ------------------- | -------------------------------------- | ------------- |
-| `/`                 | Homepage                               | No            |
-| `/signin`           | User sign-in page                      | No            |
-| `/signup`           | User sign-up page                      | No            |
-| `/aboutus`          | Learn more about FeedRecap             | No            |
-| `/samplenewsletter` | Preview a sample newsletter            | No            |
-| `/dashboard`        | User dashboard with 3 tabs:            | Yes (JWT)     |
-|                     | - **Newsfeed**: View top tweets        |               |
-|                     | - **Latest Newsletter**: Access recent |               |
-|                     | - **Settings**: Manage preferences     |               |
-| `/readnewsletter`   | Read newsletter by ID                  | No            |
-| `/unsubscribe`      | Unsubscribe from newsletters           | No            |
-| `/admin`            | Admin dashboard with analytics         | Yes (Admin)   |
+| Route               | Description                      | Auth Required |
+| ------------------- | -------------------------------- | ------------- |
+| `/`                 | Homepage                         | No            |
+| `/signin`           | Sign-in page                     | No            |
+| `/signup`           | Sign-up page                     | No            |
+| `/aboutus`          | About page                       | No            |
+| `/samplenewsletter` | Sample newsletter preview        | No            |
+| `/dashboard`        | User dashboard                   | Yes (JWT)     |
+| `/readnewsletter`   | Read newsletter by ID            | No            |
+| `/unsubscribe`      | Unsubscribe from newsletters     | No            |
+| `/admin`            | Admin dashboard                  | Yes (Admin)   |
 
-### **Backend API Routes (Server)**
+### Backend API Routes
 
-| Route                   | Method | Description                        | Auth Required |
-| ----------------------- | ------ | ---------------------------------- | ------------- |
-| `/login`                | POST   | Email/password login               | No            |
-| `/register`             | POST   | User registration                  | No            |
-| `/logout`               | POST   | User logout                        | Yes (JWT)     |
-| `/check-session`        | GET    | Validate JWT token                 | Yes (JWT)     |
-| `/data`                 | GET    | Get user dashboard data            | Yes (JWT)     |
-| `/updateProfiles`       | POST   | Update custom Twitter profiles     | Yes (JWT)     |
-| `/updateFeedType`       | POST   | Change feed type (category/custom) | Yes (JWT)     |
-| `/updateCategories`     | POST   | Update selected categories         | Yes (JWT)     |
-| `/updateTimes`          | POST   | Update newsletter delivery times   | Yes (JWT)     |
-| `/updateAccount`        | POST   | Update user account details        | Yes (JWT)     |
-| `/getUserDetails`       | GET    | Get user account information       | Yes (JWT)     |
-| `/getIsNewUser`         | GET    | Check if user is new               | Yes (JWT)     |
-| `/newsletter/:id`       | GET    | Get newsletter by ID               | No            |
-| `/sentOTP`              | POST   | Send OTP for email verification    | No            |
-| `/resetPassword`        | POST   | Reset user password                | No            |
-| `/validateEmail`        | GET    | Check if email exists              | No            |
-| `/saveX`                | POST   | Link Twitter account               | No            |
-| `/unlinkX`              | POST   | Unlink Twitter account             | Yes (JWT)     |
-| `/auth/google/signup`   | GET    | Google OAuth sign-up               | No            |
-| `/auth/google/signin`   | GET    | Google OAuth sign-in               | No            |
-| `/auth/google/callback` | GET    | Google OAuth callback              | No            |
-| `/logPageVisit`        | POST   | Log page visit                     | Yes (JWT)     |
-| `/logLinkClick`        | POST   | Log link click                     | Yes (JWT)     |
-| `/logFeedback`         | POST   | Log feedback submission            | Yes (JWT)     |
-| `/admin/analytics/pageviews` | GET | Get page views analytics      | Yes (Admin)   |
-| `/admin/analytics/linkclicks` | GET | Get link clicks analytics      | Yes (Admin)   |
-| `/admin/analytics/activities` | GET | Get activity statistics        | Yes (Admin)   |
-| `/admin/audit-logs`    | GET    | Get all audit logs (live feed)    | Yes (Admin)   |
-| `/admin/users`         | GET    | Get all users and metrics          | Yes (Admin)   |
+| Route                          | Method | Description                        | Auth          |
+| ------------------------------ | ------ | ---------------------------------- | ------------- |
+| `/login`                       | POST   | Email/password login               | No            |
+| `/register`                    | POST   | User registration                  | No            |
+| `/logout`                      | POST   | User logout                        | JWT           |
+| `/check-session`               | GET    | Validate JWT token                 | JWT           |
+| `/data`                        | GET    | Get user dashboard data            | JWT           |
+| `/updateProfiles`              | POST   | Update custom Twitter profiles     | JWT           |
+| `/updateFeedType`              | POST   | Change feed type                   | JWT           |
+| `/updateCategories`            | POST   | Update selected categories         | JWT           |
+| `/updateTimes`                 | POST   | Update newsletter delivery times   | JWT           |
+| `/updateAccount`               | POST   | Update account details             | JWT           |
+| `/getUserDetails`              | GET    | Get account information            | JWT           |
+| `/getIsNewUser`                | GET    | Check if user is new               | JWT           |
+| `/newsletter/:id`              | GET    | Get newsletter by ID               | No            |
+| `/sentOTP`                     | POST   | Send OTP for email verification    | No            |
+| `/resetPassword`               | POST   | Reset password                     | No            |
+| `/validateEmail`               | GET    | Check if email exists              | No            |
+| `/saveX`                       | POST   | Link Twitter account               | No            |
+| `/unlinkX`                     | POST   | Unlink Twitter account             | JWT           |
+| `/auth/google/signup`          | GET    | Google OAuth sign-up               | No            |
+| `/auth/google/signin`          | GET    | Google OAuth sign-in               | No            |
+| `/auth/google/callback`        | GET    | Google OAuth callback              | No            |
+| `/logPageVisit`                | POST   | Log page visit                     | JWT           |
+| `/logLinkClick`                | POST   | Log link click                     | JWT           |
+| `/logFeedback`                 | POST   | Log feedback                       | JWT           |
+| `/admin/analytics/pageviews`   | GET    | Page views analytics               | Admin         |
+| `/admin/analytics/linkclicks`  | GET    | Link clicks analytics              | Admin         |
+| `/admin/analytics/activities`  | GET    | Activity statistics                | Admin         |
+| `/admin/audit-logs`            | GET    | Audit log feed                     | Admin         |
+| `/admin/users`                 | GET    | All users and metrics              | Admin         |
 
 ---
 
-## 🌟 Why Use FeedRecap?
+## License
 
-- **AI-Driven**: Save time by getting top tweets curated with AI (Gemini AI).
-- **Personalized**: Choose your favorite categories or custom Twitter profiles.
-- **Engaging Content**: Access newsletters with trending tweets and easily share them with friends.
-- **Seamless Dashboard**: Stay updated with a user-friendly dashboard.
-- **Effortless Automation**: Newsletters and updates are automated with Node Cron.
-- **Secure Authentication**: JWT-based stateless authentication for scalability and security.
-- **Multiple Auth Options**: Sign in with email or Google OAuth.
-- **Easy Setup**: One-command startup with `start.sh` script.
-- **Comprehensive Audit Logging**: Track all user activities for security and analytics.
-- **Admin Dashboard**: Powerful analytics dashboard with visualizations and real-time activity monitoring.
+MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-## 🔑 Keywords
+## Contributing
 
-AI-powered-newsletter personalized-newsletters Twitter-curation top-tweets trending-news AI-curated-content category-based-news custom-twitter-profiles AI-news-delivery tech-newsletters sports-newsletters finance-newsletters politics-newsletters Next.js React Express.js MongoDB TypeScript Google-OAuth Vercel SendGrid JWT-authentication newsletter-app social-media-curation open-source news-dashboard feedrecap curated-tweets trending-topics Axios Node-Cron Gemini-AI automation JWT-tokens stateless-authentication personalized-content AI-newsletter-platform generative-AI-tech time-based-newsletters tweet-curation-tools Twitter-news-integration news-sharing-platform newsletter-dashboard curated-news-updates Twitter-profile-suggestions category-based-curation breaking-news-aggregator AI-newsletter-software JWT-based-auth custom-profile-news delivery-time-preferences trending-tweet-insights automation-with-cron MongoDB-database-newsletter AI-driven-social-curation tailored-newsletters Google-OAuth-authentication React-front-end social-media-newsletters Gemini-AI-integration analytics-for-newsletters SendGrid-email-integration efficient-newsletter-system curated-social-updates open-source-newsletter-platform audit-logging admin-dashboard user-activity-tracking analytics-dashboard activity-monitoring user-analytics page-visit-tracking link-click-analytics real-time-monitoring admin-panel user-management-dashboard
-
----
-
-## 🛡️ License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+1. Fork the repository
+2. Create a branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Open a pull request
 
 ---
 
-## 🌟 How to Contribute
+## Contact
 
-1. Fork the repository.
-2. Create a new branch:
-   ```bash
-   git checkout -b feature/YourFeatureName
-   ```
-3. Commit your changes:
-   ```bash
-   git commit -m 'Add some feature'
-   ```
-4. Push to the branch:
-   ```bash
-   git push origin feature/YourFeatureName
-   ```
-5. Open a pull request.
-
----
-
-## ⭐ Support the Project
-
-If you like this project, please consider **starring** 🌟 the repository on GitHub to support its growth and visibility!
-
----
-
-## 📧 Contact
-
-For questions or suggestions, feel free to reach out:
-
-- **Author**: [Peal Hasan](https://www.linkedin.com/in/hasanpeal/)
-- **Email**: [contact@feedrecap.com](mailto:contact@feedrecap.com)
+- Author: [Peal Hasan](https://www.linkedin.com/in/hasanpeal/)
+- Email: [contact@feedrecap.com](mailto:contact@feedrecap.com)
