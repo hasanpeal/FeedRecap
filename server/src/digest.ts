@@ -749,8 +749,8 @@ const sendDigest = async () => {
   }
 };
 
-// Run the task every 4 hours
-cron.schedule("0 */6 * * *", () => {
+// Run the task once a week on Monday at 9 AM
+cron.schedule("0 9 * * 1", () => {
   sendDigest();
 });
 
