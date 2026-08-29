@@ -12,6 +12,7 @@ const UserSchema = new mongoose_1.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: false },
     isNewUser: { type: Boolean, default: false },
+    isAdmin: { type: Boolean, default: false },
     time: { type: [String], default: ["Morning", "Afternoon", "Night"] },
     newsletter: {
         type: String,

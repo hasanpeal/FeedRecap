@@ -35,6 +35,8 @@ import {
 } from "@/components/dashboard/types";
 import { playSound, isIOS } from "@/components/dashboard/utils";
 
+const MAX_CUSTOM_PROFILES = 10;
+
 export default function Dashboard() {
   const router = useRouter();
   const { emailContext, setEmailContext } = useEmail();
@@ -653,6 +655,14 @@ export default function Dashboard() {
       return;
     }
 
+    if (profiles.length >= MAX_CUSTOM_PROFILES) {
+      showNotification(
+        `Not allowed more than ${MAX_CUSTOM_PROFILES} profiles.`,
+        "error"
+      );
+      return;
+    }
+
     const tempProfile = { username: suggestion, avatar: "/placeholder.svg" };
     setProfiles((prev) => [...prev, tempProfile]);
     setNewProfile("");
@@ -751,6 +761,14 @@ export default function Dashboard() {
     if (wise === "customProfiles" && profiles.length < 3) {
       showNotification(
         "Please add at least 3 followed profiles to switch to Custom Profiles.",
+        "error"
+      );
+      return;
+    }
+
+    if (wise === "customProfiles" && profiles.length > MAX_CUSTOM_PROFILES) {
+      showNotification(
+        `Not allowed more than ${MAX_CUSTOM_PROFILES} profiles.`,
         "error"
       );
       return;
@@ -920,8 +938,13 @@ export default function Dashboard() {
     setLoading(true);
 
     const currentProfiles = [...profiles];
+    let skippedForLimit = 0;
 
     for (const screenName of selectedTwitterAccounts) {
+      if (currentProfiles.length >= MAX_CUSTOM_PROFILES) {
+        skippedForLimit++;
+        continue;
+      }
       if (!profiles.some((profile) => profile.username === screenName)) {
         try {
           const account = twitterFollowing.find(
@@ -944,7 +967,14 @@ export default function Dashboard() {
     setUnsavedProfiles(true);
     setShowTwitterFollowing(false);
     setSelectedTwitterAccounts([]);
-    showNotification("Accounts added to your profiles", "success");
+    if (skippedForLimit > 0) {
+      showNotification(
+        `Not allowed more than ${MAX_CUSTOM_PROFILES} profiles. ${skippedForLimit} account(s) were not added.`,
+        "error"
+      );
+    } else {
+      showNotification("Accounts added to your profiles", "success");
+    }
     setLoading(false);
   };
 

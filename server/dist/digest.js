@@ -549,8 +549,8 @@ const sendDigest = async () => {
         console.error(`❌ [Error]: Error Sending Total User count`);
     }
 };
-// Run the task every 4 hours
-node_cron_1.default.schedule("0 */6 * * *", () => {
+// Run the task once a week on Monday at 9 AM
+node_cron_1.default.schedule("0 9 * * 1", () => {
     sendDigest();
 });
 async function fetchAndStoreTweetsForProfiles(profiles) {

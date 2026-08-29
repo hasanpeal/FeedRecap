@@ -31,6 +31,8 @@ const JWT_SECRET: string =
   process.env.JWT_SECRET || crypto.randomBytes(64).toString("hex");
 const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || "7d"; // 7 days
 
+const MAX_CUSTOM_PROFILES = 10;
+
 // JWT Token Interface
 interface JWTPayload {
   userId: string;
@@ -437,6 +439,13 @@ app.post("/updateProfiles", authenticateJWT, async (req, res) => {
   const { profiles } = req.body;
   const userFromToken = (req as any).user;
 
+  if (!Array.isArray(profiles) || profiles.length > MAX_CUSTOM_PROFILES) {
+    return res.status(400).json({
+      code: 1,
+      message: `You can follow up to ${MAX_CUSTOM_PROFILES} profiles.`,
+    });
+  }
+
   try {
     // Fetch the current user
     const user = await User.findOne({ email: userFromToken.email });
@@ -536,6 +545,13 @@ app.post("/updateFeedType", authenticateJWT, async (req, res) => {
   if (wise === "customProfiles" && (!profiles || profiles.length < 3)) {
     return res.status(400).json({
       error: "At least 3 followed profiles are required for Custom Profiles.",
+      code: 1,
+    });
+  }
+
+  if (wise === "customProfiles" && profiles.length > MAX_CUSTOM_PROFILES) {
+    return res.status(400).json({
+      error: `You can follow up to ${MAX_CUSTOM_PROFILES} profiles.`,
       code: 1,
     });
   }
