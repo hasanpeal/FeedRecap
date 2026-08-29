@@ -4,6 +4,8 @@ import { XLogo } from "./XLogo";
 import { Avatar } from "./Avatar";
 import { FeedType, UserProfile, TwitterAccount } from "./types";
 
+const MAX_CUSTOM_PROFILES = 10;
+
 interface SettingsSectionProps {
   wise: FeedType;
   setWise: (wise: FeedType) => void;
@@ -524,7 +526,7 @@ export const SettingsSection = ({
       >
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-[#7FFFD4]">
-            Manage Followed Profiles
+            Manage Followed Profiles ({profiles.length}/{MAX_CUSTOM_PROFILES})
           </h2>
           <button
             onClick={() => setShowSettingInfo("profiles-manage")}
@@ -598,6 +600,12 @@ export const SettingsSection = ({
             </div>
           ))}
         </div>
+        {wise === "customProfiles" && profiles.length >= MAX_CUSTOM_PROFILES && (
+          <p className="text-sm text-yellow-400 mt-2">
+            Not allowed more than {MAX_CUSTOM_PROFILES} profiles. Remove one
+            to add another.
+          </p>
+        )}
         {wise === "customProfiles" && (
           <div className="relative mt-4">
             <input
@@ -605,8 +613,8 @@ export const SettingsSection = ({
               value={newProfile}
               onChange={onSearchInputChange}
               placeholder="@username"
-              className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
-              disabled={loading}
+              className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none disabled:opacity-50"
+              disabled={loading || profiles.length >= MAX_CUSTOM_PROFILES}
             />
             {showDropdown && (
               <div
