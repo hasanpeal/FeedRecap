@@ -52,6 +52,53 @@ function removeLinksFromText(text: string): string {
   return text.replace(/https?:\/\/\S+/g, "").trim(); // Removes all links starting with http/https
 }
 
+// How far back the newsfeed retains posts for an account.
+const RECENT_WINDOW_DAYS = 7;
+
+// Combines freshly fetched tweets with whatever is already stored for an
+// account, dedupes by tweet_id (the fresh copy wins, e.g. updated like
+// count), and drops anything that has fallen outside the retention window.
+function mergeAndPruneTweets(
+  existingTweets: any[],
+  newTweets: any[],
+  windowDays: number
+): any[] {
+  const cutoff = moment().subtract(windowDays, "days");
+  const merged = new Map<string, any>();
+
+  for (const tweet of existingTweets || []) {
+    merged.set(tweet.tweet_id, tweet);
+  }
+  for (const tweet of newTweets) {
+    merged.set(tweet.tweet_id, tweet);
+  }
+
+  return Array.from(merged.values())
+    .filter((tweet) => moment(tweet.createdAt).isAfter(cutoff))
+    .sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+}
+
+// Newsletters stay scoped to the last day's activity even though storage
+// now retains a full week for the newsfeed.
+const NEWSLETTER_WINDOW_HOURS = 24;
+
+// Narrows an account's stored tweets down to the newsletter window and ranks
+// them by likes, so a highly active account doesn't blow up the digest
+// prompt now that storage itself retains a full 7 days of posts.
+function recentTopByLikes<T extends { likes: number; createdAt: Date }>(
+  tweets: T[],
+  windowHours: number = NEWSLETTER_WINDOW_HOURS,
+  limit = 25
+): T[] {
+  const cutoff = moment().subtract(windowHours, "hours");
+  return tweets
+    .filter((tweet) => moment(tweet.createdAt).isAfter(cutoff))
+    .sort((a, b) => b.likes - a.likes)
+    .slice(0, limit);
+}
+
 const fetchAvatar = async (username: string): Promise<string | null> => {
   let retries = 0;
   const maxRetries = 7;
@@ -119,45 +166,49 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
           }
         );
 
-        // Process tweets: Sort by likes and get the top 15
-        const now = moment();
-        const past24Hours = now.subtract(24, "hours");
-
+        // Filter only the tweets posted within the retention window
+        const cutoff = moment().subtract(RECENT_WINDOW_DAYS, "days");
         const tweets = response.data.timeline;
 
-        // Filter only the tweets posted within the last 24 hours
         const recentTweets = tweets.filter((tweet: any) => {
           const tweetTime = moment(
             tweet.created_at,
             "ddd MMM DD HH:mm:ss Z YYYY"
           );
-          return tweetTime.isAfter(past24Hours);
+          return tweetTime.isAfter(cutoff);
         });
 
-        const topTweets = recentTweets
-          .sort((a: any, b: any) => b.favorites - a.favorites)
-          .slice(0, 25) // Was 10 before
-          .map((tweet: any) => ({
-            text: removeLinksFromText(tweet.text),
-            likes: tweet.favorites, // Accessing the 'favorites' field for likes
-            tweet_id: tweet.tweet_id,
-            createdAt: moment(
-              tweet.created_at,
-              "ddd MMM DD HH:mm:ss Z YYYY"
-            ).toDate(), // Use tweet creation time
-            mediaThumbnail: extractMediaThumbnail(tweet),
-            screenName: screenName,
-            video: extractVideoUrl(tweet),
-            videoThumbnail: extractVideoThumbnail(tweet),
-            quotedTweet: extractQuotedTweet(tweet.quoted),
-          }));
+        const newTweets = recentTweets.map((tweet: any) => ({
+          text: removeLinksFromText(tweet.text),
+          likes: tweet.favorites, // Accessing the 'favorites' field for likes
+          tweet_id: tweet.tweet_id,
+          createdAt: moment(
+            tweet.created_at,
+            "ddd MMM DD HH:mm:ss Z YYYY"
+          ).toDate(), // Use tweet creation time
+          mediaThumbnail: extractMediaThumbnail(tweet),
+          screenName: screenName,
+          video: extractVideoUrl(tweet),
+          videoThumbnail: extractVideoThumbnail(tweet),
+          quotedTweet: extractQuotedTweet(tweet.quoted),
+        }));
 
         let avatar = await fetchAvatar(screenName);
+
+        const existing = await StoredTweets.findOne({ category, screenName })
+          .select("tweets")
+          .lean();
+
+        const mergedTweets = mergeAndPruneTweets(
+          existing?.tweets || [],
+          newTweets,
+          RECENT_WINDOW_DAYS
+        );
 
         // Store the tweets in MongoDB
         await StoredTweets.findOneAndUpdate(
           { category, screenName },
-          { tweets: topTweets, avatar, createdAt: new Date() },
+          { tweets: mergedTweets, avatar, createdAt: new Date() },
           { upsert: true }
         );
       } catch (err: any) {
@@ -192,15 +243,18 @@ export async function fetchTweetsForCategories(
     const storedTweets = await StoredTweets.find({ category }).exec();
 
     if (storedTweets.length) {
+      // Storage now retains a full week of posts per account for the
+      // newsfeed; the newsletter digest itself stays scoped to the last 24
+      // hours, ranked by likes.
       const tweetsByUser = storedTweets.map((tweetRecord) => ({
         screenName: tweetRecord.screenName,
-        tweets: tweetRecord.tweets.map((tweet) => tweet.text),
+        tweets: recentTopByLikes(tweetRecord.tweets).map((tweet) => tweet.text),
       }));
       tweetsByCategory.push({ category, tweetsByUser });
 
       // Store tweets with likes for the Top 15 calculation
       storedTweets.forEach((tweetRecord) => {
-        tweetRecord.tweets.forEach((tweet) => {
+        recentTopByLikes(tweetRecord.tweets).forEach((tweet) => {
           allTweetsWithLikes.push({
             screenName: tweetRecord.screenName,
             category: tweetRecord.category,
@@ -300,44 +354,50 @@ export async function fetchAndStoreTweetsForProfiles(
         }
       );
 
-      const now = moment();
-      const past24Hours = now.subtract(24, "hours");
+      const cutoff = moment().subtract(RECENT_WINDOW_DAYS, "days");
 
       const recentTweets = response.data.timeline.filter((tweet: any) => {
         const tweetTime = moment(
           tweet.created_at,
           "ddd MMM DD HH:mm:ss Z YYYY"
         );
-        return tweetTime.isAfter(past24Hours);
+        return tweetTime.isAfter(cutoff);
       });
 
       if (!recentTweets.length) {
         throw new Error(`No tweets found for @${profile}`);
       }
 
-      const topTweets = recentTweets
-        .sort((a: any, b: any) => b.favorites - a.favorites)
-        .slice(0, 25)
-        .map((tweet: any) => ({
-          text: removeLinksFromText(tweet.text),
-          likes: tweet.favorites,
-          tweet_id: tweet.tweet_id,
-          createdAt: moment(
-            tweet.created_at,
-            "ddd MMM DD HH:mm:ss Z YYYY"
-          ).toDate(),
-          mediaThumbnail: extractMediaThumbnail(tweet),
-          video: extractVideoUrl(tweet),
-          videoThumbnail: extractVideoThumbnail(tweet),
-          quotedTweet: extractQuotedTweet(tweet.quoted),
-        }));
+      const newTweets = recentTweets.map((tweet: any) => ({
+        text: removeLinksFromText(tweet.text),
+        likes: tweet.favorites,
+        tweet_id: tweet.tweet_id,
+        createdAt: moment(
+          tweet.created_at,
+          "ddd MMM DD HH:mm:ss Z YYYY"
+        ).toDate(),
+        mediaThumbnail: extractMediaThumbnail(tweet),
+        video: extractVideoUrl(tweet),
+        videoThumbnail: extractVideoThumbnail(tweet),
+        quotedTweet: extractQuotedTweet(tweet.quoted),
+      }));
 
       let avatar = await fetchAvatar(profile);
+
+      const existing = await CustomProfilePosts.findOne({ screenName: profile })
+        .select("tweets")
+        .lean();
+
+      const mergedTweets = mergeAndPruneTweets(
+        existing?.tweets || [],
+        newTweets,
+        RECENT_WINDOW_DAYS
+      );
 
       // ✅ Store tweets in MongoDB
       const post = await CustomProfilePosts.findOneAndUpdate(
         { screenName: profile },
-        { $set: { tweets: topTweets, avatar, createdAt: new Date() } },
+        { $set: { tweets: mergedTweets, avatar, createdAt: new Date() } },
         { new: true, upsert: true, setDefaultsOnInsert: true }
       ).exec();
 
@@ -347,7 +407,7 @@ export async function fetchAndStoreTweetsForProfiles(
         );
       } else {
         console.log(
-          `✅ [Stored]: Successfully saved ${topTweets.length} tweets for @${profile}`
+          `✅ [Stored]: Successfully saved ${mergedTweets.length} tweets for @${profile}`
         );
       }
     } catch (err) {
@@ -443,15 +503,16 @@ export async function getStoredTweetsForUser(
     for (const post of posts) {
       if (!post.tweets.length) continue;
 
-      const topTweets = post.tweets
-        .sort((a, b) => Number(b.likes) - Number(a.likes))
-        .slice(0, 25)
-        .map((tweet: { text: any; likes: any; tweet_id: any }) => ({
+      const topTweets = recentTopByLikes(post.tweets).map(
+        (tweet: { text: any; likes: any; tweet_id: any }) => ({
           text: tweet.text.toString().slice(0, 300),
           likes: Number(tweet.likes),
           tweet_id: tweet.tweet_id.toString(),
           screenName: post.screenName, // Use screenName from post
-        }));
+        })
+      );
+
+      if (!topTweets.length) continue;
 
       tweetsByProfiles.push({
         profile: post.screenName,

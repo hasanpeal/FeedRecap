@@ -2,7 +2,7 @@ import { Post, FeedType } from "./types";
 import { Avatar } from "./Avatar";
 import { MediaRenderer } from "./MediaRenderer";
 import { QuotedTweet } from "./QuotedTweet";
-import { formatTime } from "./utils";
+import { formatPostDate } from "./utils";
 import apiClient from "@/utils/axios";
 import { usePathname } from "next/navigation";
 
@@ -91,7 +91,7 @@ export const PostCard = ({
           <div>
             <h3 className="font-medium">@{post.username}</h3>
             <span className="text-sm text-gray-400">
-              {formatTime(post.time)}
+              {formatPostDate(post.time)}
             </span>
           </div>
         </div>

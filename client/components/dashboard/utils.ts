@@ -7,6 +7,35 @@ export const formatTime = (date: string | number | Date): string => {
   return new Date(date).toLocaleTimeString("en-US", options);
 };
 
+// "Today at 3:45 PM" / "Yesterday at 10:12 AM" / "03/03/2023 at 10:12 AM"
+export const formatPostDate = (date: string | number | Date): string => {
+  const postDate = new Date(date);
+  const now = new Date();
+
+  const startOfDay = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+  const diffDays = Math.round(
+    (startOfDay(now) - startOfDay(postDate)) / (1000 * 60 * 60 * 24)
+  );
+
+  const time = postDate.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+  });
+
+  if (diffDays === 0) return `Today at ${time}`;
+  if (diffDays === 1) return `Yesterday at ${time}`;
+
+  const dateStr = postDate.toLocaleDateString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  });
+  return `${dateStr} at ${time}`;
+};
+
 export const timeAgo = (date: string | number | Date) => {
   const seconds = Math.floor(
     (new Date().getTime() - new Date(date).getTime()) / 1000
