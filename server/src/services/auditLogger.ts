@@ -1,5 +1,5 @@
 import { Request } from "express";
-import { AuditLog } from "./auditLogModel";
+import { AuditLog } from "../models/auditLogModel";
 import mongoose from "mongoose";
 
 export interface AuditLogData {
@@ -46,6 +46,31 @@ export async function logActivity(
 }
 
 /**
+ * Log activity that originates from a background job (schedulers, cron,
+ * newsletter/tweet pipelines) rather than an HTTP request, so there's no
+ * `req` to pull an IP/user-agent from.
+ */
+export async function logSystemActivity(data: AuditLogData): Promise<void> {
+  try {
+    await AuditLog.create({
+      userId: data.userId
+        ? new mongoose.Types.ObjectId(data.userId)
+        : undefined,
+      email: data.email,
+      activityType: data.activityType,
+      activityDescription: data.activityDescription,
+      page: data.page,
+      metadata: data.metadata || {},
+      ipAddress: "system",
+      userAgent: "system",
+    });
+  } catch (error) {
+    // Don't throw errors for audit logging failures
+    console.error("Error logging system activity:", error);
+  }
+}
+
+/**
  * Activity types enum
  */
 export enum ActivityType {
@@ -64,4 +89,14 @@ export enum ActivityType {
   FEED_TYPE_UPDATED = "FEED_TYPE_UPDATED",
   NEWSLETTER_VIEWED = "NEWSLETTER_VIEWED",
   SETTINGS_UPDATED = "SETTINGS_UPDATED",
+
+  // System / background job events (no HTTP request involved)
+  NEWSLETTER_SENT = "NEWSLETTER_SENT",
+  NEWSLETTER_SEND_FAILED = "NEWSLETTER_SEND_FAILED",
+  NEWSLETTER_BATCH_STARTED = "NEWSLETTER_BATCH_STARTED",
+  NEWSLETTER_BATCH_COMPLETED = "NEWSLETTER_BATCH_COMPLETED",
+  TWEET_FETCH_COMPLETED = "TWEET_FETCH_COMPLETED",
+  TWEET_FETCH_FAILED = "TWEET_FETCH_FAILED",
+  WEEKLY_DIGEST_SENT = "WEEKLY_DIGEST_SENT",
+  SCHEDULED_JOB_SKIPPED = "SCHEDULED_JOB_SKIPPED",
 }

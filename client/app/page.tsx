@@ -69,7 +69,7 @@ export default function Home() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       if (response.data.isAuthenticated) {
         return response.data.email;
@@ -95,7 +95,7 @@ export default function Home() {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
-              }
+              },
             );
 
             if (userResponse.status === 200 && userResponse.data.isNewUser)
@@ -145,7 +145,7 @@ export default function Home() {
 
           {/* Subheading */}
           <h2 className="text-lg sm:text-2xl text-white mb-8 mx-2 sm:mx-0">
-            FeedRecap delivers the top X posts you care about—straight to your
+            FeedRecap delivers the top X posts you care about straight to your
             inbox
           </h2>
 
@@ -270,7 +270,7 @@ export default function Home() {
           <h2 className="text-3xl font-bold mb-12 text-center bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
             Features
           </h2>
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 gap-8">
             <div className="bg-[#111] p-8 rounded-xl border border-gray-800 hover:border-[#7FFFD4]/30 transition-all">
               <div className="w-12 h-12 bg-[#7FFFD4]/10 rounded-full flex items-center justify-center mb-4">
                 <svg
@@ -307,8 +307,9 @@ export default function Home() {
                 Curated Brilliance
               </h3>
               <p className="text-gray-400">
-                Get the most relevant X posts from your favorite sources,
-                tailored to your interests and schedule
+                Get the most relevant X posts on the topics you pick—Politics,
+                Finance, AI, Tech, Crypto, Sports, and more—summarized and
+                ranked for you
               </p>
             </div>
             <div className="bg-[#111] p-8 rounded-xl border border-gray-800 hover:border-[#7FFFD4]/30 transition-all">
@@ -324,16 +325,41 @@ export default function Home() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    d="M17 20h5v-1a4 4 0 00-3-3.87M9 20H4v-1a4 4 0 013-3.87m5-3.13a4 4 0 100-8 4 4 0 000 8zm6-2a4 4 0 10-1.13-7.84m-9.74 0A4 4 0 106 11"
                   />
                 </svg>
               </div>
               <h3 className="text-2xl font-semibold text-white mb-3">
-                Your Command Center
+                Follow Any Account
               </h3>
               <p className="text-gray-400">
-                Adjust preferences, browse newsletters, and see your history on
-                a sleek, personalized dashboard
+                Add up to 10 specific X accounts to your feed, or import the
+                people you already follow straight from your X account
+              </p>
+            </div>
+            <div className="bg-[#111] p-8 rounded-xl border border-gray-800 hover:border-[#7FFFD4]/30 transition-all">
+              <div className="w-12 h-12 bg-[#7FFFD4]/10 rounded-full flex items-center justify-center mb-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-[#7FFFD4]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 20l1.3-3.9A7.95 7.95 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-semibold text-white mb-3">
+                Ask FeedRecap AI
+              </h3>
+              <p className="text-gray-400">
+                Chat with an AI assistant right on your dashboard to dig deeper
+                into your feed and newsletters
               </p>
             </div>
             <div className="bg-[#111] p-8 rounded-xl border border-gray-800 hover:border-[#7FFFD4]/30 transition-all">
@@ -357,8 +383,8 @@ export default function Home() {
                 Perfect Timing
               </h3>
               <p className="text-gray-400">
-                Pick morning, afternoon, or night delivery—stay informed when it
-                works for you
+                Pick morning, afternoon, or night delivery—up to 3 newsletters a
+                day, whenever works for you
               </p>
             </div>
           </div>
@@ -366,7 +392,7 @@ export default function Home() {
       </section>
 
       {/* Newsfeed Preview Section */}
-      <section className="py-20 bg-[#111]">
+      {/* <section className="py-20 bg-[#111]">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-3xl font-bold mb-12 text-center bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
             Sample Newsletter
@@ -383,7 +409,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Testimonials Section */}
       <section className="py-20 bg-black">
@@ -485,7 +511,7 @@ export default function Home() {
             Our Mission
           </h2>
           <p className="text-md sm:text-xl mb-10 text-gray-300">
-            The news landscape is changing—X is where it breaks first. Our
+            The news landscape is changing X is where it breaks first. Our
             mission is to make sense of it all, curating top posts from your
             favorite sources to keep you dialed into what matters most.
             FeedRecap cuts through the noise, skips the scroll, and delivers

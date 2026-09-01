@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import db from "./db";
+import db from "../config/db";
 interface IUser extends Document {
   firstName: string;
   lastName: string;
@@ -54,6 +54,11 @@ const UserSchema: Schema = new Schema({
   profiles: { type: [String], default: [] },
   twitterUsername: { type: String, default: null },
 });
+
+// Newsletter scheduler queries users by their selected send time; tweet
+// fetching queries users by feed type. Both run on every scheduled cycle.
+UserSchema.index({ time: 1 });
+UserSchema.index({ wise: 1 });
 
 const User = db.model<IUser>("User", UserSchema);
 export { User, IUser };

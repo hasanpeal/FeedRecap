@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from "mongoose";
-import db from "./db";
-import dbTweet from "./dbTweet";
+import db from "../config/db";
+import dbTweet from "../config/dbTweet";
 
 // MongoDB Tweet Document Interface for Category POSTS
 export interface ITweet extends Document {
@@ -60,6 +60,15 @@ export const tweetSchema: Schema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// Enforces the natural key used by the upsert in fetchAndStoreTweets and
+// speeds up the category-based lookups the newsletter pipeline runs.
+tweetSchema.index({ category: 1, screenName: 1 }, { unique: true });
+
+// Retention: each fetch cycle resets `createdAt` on its doc, so an actively
+// tracked account never expires. If an account is ever dropped from the
+// category list, its stale doc self-cleans 7 days after the last fetch.
+tweetSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 7 });
+
 // Models
 export const StoredTweets = dbTweet.model<ITweet>("StoredTweets", tweetSchema);
 
@@ -116,6 +125,19 @@ const CustomProfilePostSchema: Schema = new Schema({
   ],
   createdAt: { type: Date, default: Date.now },
 });
+
+// Enforces the natural key used by the upsert in fetchAndStoreTweetsForProfiles
+// and speeds up the profile-based lookups the newsletter pipeline runs.
+CustomProfilePostSchema.index({ screenName: 1 }, { unique: true });
+
+// Retention: each fetch cycle resets `createdAt` on its doc, so a profile
+// still followed by some user never expires. Once every user unfollows a
+// profile, fetching stops and its doc self-cleans 7 days later instead of
+// lingering in the collection forever.
+CustomProfilePostSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24 * 7 }
+);
 
 export const CustomProfilePosts = db.model<ICustomProfilePost>(
   "CustomProfilePosts",

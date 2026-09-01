@@ -6,8 +6,6 @@ import apiClient from "@/utils/axios";
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -30,6 +28,36 @@ const COLORS = [
   "#FF7C7C",
 ];
 
+const STATUS_STYLES: { [status: string]: { label: string; className: string } } = {
+  completed: { label: "Completed", className: "bg-green-900 text-green-300" },
+  running: { label: "Running", className: "bg-yellow-900 text-yellow-300" },
+  failed: { label: "Failed", className: "bg-red-900 text-red-300" },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const style = STATUS_STYLES[status] || {
+    label: status,
+    className: "bg-gray-700 text-gray-300",
+  };
+  return (
+    <span className={`px-2 py-1 rounded text-xs font-medium ${style.className}`}>
+      {style.label}
+    </span>
+  );
+}
+
+function timeAgo(date: string | null | undefined): string {
+  if (!date) return "Never";
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 interface AuditLog {
   _id: string;
   email?: string;
@@ -50,6 +78,56 @@ interface User {
   isAdmin?: boolean;
 }
 
+interface AccountStat {
+  screenName: string;
+  source: string;
+  totalLikes: number;
+  tweetCount: number;
+  lastUpdated: string;
+}
+
+interface FollowedProfile {
+  screenName: string;
+  followers: number;
+  totalLikes: number;
+  lastUpdated: string | null;
+}
+
+interface ContentInsights {
+  trackedCategoryAccounts: number;
+  trackedCustomProfiles: number;
+  categoryBreakdown: {
+    category: string;
+    accounts: number;
+    totalTweets: number;
+    totalLikes: number;
+    lastUpdated: string;
+  }[];
+  topAccounts: AccountStat[];
+  mostFollowedProfiles: FollowedProfile[];
+  lastFetchAt: string | null;
+}
+
+interface NewsletterInsights {
+  totalAllTime: number;
+  last7Days: { date: string; count: number }[];
+  byFeedType: { [wise: string]: number };
+  topSubscribers: { email: string; totalnewsletter: number }[];
+}
+
+interface JobRun {
+  jobKey: string;
+  lockedBy: string;
+  lockedAt: string;
+  completedAt?: string;
+  status: "running" | "completed" | "failed";
+}
+
+interface JobHealth {
+  recentJobs: JobRun[];
+  statusCounts: { [status: string]: number };
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { emailContext } = useEmail();
@@ -67,6 +145,11 @@ export default function AdminDashboard() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [userStats, setUserStats] = useState<any>(null);
+  const [contentInsights, setContentInsights] =
+    useState<ContentInsights | null>(null);
+  const [newsletterInsights, setNewsletterInsights] =
+    useState<NewsletterInsights | null>(null);
+  const [jobHealth, setJobHealth] = useState<JobHealth | null>(null);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -109,6 +192,9 @@ export default function AdminDashboard() {
         loadActivityStats(),
         loadAuditLogs(),
         loadUsers(),
+        loadContentInsights(),
+        loadNewsletterInsights(),
+        loadJobHealth(),
       ]);
     } catch (error) {
       console.error("Error loading data:", error);
@@ -187,6 +273,39 @@ export default function AdminDashboard() {
     }
   };
 
+  const loadContentInsights = async () => {
+    try {
+      const response = await apiClient.get("/admin/insights/content");
+      if (response.data.code === 0) {
+        setContentInsights(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error loading content insights:", error);
+    }
+  };
+
+  const loadNewsletterInsights = async () => {
+    try {
+      const response = await apiClient.get("/admin/insights/newsletters");
+      if (response.data.code === 0) {
+        setNewsletterInsights(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error loading newsletter insights:", error);
+    }
+  };
+
+  const loadJobHealth = async () => {
+    try {
+      const response = await apiClient.get("/admin/system/jobs");
+      if (response.data.code === 0) {
+        setJobHealth(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error loading job health:", error);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin) {
       loadPageViews();
@@ -249,6 +368,8 @@ export default function AdminDashboard() {
         }))
     : [];
 
+  const newsletterTrendData = newsletterInsights?.last7Days || [];
+
   return (
     <div className="min-h-screen bg-black text-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -270,8 +391,7 @@ export default function AdminDashboard() {
             <option value="3d">Last 3 Days</option>
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
-            <option value="6m">Last 6 Months</option>
-            <option value="1y">Last Year</option>
+            <option value="90d">Last 90 Days</option>
           </select>
 
           <select
@@ -311,6 +431,116 @@ export default function AdminDashboard() {
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <div className="text-gray-400 text-sm mb-1">Total Users</div>
             <div className="text-3xl font-bold">{userStats?.total || 0}</div>
+          </div>
+        </div>
+
+        {/* Content & Newsletter overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <div className="text-gray-400 text-sm mb-1">
+              Tracked Category Accounts
+            </div>
+            <div className="text-3xl font-bold">
+              {contentInsights?.trackedCategoryAccounts || 0}
+            </div>
+          </div>
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <div className="text-gray-400 text-sm mb-1">
+              Tracked Custom Profiles
+            </div>
+            <div className="text-3xl font-bold">
+              {contentInsights?.trackedCustomProfiles || 0}
+            </div>
+          </div>
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <div className="text-gray-400 text-sm mb-1">
+              Newsletters (Last 7 Days)
+            </div>
+            <div className="text-3xl font-bold">
+              {newsletterTrendData.reduce((sum, d) => sum + d.count, 0)}
+            </div>
+          </div>
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <div className="text-gray-400 text-sm mb-1">
+              Newsletters (All-Time)
+            </div>
+            <div className="text-3xl font-bold">
+              {newsletterInsights?.totalAllTime || 0}
+            </div>
+          </div>
+        </div>
+
+        {/* Scheduler / System Health */}
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 mb-8">
+          <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+            <h2 className="text-xl font-bold">Scheduler Health</h2>
+            <p className="text-gray-400 text-sm">
+              Confirms each scheduled run (newsletter batch, tweet fetch,
+              weekly digest) is claimed by exactly one server replica.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="bg-gray-700 p-4 rounded-lg flex items-center justify-between">
+              <span className="text-gray-300">Completed</span>
+              <span className="text-2xl font-bold text-green-400">
+                {jobHealth?.statusCounts?.completed || 0}
+              </span>
+            </div>
+            <div className="bg-gray-700 p-4 rounded-lg flex items-center justify-between">
+              <span className="text-gray-300">Running</span>
+              <span className="text-2xl font-bold text-yellow-400">
+                {jobHealth?.statusCounts?.running || 0}
+              </span>
+            </div>
+            <div className="bg-gray-700 p-4 rounded-lg flex items-center justify-between">
+              <span className="text-gray-300">Failed</span>
+              <span className="text-2xl font-bold text-red-400">
+                {jobHealth?.statusCounts?.failed || 0}
+              </span>
+            </div>
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-700 sticky top-0">
+                <tr>
+                  <th className="text-left p-2">Job</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Claimed By</th>
+                  <th className="text-left p-2">Locked</th>
+                  <th className="text-left p-2">Completed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobHealth?.recentJobs && jobHealth.recentJobs.length > 0 ? (
+                  jobHealth.recentJobs.map((job) => (
+                    <tr
+                      key={`${job.jobKey}-${job.lockedAt}`}
+                      className="border-b border-gray-700 hover:bg-gray-700"
+                    >
+                      <td className="p-2 font-mono text-xs">{job.jobKey}</td>
+                      <td className="p-2">
+                        <StatusBadge status={job.status} />
+                      </td>
+                      <td className="p-2 text-gray-400 font-mono text-xs">
+                        {job.lockedBy}
+                      </td>
+                      <td className="p-2 text-gray-400">
+                        {timeAgo(job.lockedAt)}
+                      </td>
+                      <td className="p-2 text-gray-400">
+                        {job.completedAt ? timeAgo(job.completedAt) : "-"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="text-gray-400 text-center py-8">
+                      No scheduled jobs have run yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -379,6 +609,32 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Newsletter Insights */}
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 mb-8">
+          <h2 className="text-xl font-bold mb-4">Newsletters Sent (Last 7 Days)</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={newsletterTrendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis dataKey="date" stroke="#9CA3AF" />
+              <YAxis stroke="#9CA3AF" allowDecimals={false} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1F2937",
+                  border: "1px solid #374151",
+                  color: "#fff",
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="count"
+                stroke={COLORS[1]}
+                strokeWidth={2}
+                name="Newsletters Sent"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
         {/* Charts Row 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Links Clicked */}
@@ -440,6 +696,28 @@ export default function AdminDashboard() {
                 </span>
               </div>
             </div>
+
+            <h2 className="text-xl font-bold mt-6 mb-4">
+              Most Engaged Subscribers
+            </h2>
+            <div className="space-y-2">
+              {newsletterInsights?.topSubscribers &&
+              newsletterInsights.topSubscribers.length > 0 ? (
+                newsletterInsights.topSubscribers.map((sub) => (
+                  <div
+                    key={sub.email}
+                    className="flex justify-between items-center text-sm"
+                  >
+                    <span className="truncate">{sub.email}</span>
+                    <span className="text-gray-400 flex-shrink-0 ml-2">
+                      {sub.totalnewsletter} sent
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-gray-400 text-sm">No data yet</div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -466,14 +744,44 @@ export default function AdminDashboard() {
                 className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600"
               >
                 <option value="all">All Activities</option>
-                <option value="PAGE_VISIT">Page Visits</option>
-                <option value="LOGIN">Logins</option>
-                <option value="LOGOUT">Logouts</option>
-                <option value="LINK_CLICKED">Link Clicks</option>
-                <option value="ACCOUNT_CREATED">Account Created</option>
-                <option value="PASSWORD_CHANGED">Password Changed</option>
-                <option value="TWITTER_ACCOUNT_LINKED">Twitter Linked</option>
-                <option value="FEEDBACK_SENT">Feedback Sent</option>
+                <optgroup label="User activity">
+                  <option value="PAGE_VISIT">Page Visits</option>
+                  <option value="LOGIN">Logins</option>
+                  <option value="LOGOUT">Logouts</option>
+                  <option value="LINK_CLICKED">Link Clicks</option>
+                  <option value="ACCOUNT_CREATED">Account Created</option>
+                  <option value="ACCOUNT_UPDATED">Account Updated</option>
+                  <option value="PASSWORD_CHANGED">Password Changed</option>
+                  <option value="TWITTER_ACCOUNT_LINKED">Twitter Linked</option>
+                  <option value="TWITTER_ACCOUNT_UNLINKED">
+                    Twitter Unlinked
+                  </option>
+                  <option value="CATEGORIES_UPDATED">Categories Updated</option>
+                  <option value="PROFILES_UPDATED">Profiles Updated</option>
+                  <option value="FEED_TYPE_UPDATED">Feed Type Updated</option>
+                  <option value="NEWSLETTER_VIEWED">Newsletter Viewed</option>
+                  <option value="FEEDBACK_SENT">Feedback Sent</option>
+                </optgroup>
+                <optgroup label="System / scheduler">
+                  <option value="NEWSLETTER_SENT">Newsletter Sent</option>
+                  <option value="NEWSLETTER_SEND_FAILED">
+                    Newsletter Send Failed
+                  </option>
+                  <option value="NEWSLETTER_BATCH_STARTED">
+                    Newsletter Batch Started
+                  </option>
+                  <option value="NEWSLETTER_BATCH_COMPLETED">
+                    Newsletter Batch Completed
+                  </option>
+                  <option value="TWEET_FETCH_COMPLETED">
+                    Tweet Fetch Completed
+                  </option>
+                  <option value="TWEET_FETCH_FAILED">Tweet Fetch Failed</option>
+                  <option value="WEEKLY_DIGEST_SENT">Weekly Digest Sent</option>
+                  <option value="SCHEDULED_JOB_SKIPPED">
+                    Scheduled Job Skipped
+                  </option>
+                </optgroup>
               </select>
             </div>
           </div>

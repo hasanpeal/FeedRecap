@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import db from "./db"; // Assuming db is the primary database connection
+import db from "../config/db"; // Assuming db is the primary database connection
 
 // Define the Newsletter interface
 export interface INewsletter extends Document {
@@ -14,6 +14,14 @@ const NewsletterSchema: Schema = new Schema({
   content: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 });
+
+// Supports "latest newsletter for user" lookups (findOne({user}).sort({createdAt:-1}))
+NewsletterSchema.index({ user: 1, createdAt: -1 });
+
+// Retention: auto-delete newsletters 7 days after they were sent, so this
+// collection doesn't grow forever. Note this also expires the "Read &
+// Share" links emailed to users, which stop resolving after 7 days.
+NewsletterSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 7 });
 
 // Create the Newsletter model
 const Newsletter = db.model<INewsletter>("Newsletter", NewsletterSchema);
