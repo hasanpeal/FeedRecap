@@ -1,13 +1,28 @@
 import axios from "axios";
 import mongoose from "mongoose";
 import sgMail from "@sendgrid/mail";
-import cron from "node-cron";
+import os from "os";
+import { Worker } from "bullmq";
 import moment from "moment-timezone";
 import { User, IUser } from "./userModel";
 import { marked } from "marked";
 import { Newsletter } from "./newsletterModel";
 import OpenAI from "openai";
 import { StoredTweets, CustomProfilePosts } from "./tweetModel";
+import connection, { closeRedisConnection } from "./redis";
+import {
+  newsletterQueue,
+  tweetFetchQueue,
+  weeklyDigestQueue,
+  QUEUE_NAMES,
+} from "./queues";
+
+// Multiple Railway replicas run this file's job schedulers redundantly, so
+// each scheduled occurrence must run exactly once. Every replica upserting
+// the same BullMQ Job Scheduler (id + cron pattern) at boot is idempotent —
+// only one scheduled series is created network-wide — and Redis's atomic
+// dequeue means only one replica's Worker ever picks up a given occurrence.
+const INSTANCE_ID = `${os.hostname()}:${process.pid}`;
 
 // Set up SendGrid API
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
@@ -464,129 +479,139 @@ export async function sendNewsletterEmail(
   }
 }
 
-const fetchTweetsPeriodically = async () => {
-  while (true) {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
+async function runTweetFetchCycle(): Promise<void> {
+  console.log(
+    "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
+  );
 
-    // Skip execution at 9 AM, 3 PM, and 8 PM
-    if ([9, 15, 20].includes(hours)) {
-      console.log(`⏸️ [Tweet Fetching]: Skipped execution at ${hours}:00`);
-    } else if (minutes % 60 === 0) {
-      console.log(
-        "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
-      );
+  // Process categories sequentially (one at a time)
+  const categories: string[] = [
+    "Politics",
+    "Geopolitics",
+    "Finance",
+    "AI",
+    "Tech",
+    "Crypto",
+    "Meme",
+    "Sports",
+    "Entertainment",
+  ];
 
-      // Process categories sequentially (one at a time)
-      const categories: string[] = [
-        "Politics",
-        "Geopolitics",
-        "Finance",
-        "AI",
-        "Tech",
-        "Crypto",
-        "Meme",
-        "Sports",
-        "Entertainment",
-      ];
+  try {
+    await fetchAndStoreTweets(categories);
+  } catch (error) {
+    console.error(
+      `❌ [Error] Fetching tweets for category "${categories}" failed:`,
+      error
+    );
+  }
 
-      try {
-        await fetchAndStoreTweets(categories);
-      } catch (error) {
+  console.log("✅ [Tweet Fetching]: All categories updated successfully.");
+
+  console.log(
+    "🔄 [Custom Profiles]: Fetching fresh posts for user profiles..."
+  );
+
+  // Fetch all users with custom profiles
+  const users = await User.find({ wise: "customProfiles" }).exec();
+
+  // Extract unique profiles from all users
+  const uniqueProfiles = new Set<string>();
+  for (const user of users) {
+    user.profiles.forEach((profile: string) => uniqueProfiles.add(profile));
+  }
+
+  const profilesArray: string[] = Array.from(uniqueProfiles);
+  console.log(
+    `📋 [Custom Profiles]: Found ${profilesArray.length} unique profiles.`
+  );
+
+  // Process 5 profiles at a time with error handling
+  const PROFILE_BATCH_SIZE = 5;
+  for (let i = 0; i < profilesArray.length; i += PROFILE_BATCH_SIZE) {
+    const batch: string[] = profilesArray.slice(i, i + PROFILE_BATCH_SIZE);
+    console.log(
+      `🚀 [Custom Profiles]: Fetching batch ${
+        i / PROFILE_BATCH_SIZE + 1
+      }...`
+    );
+
+    // Store failed profiles
+    let failedProfiles: string[] = [];
+
+    // Attempt to fetch profiles
+    const results = await Promise.allSettled([
+      fetchAndStoreTweetsForProfiles(batch),
+    ]);
+
+    // Check for failed requests
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
         console.error(
-          `❌ [Error] Fetching tweets for category "${categories}" failed:`,
-          error
+          `❌ [Error] Fetching tweets failed for profiles: ${batch}`,
+          result.reason
         );
+        failedProfiles.push(...batch);
       }
+    });
 
-      console.log("✅ [Tweet Fetching]: All categories updated successfully.");
-
-      console.log(
-        "🔄 [Custom Profiles]: Fetching fresh posts for user profiles..."
-      );
-
-      // Fetch all users with custom profiles
-      const users = await User.find({ wise: "customProfiles" }).exec();
-
-      // Extract unique profiles from all users
-      const uniqueProfiles = new Set<string>();
-      for (const user of users) {
-        user.profiles.forEach((profile: string) => uniqueProfiles.add(profile));
-      }
-
-      const profilesArray: string[] = Array.from(uniqueProfiles);
-      console.log(
-        `📋 [Custom Profiles]: Found ${profilesArray.length} unique profiles.`
-      );
-
-      // Process 5 profiles at a time with error handling
-      const PROFILE_BATCH_SIZE = 5;
-      for (let i = 0; i < profilesArray.length; i += PROFILE_BATCH_SIZE) {
-        const batch: string[] = profilesArray.slice(i, i + PROFILE_BATCH_SIZE);
-        console.log(
-          `🚀 [Custom Profiles]: Fetching batch ${
-            i / PROFILE_BATCH_SIZE + 1
-          }...`
-        );
-
-        // Store failed profiles
-        let failedProfiles: string[] = [];
-
-        // Attempt to fetch profiles
-        const results = await Promise.allSettled([
-          fetchAndStoreTweetsForProfiles(batch),
-        ]);
-
-        // Check for failed requests
-        results.forEach((result, index) => {
-          if (result.status === "rejected") {
-            console.error(
-              `❌ [Error] Fetching tweets failed for profiles: ${batch}`,
-              result.reason
-            );
-            failedProfiles.push(...batch);
-          }
-        });
-
-        // Wait 1 second before starting the next batch
-        if (i + PROFILE_BATCH_SIZE < profilesArray.length) {
-          console.log(`⏳ [Custom Profiles]: Waiting 1s before next batch...`);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-
-        // Retry fetching failed profiles once
-        if (failedProfiles.length > 0) {
-          console.log(
-            `🔄 [Retry]: Retrying failed profiles: ${failedProfiles.join(", ")}`
-          );
-
-          const retryResults = await Promise.allSettled([
-            fetchAndStoreTweetsForProfiles(failedProfiles),
-          ]);
-
-          retryResults.forEach((retryResult) => {
-            if (retryResult.status === "rejected") {
-              console.error(
-                `❌ [Final Error] Retrying failed for profiles: ${failedProfiles}`,
-                retryResult.reason
-              );
-            }
-          });
-
-          console.log(`✅ [Retry]: Completed retry attempt.`);
-        }
-      }
-
-      console.log("✅ [Custom Profiles]: User profile tweets updated.");
+    // Wait 1 second before starting the next batch
+    if (i + PROFILE_BATCH_SIZE < profilesArray.length) {
+      console.log(`⏳ [Custom Profiles]: Waiting 1s before next batch...`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
-    // Wait 1 minute before checking again
-    await new Promise((resolve) => setTimeout(resolve, 60 * 1000));
-  }
-};
+    // Retry fetching failed profiles once
+    if (failedProfiles.length > 0) {
+      console.log(
+        `🔄 [Retry]: Retrying failed profiles: ${failedProfiles.join(", ")}`
+      );
 
-fetchTweetsPeriodically().catch(console.error);
+      const retryResults = await Promise.allSettled([
+        fetchAndStoreTweetsForProfiles(failedProfiles),
+      ]);
+
+      retryResults.forEach((retryResult) => {
+        if (retryResult.status === "rejected") {
+          console.error(
+            `❌ [Final Error] Retrying failed for profiles: ${failedProfiles}`,
+            retryResult.reason
+          );
+        }
+      });
+
+      console.log(`✅ [Retry]: Completed retry attempt.`);
+    }
+  }
+
+  console.log("✅ [Custom Profiles]: User profile tweets updated.");
+}
+
+// Runs at minute 0 of every hour except 9 AM, 3 PM and 8 PM Eastern (those
+// are reserved for the newsletter sends).
+let tweetFetchWorker: Worker;
+async function startTweetFetchJob(): Promise<void> {
+  await tweetFetchQueue.upsertJobScheduler(
+    "tweet-fetch:hourly",
+    { pattern: "0 0-8,10-14,16-19,21-23 * * *", tz: "America/New_York" },
+    { name: "fetch-tweets" }
+  );
+
+  tweetFetchWorker = new Worker(
+    QUEUE_NAMES.TWEET_FETCH,
+    async () => {
+      console.log(`🎯 [Tweet Fetching]: Claimed by ${INSTANCE_ID}`);
+      await runTweetFetchCycle();
+    },
+    { connection, concurrency: 1 }
+  );
+
+  tweetFetchWorker.on("failed", (job, error) => {
+    console.error(`❌ [Error] Tweet fetch cycle "${job?.id}" failed:`, error);
+  });
+}
+
+startTweetFetchJob().catch(console.error);
 
 // Helper function to validate email
 function isValidEmail(email: string): boolean {
@@ -674,30 +699,40 @@ async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
   }
 }
 
-// Scheduler function (Restored from working code)
-function runContinuousScheduler() {
-  const scheduleTimes = {
-    Morning: "09:00", // 9 AM Eastern
-    Afternoon: "15:00", // 3 PM Eastern
-    Night: "20:00", // 8 PM Eastern
-  };
+const NEWSLETTER_SCHEDULES: { id: string; timeSlot: string; pattern: string }[] = [
+  { id: "newsletter:Morning", timeSlot: "Morning", pattern: "0 9 * * *" },
+  { id: "newsletter:Afternoon", timeSlot: "Afternoon", pattern: "0 15 * * *" },
+  { id: "newsletter:Night", timeSlot: "Night", pattern: "0 20 * * *" },
+];
 
-  setInterval(async () => {
-    const currentTime = moment().tz("America/New_York").format("HH:mm");
+let newsletterWorker: Worker;
+async function startNewsletterScheduler(): Promise<void> {
+  for (const { id, timeSlot, pattern } of NEWSLETTER_SCHEDULES) {
+    await newsletterQueue.upsertJobScheduler(
+      id,
+      { pattern, tz: "America/New_York" },
+      { name: "send-newsletter-batch", data: { timeSlot } }
+    );
+  }
 
-    for (const [timeSlot, scheduledTime] of Object.entries(scheduleTimes)) {
-      if (currentTime === scheduledTime) {
-        console.log(
-          `🎯 [Debug] Time matched for ${timeSlot}. Processing newsletters...`
-        );
-        await processNewslettersForTimeSlot(timeSlot);
-      }
-    }
-  }, 60 * 1000); // Check every minute
+  newsletterWorker = new Worker(
+    QUEUE_NAMES.NEWSLETTER,
+    async (job) => {
+      console.log(
+        `🎯 [Debug] Time matched for ${job.data.timeSlot}, claimed by ${INSTANCE_ID}. Processing newsletters...`
+      );
+      await processNewslettersForTimeSlot(job.data.timeSlot);
+    },
+    { connection, concurrency: 1 }
+  );
+
+  newsletterWorker.on("failed", (job, error) => {
+    console.error(`❌ [Debug] Newsletter batch job "${job?.id}" failed:`, error);
+  });
 }
 
 // Start the scheduler
-runContinuousScheduler();
+startNewsletterScheduler().catch(console.error);
 
 const sendDigest = async () => {
   const totalUsers = await User.countDocuments({});
@@ -749,10 +784,46 @@ const sendDigest = async () => {
   }
 };
 
-// Run the task once a week on Monday at 9 AM
-cron.schedule("0 9 * * 1", () => {
-  sendDigest();
-});
+// Run the task once a week on Monday at 9 AM Eastern
+let weeklyDigestWorker: Worker;
+async function startWeeklyDigestJob(): Promise<void> {
+  await weeklyDigestQueue.upsertJobScheduler(
+    "weekly-digest:monday",
+    { pattern: "0 9 * * 1", tz: "America/New_York" },
+    { name: "send-weekly-digest" }
+  );
+
+  weeklyDigestWorker = new Worker(
+    QUEUE_NAMES.WEEKLY_DIGEST,
+    async () => {
+      console.log(`🎯 [Weekly Digest]: Claimed by ${INSTANCE_ID}`);
+      await sendDigest();
+    },
+    { connection, concurrency: 1 }
+  );
+
+  weeklyDigestWorker.on("failed", (job, error) => {
+    console.error(`❌ [Error]: Weekly digest job "${job?.id}" failed:`, error);
+  });
+}
+
+startWeeklyDigestJob().catch(console.error);
+
+// Called from server.ts's SIGTERM handler so in-flight jobs finish (or get
+// reclaimed by another replica) instead of being killed mid-run.
+export async function stopBackgroundJobs(): Promise<void> {
+  await Promise.all(
+    [tweetFetchWorker, newsletterWorker, weeklyDigestWorker]
+      .filter(Boolean)
+      .map((worker) => worker.close())
+  );
+  await Promise.all(
+    [newsletterQueue, tweetFetchQueue, weeklyDigestQueue].map((queue) =>
+      queue.close()
+    )
+  );
+  await closeRedisConnection();
+}
 
 export async function fetchAndStoreTweetsForProfiles(
   profiles: string[]
