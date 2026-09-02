@@ -12,7 +12,9 @@ import { StoredTweets, CustomProfilePosts } from "./tweetModel";
 import connection, { closeRedisConnection } from "./redis";
 import {
   newsletterQueue,
+  newsletterTaskQueue,
   tweetFetchQueue,
+  tweetFetchTaskQueue,
   weeklyDigestQueue,
   QUEUE_NAMES,
 } from "./queues";
@@ -30,8 +32,6 @@ const openai = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL || "",
   apiKey: process.env.OPENAI,
 });
-
-const NUM_PARALLEL = 5;
 
 
 function extractQuotedTweet(quoted: any): any | null {
@@ -479,117 +479,63 @@ export async function sendNewsletterEmail(
   }
 }
 
-async function runTweetFetchCycle(): Promise<void> {
-  console.log(
-    "🔄 [Tweet Fetching]: Fetching fresh tweets for all categories..."
-  );
+const TWEET_CATEGORIES: string[] = [
+  "Politics",
+  "Geopolitics",
+  "Finance",
+  "AI",
+  "Tech",
+  "Crypto",
+  "Meme",
+  "Sports",
+  "Entertainment",
+];
 
-  // Process categories sequentially (one at a time)
-  const categories: string[] = [
-    "Politics",
-    "Geopolitics",
-    "Finance",
-    "AI",
-    "Tech",
-    "Crypto",
-    "Meme",
-    "Sports",
-    "Entertainment",
-  ];
+type TweetFetchTaskData =
+  | { type: "category"; category: string }
+  | { type: "profile"; profile: string };
 
-  try {
-    await fetchAndStoreTweets(categories);
-  } catch (error) {
-    console.error(
-      `❌ [Error] Fetching tweets for category "${categories}" failed:`,
-      error
+// Dispatcher: runs once per hour, on whichever replica's Worker claims the
+// scheduled occurrence. Fans the actual fetching out into one task per
+// category and one task per custom profile instead of doing it all here, so
+// every replica's task Worker can pick tasks up and run them concurrently.
+// Deterministic jobIds (keyed by this hour) make re-dispatching idempotent —
+// if this dispatch job gets retried/reclaimed, re-adding the same task
+// jobIds is a no-op rather than double-fetching.
+async function dispatchTweetFetchTasks(): Promise<void> {
+  const hourKey = moment().tz("America/New_York").format("YYYY-MM-DD-HH");
+
+  for (const category of TWEET_CATEGORIES) {
+    await tweetFetchTaskQueue.add(
+      "fetch-category",
+      { type: "category", category } as TweetFetchTaskData,
+      { jobId: `tweet-fetch-${hourKey}-category-${category}` }
     );
   }
 
-  console.log("✅ [Tweet Fetching]: All categories updated successfully.");
-
-  console.log(
-    "🔄 [Custom Profiles]: Fetching fresh posts for user profiles..."
-  );
-
-  // Fetch all users with custom profiles
   const users = await User.find({ wise: "customProfiles" }).exec();
-
-  // Extract unique profiles from all users
   const uniqueProfiles = new Set<string>();
   for (const user of users) {
     user.profiles.forEach((profile: string) => uniqueProfiles.add(profile));
   }
 
-  const profilesArray: string[] = Array.from(uniqueProfiles);
-  console.log(
-    `📋 [Custom Profiles]: Found ${profilesArray.length} unique profiles.`
-  );
-
-  // Process 5 profiles at a time with error handling
-  const PROFILE_BATCH_SIZE = 5;
-  for (let i = 0; i < profilesArray.length; i += PROFILE_BATCH_SIZE) {
-    const batch: string[] = profilesArray.slice(i, i + PROFILE_BATCH_SIZE);
-    console.log(
-      `🚀 [Custom Profiles]: Fetching batch ${
-        i / PROFILE_BATCH_SIZE + 1
-      }...`
+  for (const profile of Array.from(uniqueProfiles)) {
+    await tweetFetchTaskQueue.add(
+      "fetch-profile",
+      { type: "profile", profile } as TweetFetchTaskData,
+      { jobId: `tweet-fetch-${hourKey}-profile-${profile}` }
     );
-
-    // Store failed profiles
-    let failedProfiles: string[] = [];
-
-    // Attempt to fetch profiles
-    const results = await Promise.allSettled([
-      fetchAndStoreTweetsForProfiles(batch),
-    ]);
-
-    // Check for failed requests
-    results.forEach((result, index) => {
-      if (result.status === "rejected") {
-        console.error(
-          `❌ [Error] Fetching tweets failed for profiles: ${batch}`,
-          result.reason
-        );
-        failedProfiles.push(...batch);
-      }
-    });
-
-    // Wait 1 second before starting the next batch
-    if (i + PROFILE_BATCH_SIZE < profilesArray.length) {
-      console.log(`⏳ [Custom Profiles]: Waiting 1s before next batch...`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-
-    // Retry fetching failed profiles once
-    if (failedProfiles.length > 0) {
-      console.log(
-        `🔄 [Retry]: Retrying failed profiles: ${failedProfiles.join(", ")}`
-      );
-
-      const retryResults = await Promise.allSettled([
-        fetchAndStoreTweetsForProfiles(failedProfiles),
-      ]);
-
-      retryResults.forEach((retryResult) => {
-        if (retryResult.status === "rejected") {
-          console.error(
-            `❌ [Final Error] Retrying failed for profiles: ${failedProfiles}`,
-            retryResult.reason
-          );
-        }
-      });
-
-      console.log(`✅ [Retry]: Completed retry attempt.`);
-    }
   }
 
-  console.log("✅ [Custom Profiles]: User profile tweets updated.");
+  console.log(
+    `📤 [Tweet Fetching]: Dispatched ${TWEET_CATEGORIES.length} category tasks and ${uniqueProfiles.size} profile tasks for ${hourKey}`
+  );
 }
 
 // Runs at minute 0 of every hour except 9 AM, 3 PM and 8 PM Eastern (those
 // are reserved for the newsletter sends).
 let tweetFetchWorker: Worker;
+let tweetFetchTaskWorker: Worker;
 async function startTweetFetchJob(): Promise<void> {
   await tweetFetchQueue.upsertJobScheduler(
     "tweet-fetch:hourly",
@@ -600,14 +546,35 @@ async function startTweetFetchJob(): Promise<void> {
   tweetFetchWorker = new Worker(
     QUEUE_NAMES.TWEET_FETCH,
     async () => {
-      console.log(`🎯 [Tweet Fetching]: Claimed by ${INSTANCE_ID}`);
-      await runTweetFetchCycle();
+      console.log(`🎯 [Tweet Fetching]: Dispatch claimed by ${INSTANCE_ID}`);
+      await dispatchTweetFetchTasks();
     },
     { connection, concurrency: 1 }
   );
-
   tweetFetchWorker.on("failed", (job, error) => {
-    console.error(`❌ [Error] Tweet fetch cycle "${job?.id}" failed:`, error);
+    console.error(`❌ [Error] Tweet fetch dispatch "${job?.id}" failed:`, error);
+  });
+
+  // Every replica runs one of these workers, listening on the same task
+  // queue, so tasks get pulled by whichever replica is free — actual load
+  // spread across all replicas instead of one replica doing everything.
+  tweetFetchTaskWorker = new Worker(
+    QUEUE_NAMES.TWEET_FETCH_TASK,
+    async (job) => {
+      const data = job.data as TweetFetchTaskData;
+      console.log(
+        `🎯 [Tweet Fetching]: Task "${job.id}" (${data.type}) claimed by ${INSTANCE_ID}`
+      );
+      if (data.type === "category") {
+        await fetchAndStoreTweets([data.category]);
+      } else {
+        await fetchAndStoreTweetsForProfiles([data.profile]);
+      }
+    },
+    { connection, concurrency: 5 }
+  );
+  tweetFetchTaskWorker.on("failed", (job, error) => {
+    console.error(`❌ [Error] Tweet fetch task "${job?.id}" failed:`, error);
   });
 }
 
@@ -619,84 +586,79 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
-// Function to process newsletters for all users at a specific time slot
-async function processNewslettersForTimeSlot(timeSlot: string): Promise<void> {
-  console.log(`⏰ [Debug] Processing newsletters for time slot: ${timeSlot}`);
-  try {
-    const users = await User.find({ time: timeSlot }).exec();
-    if (users.length === 0) {
-      console.log(`📭 [Debug] No users found for time slot: ${timeSlot}`);
-      return;
-    }
+// Generates and sends the newsletter for exactly one user. Only ever called
+// from the per-user task Worker below. Errors are allowed to propagate so
+// BullMQ retries this one user's task instead of the old silent
+// catch-and-move-on (which meant a transient failure just meant no email,
+// with no retry).
+async function processNewsletterForUser(
+  user: IUser,
+  timeSlot: string
+): Promise<void> {
+  console.log(`📧 [Debug] Generating newsletter for: ${user.email}`);
 
-    console.log(
-      `📋 [Debug] Found ${users.length} users for time slot: ${timeSlot}`
+  let newsletter = null;
+  if (user.wise === "categorywise") {
+    const { tweetsByCategory, top15Tweets } = await fetchTweetsForCategories(
+      user.categories
     );
-
-    // Process users in batches of 5 parallel requests
-    for (let i = 0; i < users.length; i += NUM_PARALLEL) {
-      const batch = users.slice(i, i + NUM_PARALLEL);
-
-      await Promise.all(
-        batch.map(async (user) => {
-          try {
-            if (!isValidEmail(user.email)) {
-              console.log(
-                `⚠️ [Debug] Skipping user with invalid email: ${user.email}`
-              );
-              return;
-            }
-
-            if (!user.time || user.time.length === 0) {
-              console.log(
-                `⚠️ [Debug] Skipping user with no time preferences: ${user.email}`
-              );
-              return;
-            }
-
-            console.log(`📧 [Debug] Generating newsletter for: ${user.email}`);
-
-            let newsletter = null;
-            if (user.wise === "categorywise") {
-              const { tweetsByCategory, top15Tweets } =
-                await fetchTweetsForCategories(user.categories);
-              newsletter = await generateNewsletter(
-                tweetsByCategory,
-                top15Tweets
-              );
-            } else if (user.wise === "customProfiles") {
-              const { tweetsByProfiles, top15Tweets } =
-                await getStoredTweetsForUser(
-                  user._id as mongoose.Types.ObjectId
-                );
-              newsletter = await generateCustomProfileNewsletter(
-                tweetsByProfiles,
-                top15Tweets
-              );
-            }
-
-            if (newsletter) {
-              await sendNewsletterEmail(user, newsletter);
-              console.log(`✅ [Debug] Newsletter sent to: ${user.email}`);
-            }
-          } catch (error) {
-            console.error(
-              `❌ [Debug] Error processing newsletter for ${user.email}:`,
-              error
-            );
-          }
-        })
-      );
-    }
-    console.log(
-      `✅ [Debug] Completed newsletter processing for time slot: ${timeSlot}`
+    newsletter = await generateNewsletter(tweetsByCategory, top15Tweets);
+  } else if (user.wise === "customProfiles") {
+    const { tweetsByProfiles, top15Tweets } = await getStoredTweetsForUser(
+      user._id as mongoose.Types.ObjectId
     );
-  } catch (error) {
-    console.error(
-      `❌ [Debug] Error processing newsletters for time slot: ${timeSlot}`,
-      error
+    newsletter = await generateCustomProfileNewsletter(
+      tweetsByProfiles,
+      top15Tweets
     );
   }
+
+  if (newsletter) {
+    await sendNewsletterEmail(user, newsletter);
+    console.log(`✅ [Debug] Newsletter sent to: ${user.email}`);
+  }
+}
+
+// Dispatcher: runs once per time slot, on whichever replica's Worker claims
+// the scheduled occurrence. Fans the actual sends out into one task per
+// user instead of doing them all here, so every replica's task Worker can
+// pick tasks up and send concurrently. Deterministic jobIds (keyed by
+// today's date + user) make re-dispatching idempotent — if this dispatch
+// job gets retried/reclaimed, re-adding the same task jobIds is a no-op
+// rather than double-emailing.
+async function dispatchNewsletterTasks(timeSlot: string): Promise<void> {
+  const users = await User.find({ time: timeSlot }).exec();
+  if (users.length === 0) {
+    console.log(`📭 [Debug] No users found for time slot: ${timeSlot}`);
+    return;
+  }
+
+  const dateStr = moment().tz("America/New_York").format("YYYY-MM-DD");
+  let dispatched = 0;
+
+  for (const user of users) {
+    if (!isValidEmail(user.email)) {
+      console.log(`⚠️ [Debug] Skipping user with invalid email: ${user.email}`);
+      continue;
+    }
+    if (!user.time || user.time.length === 0) {
+      console.log(
+        `⚠️ [Debug] Skipping user with no time preferences: ${user.email}`
+      );
+      continue;
+    }
+
+    await newsletterTaskQueue.add(
+      "send-newsletter",
+      { userId: (user._id as mongoose.Types.ObjectId).toString(), timeSlot },
+      { jobId: `newsletter-${timeSlot}-${dateStr}-${user._id}` }
+    );
+    dispatched++;
+  }
+
+  console.log(
+    `📤 [Debug] Dispatched ${dispatched} newsletter tasks for time slot: ${timeSlot}`
+  );
 }
 
 const NEWSLETTER_SCHEDULES: { id: string; timeSlot: string; pattern: string }[] = [
@@ -706,6 +668,7 @@ const NEWSLETTER_SCHEDULES: { id: string; timeSlot: string; pattern: string }[] 
 ];
 
 let newsletterWorker: Worker;
+let newsletterTaskWorker: Worker;
 async function startNewsletterScheduler(): Promise<void> {
   for (const { id, timeSlot, pattern } of NEWSLETTER_SCHEDULES) {
     await newsletterQueue.upsertJobScheduler(
@@ -719,15 +682,38 @@ async function startNewsletterScheduler(): Promise<void> {
     QUEUE_NAMES.NEWSLETTER,
     async (job) => {
       console.log(
-        `🎯 [Debug] Time matched for ${job.data.timeSlot}, claimed by ${INSTANCE_ID}. Processing newsletters...`
+        `🎯 [Debug] Time matched for ${job.data.timeSlot}, dispatch claimed by ${INSTANCE_ID}`
       );
-      await processNewslettersForTimeSlot(job.data.timeSlot);
+      await dispatchNewsletterTasks(job.data.timeSlot);
     },
     { connection, concurrency: 1 }
   );
-
   newsletterWorker.on("failed", (job, error) => {
-    console.error(`❌ [Debug] Newsletter batch job "${job?.id}" failed:`, error);
+    console.error(`❌ [Debug] Newsletter dispatch "${job?.id}" failed:`, error);
+  });
+
+  // Every replica runs one of these workers, listening on the same task
+  // queue, so sends get pulled by whichever replica is free — actual load
+  // spread across all replicas instead of one replica emailing everyone.
+  newsletterTaskWorker = new Worker(
+    QUEUE_NAMES.NEWSLETTER_TASK,
+    async (job) => {
+      const user = await User.findById(job.data.userId).exec();
+      if (!user) {
+        console.log(
+          `⚠️ [Debug] User ${job.data.userId} no longer exists, skipping newsletter task "${job.id}"`
+        );
+        return;
+      }
+      console.log(
+        `🎯 [Debug] Newsletter task "${job.id}" claimed by ${INSTANCE_ID}`
+      );
+      await processNewsletterForUser(user, job.data.timeSlot);
+    },
+    { connection, concurrency: 5 }
+  );
+  newsletterTaskWorker.on("failed", (job, error) => {
+    console.error(`❌ [Debug] Newsletter task "${job?.id}" failed:`, error);
   });
 }
 
@@ -813,14 +799,24 @@ startWeeklyDigestJob().catch(console.error);
 // reclaimed by another replica) instead of being killed mid-run.
 export async function stopBackgroundJobs(): Promise<void> {
   await Promise.all(
-    [tweetFetchWorker, newsletterWorker, weeklyDigestWorker]
+    [
+      tweetFetchWorker,
+      tweetFetchTaskWorker,
+      newsletterWorker,
+      newsletterTaskWorker,
+      weeklyDigestWorker,
+    ]
       .filter(Boolean)
       .map((worker) => worker.close())
   );
   await Promise.all(
-    [newsletterQueue, tweetFetchQueue, weeklyDigestQueue].map((queue) =>
-      queue.close()
-    )
+    [
+      newsletterQueue,
+      newsletterTaskQueue,
+      tweetFetchQueue,
+      tweetFetchTaskQueue,
+      weeklyDigestQueue,
+    ].map((queue) => queue.close())
   );
   await closeRedisConnection();
 }
