@@ -20,6 +20,7 @@ import {
   fetchAndStoreTweetsForProfiles,
   generateCustomProfileNewsletter,
   getStoredTweetsForUser,
+  stopBackgroundJobs,
 } from "./digest";
 import { StoredTweets, CustomProfilePosts } from "./tweetModel";
 import { logActivity, ActivityType } from "./auditLogger";
@@ -158,8 +159,13 @@ app.use(
   })
 );
 
-process.on("SIGTERM", () => {
+process.on("SIGTERM", async () => {
   console.log("SIGTERM received. Closing gracefully.");
+  try {
+    await stopBackgroundJobs();
+  } catch (error) {
+    console.error("Error closing background jobs:", error);
+  }
   process.exit(0);
 });
 
