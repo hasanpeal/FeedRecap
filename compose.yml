@@ -18,13 +18,11 @@ services:
     # the first number is the port on the host machine
     # the second number is the port inside the container
     ports:
-      - 3001:3001
+      - 3000:3000
     # specify the environment variables for the web service
     # these environment variables will be available inside the container
     env_file:
       - ./client/.env.local
-    volumes:
-      - feedrecap-volume:/app
 
     # this is for docker compose watch mode
     # anything mentioned under develop will be watched for changes by docker compose watch and it will perform the action mentioned
@@ -50,14 +48,12 @@ services:
     # the first number is the port on the host machine
     # the second number is the port inside the container
     ports: 
-      - 3000:3000
+      - 3001:3001
 
     # specify environment variables for the api service
     # for demo purposes, we're using a local mongodb instance
     env_file:
       - ./server/.env
-    volumes:
-      - feedrecap-volume:/app
 
     # establish docker compose watch mode for the api service
     develop:
@@ -93,7 +89,3 @@ services:
   #   # this is done so that the data inside the mongodb container is persisted even if the container is stopped
   #   volumes:
   #     - anime:/data/db
-
-# define the volumes to be used by the services
-volumes:
-  feedrecap-volume:
