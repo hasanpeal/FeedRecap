@@ -22,6 +22,8 @@ interface NewsfeedContentProps {
   onToggleExpansion: (tweetId: string) => void;
   profilesContainerRef: React.RefObject<HTMLDivElement>;
   scrollProfiles: (direction: "left" | "right") => void;
+  bookmarkedTweetIds?: Set<string>;
+  onToggleBookmark?: (post: Post) => void;
 }
 
 export const NewsfeedContent = ({
@@ -42,6 +44,8 @@ export const NewsfeedContent = ({
   onToggleExpansion,
   profilesContainerRef,
   scrollProfiles,
+  bookmarkedTweetIds,
+  onToggleBookmark,
 }: NewsfeedContentProps) => {
   const filteredPosts = posts
     .filter(
@@ -93,6 +97,8 @@ export const NewsfeedContent = ({
               wise={wise}
               expandedPosts={expandedPosts}
               onToggleExpansion={onToggleExpansion}
+              isBookmarked={bookmarkedTweetIds?.has(post.tweet_id)}
+              onToggleBookmark={onToggleBookmark}
             />
           ))
         ) : (

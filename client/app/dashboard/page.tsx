@@ -3,6 +3,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   type ChangeEvent,
   useRef,
 } from "react";
@@ -12,12 +13,19 @@ import { useEmail } from "@/context/UserContext";
 import _ from "lodash";
 import Navbar3 from "@/components/navbar3";
 import { TutorialOverlay } from "@/components/tutorial-overlay";
+import {
+  Rss,
+  Mail,
+  Bookmark as BookmarkIcon,
+  Settings as SettingsIcon,
+} from "lucide-react";
 
 // Import components
 import { SkeletonLoader } from "@/components/dashboard/SkeletonLoader";
 import { NewsfeedContent } from "@/components/dashboard/NewsfeedContent";
 import { NewsletterSection } from "@/components/dashboard/NewsletterSection";
 import { SettingsSection } from "@/components/dashboard/SettingsSection";
+import { BookmarksSection } from "@/components/dashboard/BookmarksSection";
 import { ChatModal, ChatButton } from "@/components/dashboard/ChatModal";
 import { Modal } from "@/components/dashboard/Modal";
 import { Notification } from "@/components/dashboard/Notification";
@@ -32,6 +40,7 @@ import {
   SortBy,
   SortOrder,
   TwitterAccount,
+  Bookmark,
 } from "@/components/dashboard/types";
 import { playSound, isIOS } from "@/components/dashboard/utils";
 
@@ -71,6 +80,14 @@ export default function Dashboard() {
   // Posts and profiles
   const [posts, setPosts] = useState<Post[]>([]);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
+
+  // Bookmarks
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [loadingBookmarks, setLoadingBookmarks] = useState<boolean>(true);
+  const bookmarkedTweetIds = useMemo(
+    () => new Set(bookmarks.map((b) => b.tweetId)),
+    [bookmarks]
+  );
 
   // UI state
   const [selectedTab, setSelectedTab] = useState("newsfeed");
@@ -244,6 +261,7 @@ export default function Dashboard() {
     if (emailContext) {
       // JWT token should already be in localStorage from login
       fetchData();
+      fetchBookmarks();
     }
     // Don't remove token here - let the token validation in loadEmailFromToken handle it
   }, [emailContext]);
@@ -484,6 +502,96 @@ export default function Dashboard() {
       setLoadingProfiles(false);
       setLoadingPosts(false);
       setPageLoading(false);
+    }
+  };
+
+  const fetchBookmarks = async () => {
+    setLoadingBookmarks(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/bookmarks`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        setBookmarks(response.data.bookmarks);
+      }
+    } catch (err) {
+      // Silently fail; bookmarks are non-critical to the main experience
+    } finally {
+      setLoadingBookmarks(false);
+    }
+  };
+
+  const handleToggleBookmark = async (post: Post) => {
+    playSound();
+    const isBookmarked = bookmarkedTweetIds.has(post.tweet_id);
+    const link = `https://twitter.com/i/web/status/${post.tweet_id}`;
+    const token = localStorage.getItem("token");
+
+    if (isBookmarked) {
+      setBookmarks((prev) =>
+        prev.filter((b) => b.tweetId !== post.tweet_id)
+      );
+      try {
+        await axios.delete(
+          `${process.env.NEXT_PUBLIC_SERVER}/bookmarks/${post.tweet_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      } catch (err) {
+        showNotification("Error removing bookmark.", "error");
+        fetchBookmarks();
+      }
+    } else {
+      setBookmarks((prev) => [
+        {
+          tweetId: post.tweet_id,
+          link,
+          username: post.username,
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      try {
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_SERVER}/bookmarks`,
+          { tweetId: post.tweet_id, link, username: post.username },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        showNotification("Post saved to bookmarks", "success");
+      } catch (err) {
+        showNotification("Error saving bookmark.", "error");
+        fetchBookmarks();
+      }
+    }
+  };
+
+  const handleRemoveBookmark = async (tweetId: string) => {
+    playSound();
+    setBookmarks((prev) => prev.filter((b) => b.tweetId !== tweetId));
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${process.env.NEXT_PUBLIC_SERVER}/bookmarks/${tweetId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (err) {
+      showNotification("Error removing bookmark.", "error");
+      fetchBookmarks();
     }
   };
 
@@ -1073,39 +1181,48 @@ export default function Dashboard() {
           {/* Navigation */}
           <nav className="mb-8 flex items-center justify-center border-b border-gray-800 pb-4">
             <div className="flex gap-8 sm:gap-14">
-              <button
-                data-tutorial="newsfeed"
-                onClick={() => setSelectedTab("newsfeed")}
-                className={`text-lg transition-colors ${
-                  selectedTab === "newsfeed"
-                    ? "text-[#7FFFD4]"
-                    : "text-gray-400 hover:text-[#7FFFD4]"
-                }`}
-              >
-                Newsfeed
-              </button>
-              <button
-                data-tutorial="newsletter"
-                onClick={() => setSelectedTab("newsletter")}
-                className={`text-lg transition-colors ${
-                  selectedTab === "newsletter"
-                    ? "text-[#7FFFD4]"
-                    : "text-gray-400 hover:text-[#7FFFD4]"
-                }`}
-              >
-                Newsletter
-              </button>
-              <button
-                data-tutorial="settings"
-                onClick={() => setSelectedTab("settings")}
-                className={`text-lg transition-colors ${
-                  selectedTab === "settings"
-                    ? "text-[#7FFFD4]"
-                    : "text-gray-400 hover:text-[#7FFFD4]"
-                }`}
-              >
-                Settings
-              </button>
+              {[
+                {
+                  key: "newsfeed",
+                  label: "Newsfeed",
+                  icon: Rss,
+                  tutorial: "newsfeed",
+                },
+                {
+                  key: "newsletter",
+                  label: "Newsletter",
+                  icon: Mail,
+                  tutorial: "newsletter",
+                },
+                {
+                  key: "bookmarks",
+                  label: "Bookmarks",
+                  icon: BookmarkIcon,
+                },
+                {
+                  key: "settings",
+                  label: "Settings",
+                  icon: SettingsIcon,
+                  tutorial: "settings",
+                },
+              ].map(({ key, label, icon: Icon, tutorial }) => (
+                <button
+                  key={key}
+                  data-tutorial={tutorial}
+                  onClick={() => setSelectedTab(key)}
+                  aria-label={label}
+                  className={`group relative flex items-center justify-center transition-colors ${
+                    selectedTab === key
+                      ? "text-[#7FFFD4]"
+                      : "text-gray-400 hover:text-[#7FFFD4]"
+                  }`}
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="pointer-events-none absolute top-full mt-2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                    {label}
+                  </span>
+                </button>
+              ))}
             </div>
           </nav>
 
@@ -1128,6 +1245,16 @@ export default function Dashboard() {
               onToggleExpansion={togglePostExpansion}
               profilesContainerRef={profilesContainerRef}
               scrollProfiles={scrollProfiles}
+              bookmarkedTweetIds={bookmarkedTweetIds}
+              onToggleBookmark={handleToggleBookmark}
+            />
+          )}
+
+          {selectedTab === "bookmarks" && (
+            <BookmarksSection
+              bookmarks={bookmarks}
+              loadingBookmarks={loadingBookmarks}
+              onRemoveBookmark={handleRemoveBookmark}
             />
           )}
 

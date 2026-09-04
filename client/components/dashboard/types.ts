@@ -45,6 +45,13 @@ export interface TwitterAccount {
   profile_image?: string;
 }
 
+export interface Bookmark {
+  tweetId: string;
+  link: string;
+  username?: string;
+  createdAt: string;
+}
+
 export type FeedType = "categorywise" | "customProfiles";
 export type SortBy = "time" | "likes";
 export type SortOrder = "desc" | "asc";

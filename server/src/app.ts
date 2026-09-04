@@ -11,6 +11,7 @@ import newsletterRoutes from "./routes/newsletter.routes";
 import activityRoutes from "./routes/activity.routes";
 import adminRoutes from "./routes/admin.routes";
 import contactRoutes from "./routes/contact.routes";
+import bookmarkRoutes from "./routes/bookmark.routes";
 
 const app = express();
 
@@ -49,5 +50,6 @@ app.use(newsletterRoutes);
 app.use(activityRoutes);
 app.use(adminRoutes);
 app.use(contactRoutes);
+app.use(bookmarkRoutes);
 
 export default app;

@@ -2,15 +2,18 @@ import { Post, FeedType } from "./types";
 import { Avatar } from "./Avatar";
 import { MediaRenderer } from "./MediaRenderer";
 import { QuotedTweet } from "./QuotedTweet";
-import { formatTime } from "./utils";
+import { formatTime, formatCount } from "./utils";
 import apiClient from "@/utils/axios";
 import { usePathname } from "next/navigation";
+import { Heart, Bookmark as BookmarkIcon } from "lucide-react";
 
 interface PostCardProps {
   post: Post;
   wise: FeedType;
   expandedPosts: { [key: string]: boolean };
   onToggleExpansion: (tweetId: string) => void;
+  isBookmarked?: boolean;
+  onToggleBookmark?: (post: Post) => void;
 }
 
 export const PostCard = ({
@@ -18,6 +21,8 @@ export const PostCard = ({
   wise,
   expandedPosts,
   onToggleExpansion,
+  isBookmarked = false,
+  onToggleBookmark,
 }: PostCardProps) => {
   const pathname = usePathname();
 
@@ -95,39 +100,63 @@ export const PostCard = ({
             </span>
           </div>
         </div>
-        {wise === "categorywise" && (
-          <span className="rounded-full bg-[#7FFFD4]/10 px-3 py-1 text-sm text-[#7FFFD4]">
-            {post.category}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {wise === "categorywise" && (
+            <span className="rounded-full bg-[#7FFFD4]/10 px-3 py-1 text-sm text-[#7FFFD4]">
+              {post.category}
+            </span>
+          )}
+          {onToggleBookmark && (
+            <button
+              onClick={() => onToggleBookmark(post)}
+              aria-label={isBookmarked ? "Remove bookmark" : "Save bookmark"}
+              className={`shrink-0 rounded-full p-1.5 transition-colors ${
+                isBookmarked
+                  ? "text-[#7FFFD4]"
+                  : "text-gray-400 hover:text-[#7FFFD4]"
+              }`}
+            >
+              <BookmarkIcon
+                className="h-5 w-5"
+                fill={isBookmarked ? "currentColor" : "none"}
+              />
+            </button>
+          )}
+        </div>
       </div>
 
       {renderPostText(post.text, post.tweet_id)}
       <MediaRenderer post={post} />
       {post.quotedTweet && <QuotedTweet quotedTweet={post.quotedTweet} />}
 
-      <a
-        href={`https://twitter.com/i/web/status/${post.tweet_id}`}
-        onClick={(e) => handlePostClick(e, post.tweet_id)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 text-sm text-[#7FFFD4] hover:underline"
-      >
-        View Post
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div className="flex items-center justify-between">
+        <a
+          href={`https://twitter.com/i/web/status/${post.tweet_id}`}
+          onClick={(e) => handlePostClick(e, post.tweet_id)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-sm text-[#7FFFD4] hover:underline"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-          />
-        </svg>
-      </a>
+          View Post
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
+          </svg>
+        </a>
+        <span className="inline-flex items-center gap-1 text-sm text-gray-400">
+          <Heart className="h-4 w-4" />
+          {formatCount(post.likes)}
+        </span>
+      </div>
     </div>
   );
 };

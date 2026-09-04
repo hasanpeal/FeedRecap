@@ -1,10 +1,34 @@
 export const formatTime = (date: string | number | Date): string => {
-  const options: Intl.DateTimeFormatOptions = {
+  const d = new Date(date);
+  const timeString = d.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "numeric",
     hour12: true,
-  };
-  return new Date(date).toLocaleTimeString("en-US", options);
+  });
+
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  const startOfDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+  if (startOfDate.getTime() === startOfToday.getTime()) {
+    return `Today at ${timeString}`;
+  }
+  if (startOfDate.getTime() === startOfYesterday.getTime()) {
+    return `Yesterday at ${timeString}`;
+  }
+
+  const dateString = d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  });
+  return `${dateString} at ${timeString}`;
 };
 
 export const timeAgo = (date: string | number | Date) => {
@@ -24,6 +48,12 @@ export const timeAgo = (date: string | number | Date) => {
   if ((interval = Math.floor(seconds / 60)) >= 1)
     return interval + " minute" + (interval > 1 ? "s" : "") + " ago";
   return Math.floor(seconds) + " seconds ago";
+};
+
+export const formatCount = (count: number): string => {
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+  return `${count}`;
 };
 
 export const getInitials = (username: string) => {
