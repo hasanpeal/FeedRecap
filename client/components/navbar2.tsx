@@ -6,7 +6,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useEmail } from "@/context/UserContext";
 import axios from "axios";
-import emailjs from "@emailjs/browser";
 import { useNotification } from "@/utils/notifications";
 
 export default function Navbar2() {
@@ -51,32 +50,36 @@ export default function Navbar2() {
     }
   }, [emailContext, fetchUserDetails]);
 
-  const sendEmail = (e: React.FormEvent<HTMLFormElement>) => {
+  const sendEmail = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!form.current) return;
 
-    const modal = document.getElementById("contact_modal") as HTMLDialogElement;
-    if (modal) {
-      modal.close();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      showNotification("Please sign in to send a message", "error");
+      return;
     }
 
-    emailjs
-      .sendForm(
-        process.env.NEXT_PUBLIC_SERVICE_ID || "",
-        process.env.NEXT_PUBLIC_TEMPLATE_ID || "",
-        form.current,
-        process.env.NEXT_PUBLIC_PUBLIC_KEY || ""
-      )
-      .then(
-        () => {
-          showNotification("Message sent successfully", "success");
-          setMessage(""); // Clear the message field after sending
-        },
-        (error) => {
-          showNotification("Failed to send the message", "error");
-        }
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/contact`,
+        { message },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      const modal = document.getElementById(
+        "contact_modal"
+      ) as HTMLDialogElement;
+      if (modal) {
+        modal.close();
+      }
+
+      showNotification("Message sent successfully", "success");
+      setMessage(""); // Clear the message field after sending
+    } catch (error) {
+      showNotification("Failed to send the message", "error");
+    }
   };
 
   return (
