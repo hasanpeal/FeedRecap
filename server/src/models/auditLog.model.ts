@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import db from "./db";
+import db from "../config/db";
 
 interface IAuditLog extends Document {
   userId?: mongoose.Types.ObjectId;

@@ -1,5 +1,6 @@
-import mongoose, { Schema, Document } from "mongoose";
-import db from "./db";
+import { Schema, Document } from "mongoose";
+import db from "../config/db";
+
 interface IUser extends Document {
   firstName: string;
   lastName: string;

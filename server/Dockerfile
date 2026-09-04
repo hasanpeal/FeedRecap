@@ -2,6 +2,12 @@ FROM node:20-alpine3.18
 
 WORKDIR /app
 
+# bcrypt ships a native addon; if its prebuilt binary download fails (e.g. a
+# transient network hiccup reaching GitHub's release CDN), node-gyp falls
+# back to compiling from source, which needs Python + a C++ toolchain that
+# alpine doesn't include by default.
+RUN apk add --no-cache python3 make g++
+
 COPY package*.json ./
 
 RUN npm install

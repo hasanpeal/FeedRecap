@@ -1,7 +1,5 @@
 import IORedis from "ioredis";
-import env from "dotenv";
-
-env.config();
+import "./env";
 
 // Single shared Redis connection for every BullMQ Queue/Worker in this
 // process. `maxRetriesPerRequest: null` is required by BullMQ for any

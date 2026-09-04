@@ -1,6 +1,6 @@
 import { Request } from "express";
-import { AuditLog } from "./auditLogModel";
 import mongoose from "mongoose";
+import { AuditLog } from "../models/auditLog.model";
 
 export interface AuditLogData {
   userId?: string;
