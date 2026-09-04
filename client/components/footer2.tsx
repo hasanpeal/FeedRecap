@@ -1,39 +1,34 @@
 "use client";
 import Link from "next/link";
 import React, { useRef } from "react";
-import axios from "axios";
+import emailjs from "@emailjs/browser";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function Footer2() {
-  const form = useRef<HTMLFormElement | null>(null);
+  const form = useRef(null);
 
-  const sendEmail = async (e: any) => {
+  const sendEmail = (e: any) => {
     e.preventDefault();
 
-    if (!form.current) return;
-
-    const formEl = form.current as HTMLFormElement;
-    const name = (formEl.elements.namedItem("user_name") as HTMLInputElement)
-      ?.value;
-    const email = (formEl.elements.namedItem("user_email") as HTMLInputElement)
-      ?.value;
-    const message = (formEl.elements.namedItem("message") as HTMLTextAreaElement)
-      ?.value;
-
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-    try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/contact`,
-        { name, email, message },
-        { headers: { Authorization: token ? `Bearer ${token}` : "" } }
-      );
-      toast.success("Email sent successfully");
-      const modal = document.getElementById("contact_modal") as HTMLDialogElement;
-      if (modal) modal.close();
-    } catch (error) {
-      console.error("FAILED...", error);
-      toast.error("Failed to send email");
+    if (form.current) {
+      emailjs
+        .sendForm(
+          process.env.NEXT_PUBLIC_SERVICE_ID || "",
+          process.env.NEXT_PUBLIC_TEMPLATE_ID || "",
+          form.current,
+          {
+            publicKey: process.env.NEXT_PUBLIC_PUBLIC_KEY,
+          }
+        )
+        .then(
+          () => {
+            toast.success("Email sent successfully");
+          },
+          (error) => {
+            console.log("FAILED...", error.text);
+            toast.error("Failed to send email");
+          }
+        );
     }
   };
 
@@ -44,6 +39,9 @@ export default function Footer2() {
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p>&copy; {new Date().getFullYear()} FeedRecap. All rights reserved</p>
           <nav className="space-x-4 mt-4">
+            <Link href="/aboutus">
+              <button>About Us</button>
+            </Link>
             <button
               onClick={() => {
                 const modal = document.getElementById(

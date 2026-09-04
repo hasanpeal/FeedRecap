@@ -1,44 +1,35 @@
+"use client";
+import Link from "next/link";
 import type React from "react";
 import { useRef } from "react";
-import axios from "axios";
+import emailjs from "@emailjs/browser";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function Footer() {
   const form = useRef<HTMLFormElement>(null);
 
-  const sendEmail = async (e: React.FormEvent<HTMLFormElement>) => {
+  const sendEmail = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!form.current) return;
-
-    const formEl = form.current;
-    const name = (formEl.elements.namedItem("user_name") as HTMLInputElement)
-      ?.value;
-    const email = (formEl.elements.namedItem("user_email") as HTMLInputElement)
-      ?.value;
-    const message = (formEl.elements.namedItem("message") as HTMLTextAreaElement)
-      ?.value;
-
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-    try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/contact`,
-        { name, email, message },
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
+    if (form.current) {
+      emailjs
+        .sendForm(
+          process.env.NEXT_PUBLIC_SERVICE_ID || "",
+          process.env.NEXT_PUBLIC_TEMPLATE_ID || "",
+          form.current,
+          {
+            publicKey: process.env.NEXT_PUBLIC_PUBLIC_KEY,
+          }
+        )
+        .then(
+          () => {
+            toast.success("Email sent successfully");
           },
-        }
-      );
-
-      toast.success("Email sent successfully");
-      // Close modal if open
-      const modal = document.getElementById("contact_modal") as HTMLDialogElement;
-      if (modal) modal.close();
-    } catch (error) {
-      console.error("Failed to send contact message", error);
-      toast.error("Failed to send email");
+          (error) => {
+            console.log("FAILED...", error.text);
+            toast.error("Failed to send email");
+          }
+        );
     }
   };
 
@@ -53,6 +44,11 @@ export default function Footer() {
             </p>
           </div>
           <nav className="space-x-6">
+            <Link href="/aboutus">
+              <button className="text-white hover:text-[#7FFFD4] transition-colors">
+                About Us
+              </button>
+            </Link>
             <button
               className="text-white hover:text-[#7FFFD4] transition-colors"
               onClick={() => {
@@ -95,7 +91,9 @@ export default function Footer() {
               />
             </div>
             <div>
-              <label className="block text-left mb-2 text-gray-300">Email</label>
+              <label className="block text-left mb-2 text-gray-300">
+                Email
+              </label>
               <input
                 type="email"
                 name="user_email"
@@ -104,21 +102,21 @@ export default function Footer() {
               />
             </div>
             <div>
-              <label className="block text-left mb-2 text-gray-300">Message</label>
+              <label className="block text-left mb-2 text-gray-300">
+                Message
+              </label>
               <textarea
                 name="message"
                 className="w-full px-3 py-2 bg-black border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7FFFD4] text-white h-32"
                 required
-              />
+              ></textarea>
             </div>
-            <div className="text-right">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#7FFFD4] text-black rounded-md font-semibold"
-              >
-                Send
-              </button>
-            </div>
+            <button
+              className="w-full bg-[#7FFFD4] text-black font-semibold py-2 rounded-md hover:bg-[#00CED1] transition-colors"
+              type="submit"
+            >
+              Submit
+            </button>
           </form>
         </div>
       </dialog>

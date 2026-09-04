@@ -6,6 +6,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useEmail } from "@/context/UserContext";
 import axios from "axios";
+import emailjs from "@emailjs/browser";
 import { useNotification } from "@/utils/notifications";
 
 export default function Navbar2() {
@@ -50,38 +51,32 @@ export default function Navbar2() {
     }
   }, [emailContext, fetchUserDetails]);
 
-  const sendEmail = async (e: React.FormEvent<HTMLFormElement>) => {
+  const sendEmail = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!form.current) return;
 
-    const formEl = form.current;
-    const name = (formEl.elements.namedItem("user_name") as HTMLInputElement)
-      ?.value;
-    const emailVal = (formEl.elements.namedItem("user_email") as HTMLInputElement)
-      ?.value;
-    const messageVal = (formEl.elements.namedItem("message") as HTMLTextAreaElement)
-      ?.value;
-
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-    try {
-      const modal = document.getElementById("contact_modal") as HTMLDialogElement;
-      if (modal) {
-        modal.close();
-      }
-
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/contact`,
-        { name, email: emailVal, message: messageVal },
-        { headers: { Authorization: token ? `Bearer ${token}` : "" } }
-      );
-
-      showNotification("Message sent successfully", "success");
-      setMessage("");
-    } catch (error) {
-      showNotification("Failed to send the message", "error");
+    const modal = document.getElementById("contact_modal") as HTMLDialogElement;
+    if (modal) {
+      modal.close();
     }
+
+    emailjs
+      .sendForm(
+        process.env.NEXT_PUBLIC_SERVICE_ID || "",
+        process.env.NEXT_PUBLIC_TEMPLATE_ID || "",
+        form.current,
+        process.env.NEXT_PUBLIC_PUBLIC_KEY || ""
+      )
+      .then(
+        () => {
+          showNotification("Message sent successfully", "success");
+          setMessage(""); // Clear the message field after sending
+        },
+        (error) => {
+          showNotification("Failed to send the message", "error");
+        }
+      );
   };
 
   return (
@@ -127,62 +122,76 @@ export default function Navbar2() {
             Contact Us
           </button>
         </nav>
+      </div>
 
-        {/* Contact Modal */}
-        <dialog
-          id="contact_modal"
-          className="bg-[#111] p-6 rounded-lg max-w-lg text-white"
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-[#7FFFD4]">Contact Us</h2>
+      {/* Contact Modal */}
+      <dialog
+        id="contact_modal"
+        className="bg-[#111] p-6 rounded-lg max-w-lg text-white"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-[#7FFFD4]">Contact Us</h2>
+          <button
+            className="text-[#7FFFD4] font-bold text-lg hover:text-white transition-colors"
+            onClick={() => {
+              const modal = document.getElementById(
+                "contact_modal"
+              ) as HTMLDialogElement;
+              if (modal) {
+                modal.close();
+              }
+            }}
+          >
+            &times;
+          </button>
+        </div>
+        <form ref={form} onSubmit={sendEmail}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Name</label>
+              <input
+                type="text"
+                name="user_name"
+                defaultValue={`${firstName} ${lastName}`}
+                className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
+                placeholder="Your Name"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <input
+                type="email"
+                name="user_email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
+                placeholder="Your Email"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Message</label>
+              <textarea
+                name="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
+                placeholder="Your Message"
+                required
+              ></textarea>
+            </div>
+          </div>
+          <div className="mt-6">
             <button
-              className="text-[#7FFFD4] font-bold text-lg hover:text-white transition-colors"
-              onClick={() => {
-                const modal = document.getElementById(
-                  "contact_modal"
-                ) as HTMLDialogElement;
-                if (modal) {
-                  modal.close();
-                }
-              }}
+              type="submit"
+              className="bg-[#7FFFD4] text-black px-4 py-2 rounded hover:bg-[#00CED1] transition-colors w-full"
             >
-              &times;
+              Submit
             </button>
           </div>
-          <form ref={form} onSubmit={sendEmail}>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Name</label>
-                <input
-                  type="text"
-                  name="user_name"
-                  className="input input-bordered w-full mb-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <input
-                  type="email"
-                  name="user_email"
-                  className="input input-bordered w-full mb-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Message</label>
-                <textarea
-                  name="message"
-                  className="textarea textarea-bordered w-full mb-2"
-                />
-              </div>
-              <div className="flex justify-end">
-                <button type="submit" className="btn btn-primary">
-                  Send
-                </button>
-              </div>
-            </div>
-          </form>
-        </dialog>
-      </div>
+        </form>
+      </dialog>
     </header>
   );
 }
