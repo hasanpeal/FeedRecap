@@ -28,7 +28,7 @@ export async function sendAdminAlert(
         text,
       });
     } catch (error) {
-      console.error(`❌ [Error]: Error Sending Total User count`);
+      console.error(`[Email] Failed to send admin alert to ${to}:`, error);
     }
   }
 }

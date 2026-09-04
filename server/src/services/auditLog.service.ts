@@ -41,7 +41,7 @@ export async function logActivity(
     });
   } catch (error) {
     // Don't throw errors for audit logging failures
-    console.error("Error logging activity:", error);
+    console.error("[AuditLog] Error logging activity:", error);
   }
 }
 

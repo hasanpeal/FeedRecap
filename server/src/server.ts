@@ -6,5 +6,5 @@ const port = 3001;
 startBackgroundJobs();
 
 app.listen(port, () => {
-  console.log(`Listening on port ${port}`);
+  console.log(`[Server] Listening on port ${port}`);
 });

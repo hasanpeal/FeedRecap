@@ -26,7 +26,7 @@ async function pruneOldPosts(): Promise<void> {
   ]);
 
   console.log(
-    `🧹 [Retention Cleanup]: Pruned posts older than ${RETENTION_DAYS}d ` +
+    `[Retention] Pruned posts older than ${RETENTION_DAYS}d ` +
       `(${storedResult.modifiedCount} category docs, ${profileResult.modifiedCount} profile docs touched)`
   );
 }
@@ -43,17 +43,14 @@ export async function startRetentionCleanupJob(): Promise<void> {
   retentionCleanupWorker = new Worker(
     QUEUE_NAMES.RETENTION_CLEANUP,
     async () => {
-      console.log(`🎯 [Retention Cleanup]: Claimed by ${INSTANCE_ID}`);
+      console.log(`[Retention] Claimed by ${INSTANCE_ID}`);
       await pruneOldPosts();
     },
     { connection, concurrency: 1 }
   );
 
   retentionCleanupWorker.on("failed", (job, error) => {
-    console.error(
-      `❌ [Error]: Retention cleanup job "${job?.id}" failed:`,
-      error
-    );
+    console.error(`[Retention] Job "${job?.id}" failed:`, error);
   });
 }
 

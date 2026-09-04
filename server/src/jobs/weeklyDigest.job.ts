@@ -31,14 +31,14 @@ export async function startWeeklyDigestJob(): Promise<void> {
   weeklyDigestWorker = new Worker(
     QUEUE_NAMES.WEEKLY_DIGEST,
     async () => {
-      console.log(`🎯 [Weekly Digest]: Claimed by ${INSTANCE_ID}`);
+      console.log(`[WeeklyDigest] Claimed by ${INSTANCE_ID}`);
       await sendDigest();
     },
     { connection, concurrency: 1 }
   );
 
   weeklyDigestWorker.on("failed", (job, error) => {
-    console.error(`❌ [Error]: Weekly digest job "${job?.id}" failed:`, error);
+    console.error(`[WeeklyDigest] Job "${job?.id}" failed:`, error);
   });
 }
 

@@ -60,6 +60,7 @@ router.post("/login", async (req, res) => {
       email: user.email, // Return email for frontend context
     });
   } catch (error) {
+    console.error("[Auth] Error during login:", error);
     return res.status(500).json({ code: 1, message: "Internal server error" });
   }
 });
@@ -93,6 +94,7 @@ router.get("/validateEmail", async (req, res) => {
       res.status(404).json({ code: 1, message: "Email does not exist" });
     }
   } catch (err) {
+    console.error("[Auth] Error validating email:", err);
     res.status(500).json({ code: 1, message: "Error validating email" });
   }
 });
@@ -158,6 +160,7 @@ router.post("/register", async (req, res) => {
 
     await sendAdminAlert(["pealh0320@gmail.com"], `New User Alert`, digestMessage);
   } catch (err) {
+    console.error("[Auth] Error registering user:", err);
     res.status(500).send({ code: 1, message: "Error registering user" });
   }
 });
@@ -184,6 +187,7 @@ router.post("/resetPassword", async (req, res) => {
 
     res.status(200).json({ code: 0, message: "Password updated successfully" });
   } catch (err) {
+    console.error("[Auth] Error resetting password:", err);
     res.status(200).json({ code: 1, message: "Error updating password" });
   }
 });
@@ -206,7 +210,7 @@ router.post("/sentOTP", async (req, res) => {
       res.status(200).send({ code: 0, otp: otp });
     })
     .catch((err: any) => {
-      console.log("Error sending OTP email on /sentOTP route");
+      console.error("[Auth] Error sending OTP email:", err);
       res.status(200).send({ code: 1 });
     });
 });
@@ -227,6 +231,7 @@ router.get(
 router.get("/auth/google/callback", (req, res, next) => {
   passport.authenticate("google", async (err: any, user: any, info: any) => {
     if (err) {
+      console.error("[Auth] Google OAuth error:", err);
       return next(err);
     }
     if (!user) {

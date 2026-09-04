@@ -20,6 +20,7 @@ router.post("/logPageVisit", authenticateJWT, async (req, res) => {
 
     res.status(200).json({ code: 0, message: "Page visit logged" });
   } catch (error) {
+    console.error("[Activity] Error logging page visit:", error);
     res.status(500).json({ code: 1, message: "Error logging page visit" });
   }
 });
@@ -41,6 +42,7 @@ router.post("/logLinkClick", authenticateJWT, async (req, res) => {
 
     res.status(200).json({ code: 0, message: "Link click logged" });
   } catch (error) {
+    console.error("[Activity] Error logging link click:", error);
     res.status(500).json({ code: 1, message: "Error logging link click" });
   }
 });
@@ -61,6 +63,7 @@ router.post("/logFeedback", authenticateJWT, async (req, res) => {
 
     res.status(200).json({ code: 0, message: "Feedback logged" });
   } catch (error) {
+    console.error("[Activity] Error logging feedback:", error);
     res.status(500).json({ code: 1, message: "Error logging feedback" });
   }
 });

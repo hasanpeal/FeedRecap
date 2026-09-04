@@ -112,7 +112,7 @@ const fetchAvatar = async (username: string): Promise<string | null> => {
       }
     } catch (error) {
       console.error(
-        `Error fetching avatar for ${username} (Attempt ${retries + 1}):`,
+        `[Twitter] Error fetching avatar for ${username} (attempt ${retries + 1}/${maxRetries}):`,
         error
       );
       retries++;
@@ -205,7 +205,7 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
         );
       } catch (err: any) {
         console.error(
-          `❌ [Error]: Error fetching tweets for ${screenName}:`,
+          `[Twitter] Error fetching tweets for ${screenName}:`,
           err.message
         );
         continue; // Skip to the next screen name without crashing
@@ -218,13 +218,13 @@ export async function fetchAndStoreTweetsForProfiles(
   profiles: string[]
 ): Promise<void> {
   if (!profiles.length) {
-    console.warn(`⚠️ No profiles provided for fetching tweets.`);
+    console.warn("[Twitter] No profiles provided for fetching tweets.");
     return;
   }
 
   for (const profile of profiles) {
     try {
-      console.log(`🔄 [Fetching Fresh Tweets]: Fetching tweets for ${profile}`);
+      console.log(`[Twitter] Fetching tweets for ${profile}`);
 
       const response = await axios.get(
         `https://${process.env.TWITTER_API_HOST}/timeline.php`,
@@ -285,16 +285,14 @@ export async function fetchAndStoreTweetsForProfiles(
       ).exec();
 
       if (!post) {
-        console.error(
-          `❌ [Error]: MongoDB failed to save tweets for @${profile}`
-        );
+        console.error(`[Twitter] Failed to save tweets for @${profile}`);
       } else {
         console.log(
-          `✅ [Stored]: Successfully saved ${newTweets.length} new tweet(s) for @${profile} (${mergedTweets.length} total in retention window)`
+          `[Twitter] Saved ${newTweets.length} new tweet(s) for @${profile} (${mergedTweets.length} total in retention window)`
         );
       }
     } catch (err) {
-      console.error(`❌ [Error]: Fetching tweets failed for ${profile}`);
+      console.error(`[Twitter] Fetching tweets failed for ${profile}:`, err);
     }
   }
 }

@@ -51,7 +51,7 @@ router.get("/admin/analytics/pageviews", authenticateAdmin, async (req, res) => 
       },
     });
   } catch (error) {
-    console.error("Error fetching page views:", error);
+    console.error("[Admin] Error fetching page views:", error);
     res.status(500).json({ code: 1, message: "Error fetching analytics" });
   }
 });
@@ -86,7 +86,7 @@ router.get("/admin/analytics/linkclicks", authenticateAdmin, async (req, res) =>
       },
     });
   } catch (error) {
-    console.error("Error fetching link clicks:", error);
+    console.error("[Admin] Error fetching link clicks:", error);
     res.status(500).json({ code: 1, message: "Error fetching analytics" });
   }
 });
@@ -123,7 +123,7 @@ router.get("/admin/audit-logs", authenticateAdmin, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching audit logs:", error);
+    console.error("[Admin] Error fetching audit logs:", error);
     res.status(500).json({ code: 1, message: "Error fetching audit logs" });
   }
 });
@@ -152,7 +152,7 @@ router.get("/admin/users", authenticateAdmin, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching users:", error);
+    console.error("[Admin] Error fetching users:", error);
     res.status(500).json({ code: 1, message: "Error fetching users" });
   }
 });
@@ -184,7 +184,7 @@ router.get("/admin/analytics/activities", authenticateAdmin, async (req, res) =>
       },
     });
   } catch (error) {
-    console.error("Error fetching activity stats:", error);
+    console.error("[Admin] Error fetching activity stats:", error);
     res.status(500).json({ code: 1, message: "Error fetching activity stats" });
   }
 });

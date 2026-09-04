@@ -62,7 +62,7 @@ async function dispatchTweetFetchTasks(): Promise<void> {
   }
 
   console.log(
-    `📤 [Tweet Fetching]: Dispatched ${TWEET_CATEGORIES.length} category tasks and ${uniqueProfiles.size} profile tasks for ${hourKey}`
+    `[TweetFetch] Dispatched ${TWEET_CATEGORIES.length} category tasks and ${uniqueProfiles.size} profile tasks for ${hourKey}`
   );
 }
 
@@ -81,13 +81,13 @@ export async function startTweetFetchJob(): Promise<void> {
   tweetFetchWorker = new Worker(
     QUEUE_NAMES.TWEET_FETCH,
     async () => {
-      console.log(`🎯 [Tweet Fetching]: Dispatch claimed by ${INSTANCE_ID}`);
+      console.log(`[TweetFetch] Dispatch claimed by ${INSTANCE_ID}`);
       await dispatchTweetFetchTasks();
     },
     { connection, concurrency: 1 }
   );
   tweetFetchWorker.on("failed", (job, error) => {
-    console.error(`❌ [Error] Tweet fetch dispatch "${job?.id}" failed:`, error);
+    console.error(`[TweetFetch] Dispatch job "${job?.id}" failed:`, error);
   });
 
   // Every replica runs one of these workers, listening on the same task
@@ -98,7 +98,7 @@ export async function startTweetFetchJob(): Promise<void> {
     async (job) => {
       const data = job.data as TweetFetchTaskData;
       console.log(
-        `🎯 [Tweet Fetching]: Task "${job.id}" (${data.type}) claimed by ${INSTANCE_ID}`
+        `[TweetFetch] Task "${job.id}" (${data.type}) claimed by ${INSTANCE_ID}`
       );
       if (data.type === "category") {
         await fetchAndStoreTweets([data.category]);
@@ -109,7 +109,7 @@ export async function startTweetFetchJob(): Promise<void> {
     { connection, concurrency: 5 }
   );
   tweetFetchTaskWorker.on("failed", (job, error) => {
-    console.error(`❌ [Error] Tweet fetch task "${job?.id}" failed:`, error);
+    console.error(`[TweetFetch] Task "${job?.id}" failed:`, error);
   });
 }
 

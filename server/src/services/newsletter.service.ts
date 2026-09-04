@@ -206,23 +206,23 @@ export async function getStoredTweetsForUser(
 
   try {
     console.log(
-      `📂 [Retrieving Tweets]: Fetching stored tweets for user: ${userId}`
+      `[Newsletter] Fetching stored tweets for user ${userId}`
     );
 
-    // ✅ Fetch user to get preferred profiles
+    // Fetch user to get preferred profiles
     const user = await User.findById(userId).exec();
     if (!user || !user.profiles.length) {
-      console.warn(`⚠️ No preferred profiles found for user: ${userId}`);
+      console.warn(`[Newsletter] No preferred profiles found for user ${userId}`);
       return { tweetsByProfiles, top15Tweets: [] };
     }
 
-    // ✅ Fetch posts from `CustomProfilePosts` that match user's preferred profiles
+    // Fetch posts from `CustomProfilePosts` that match user's preferred profiles
     const posts = await CustomProfilePosts.find({
       screenName: { $in: user.profiles },
     }).exec();
 
     if (!posts.length) {
-      console.warn(`⚠️ No stored tweets found for user's profiles.`);
+      console.warn(`[Newsletter] No stored tweets found for user ${userId}'s profiles`);
       return { tweetsByProfiles, top15Tweets: [] };
     }
 
@@ -247,11 +247,12 @@ export async function getStoredTweetsForUser(
     }
   } catch (err) {
     console.error(
-      `❌ [Error]: Retrieving stored tweets failed for user: ${userId}`
+      `[Newsletter] Retrieving stored tweets failed for user ${userId}:`,
+      err
     );
   }
 
-  // ✅ Ensure at most 1 top-liked tweet per account
+  // Ensure at most 1 top-liked tweet per account
   const top15Tweets = selectTopTweetsPerAccount(allTweetsWithLikes, 15);
 
   return { tweetsByProfiles, top15Tweets };
@@ -324,7 +325,7 @@ export async function generateNewsletter(
 
     return newsletterHTML;
   } catch (error) {
-    console.error("❌ [Error]: Error generating newsletter:", error);
+    console.error("[Newsletter] Error generating newsletter:", error);
     return undefined;
   }
 }
@@ -394,7 +395,7 @@ export async function generateCustomProfileNewsletter(
     return newsletterHTML;
   } catch (error) {
     console.error(
-      "❌ [Error]: Error generating custom profile newsletter:",
+      "[Newsletter] Error generating custom profile newsletter:",
       error
     );
     return undefined;
@@ -483,13 +484,13 @@ export async function sendNewsletterEmail(
 
   try {
     await sgMail.send(msg);
-    console.log(`✅ [Email Sent]: Newsletter sent to ${user.email}`);
+    console.log(`[Newsletter] Email sent to ${user.email}`);
 
     // Save the generated newsletter in the user's document
     user.newsletter = newsletter;
     user.totalnewsletter = (user.totalnewsletter || 0) + 1;
     await user.save();
   } catch (error) {
-    console.error(`❌ [Error]: Error sending email to ${user.email}:`, error);
+    console.error(`[Newsletter] Error sending email to ${user.email}:`, error);
   }
 }

@@ -30,11 +30,11 @@ app.use(
 );
 
 process.on("SIGTERM", async () => {
-  console.log("SIGTERM received. Closing gracefully.");
+  console.log("[Server] SIGTERM received, closing gracefully");
   try {
     await stopBackgroundJobs();
   } catch (error) {
-    console.error("Error closing background jobs:", error);
+    console.error("[Server] Error closing background jobs:", error);
   }
   process.exit(0);
 });

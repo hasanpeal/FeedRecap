@@ -148,7 +148,7 @@ router.get("/data", authenticateJWT, async (req, res) => {
       code: 0,
     });
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("[User] Error fetching user data:", error);
     res
       .status(500)
       .json({ error: "An error occurred while fetching data", code: 1 });
@@ -179,6 +179,7 @@ router.post("/unlinkX", authenticateJWT, async (req, res) => {
       message: "Twitter account unlinked successfully",
     });
   } catch (err) {
+    console.error("[User] Error unlinking Twitter account:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -208,6 +209,7 @@ router.post("/saveX", async (req, res) => {
 
     res.json({ success: true, message: "Twitter account linked successfully" });
   } catch (err) {
+    console.error("[User] Error linking Twitter account:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -248,7 +250,9 @@ router.post("/updateProfiles", authenticateJWT, async (req, res) => {
 
     // // If profiles were changed, fetch new tweets
     if (changedProfiles.length > 0) {
-      console.log("Checked by changedProfiles");
+      console.log(
+        `[User] Refetching tweets for ${changedProfiles.length} newly added profile(s)`
+      );
       await fetchAndStoreTweetsForProfiles(changedProfiles);
     }
 
@@ -301,7 +305,7 @@ router.post("/updateProfiles", authenticateJWT, async (req, res) => {
       posts,
     });
   } catch (err) {
-    console.error("Error updating profiles:", err);
+    console.error("[User] Error updating profiles:", err);
     return res
       .status(500)
       .json({ code: 1, message: "Error updating profiles" });
@@ -388,10 +392,12 @@ router.post("/updateFeedType", authenticateJWT, async (req, res) => {
 
     if (newsletter) {
       await sendNewsletterEmail(updatedUser, newsletter);
-      console.log(`✅ [Debug] Newsletter sent to: ${updatedUser.email}`);
+      console.log(
+        `[User] Newsletter sent to ${updatedUser.email} after feed type update`
+      );
     }
   } catch (error) {
-    console.error("Error updating feed type:", error);
+    console.error("[User] Error updating feed type:", error);
     res
       .status(500)
       .json({ error: "An error occurred while updating feed type", code: 1 });
@@ -441,7 +447,7 @@ router.post("/updateCategories", authenticateJWT, async (req, res) => {
       return res.status(200).json({ code: 1, message: "User not found" });
     }
   } catch (err) {
-    console.log("Error updating categories:", err);
+    console.error("[User] Error updating categories:", err);
     return res
       .status(200)
       .json({ code: 1, message: "Error updating categories" });
@@ -468,7 +474,7 @@ router.post("/updateTimes", authenticateJWT, async (req, res) => {
       return res.status(200).json({ code: 1, message: "User not found" });
     }
   } catch (err) {
-    console.log("Error updating time:", err);
+    console.error("[User] Error updating time:", err);
     return res.status(200).json({ code: 1, message: "Error updating time" });
   }
 });
@@ -492,7 +498,7 @@ router.post("/unsubscribeEmail", async (req, res) => {
       return res.status(200).json({ code: 1, message: "User not found" });
     }
   } catch (err) {
-    console.log("Error unsubscribing:", err);
+    console.error("[User] Error unsubscribing:", err);
     return res.status(200).json({ code: 1, message: "Error unsubscribing" });
   }
 });
@@ -512,7 +518,7 @@ router.get("/getIsNewUser", authenticateJWT, async (req, res) => {
       return res.status(200).json({ code: 1, message: "User not found" });
     }
   } catch (err) {
-    console.log("Error fetching isNewUser:", err);
+    console.error("[User] Error fetching isNewUser:", err);
     return res
       .status(200)
       .json({ code: 2, message: "Error fetching isNewUser" });
@@ -539,7 +545,7 @@ router.get("/getUserDetails", authenticateJWT, async (req, res) => {
       return res.status(200).json({ code: 1, message: "User not found" });
     }
   } catch (err) {
-    console.log("Error fetching user details:", err);
+    console.error("[User] Error fetching user details:", err);
     return res
       .status(200)
       .json({ code: 2, message: "Error fetching user details" });
@@ -609,7 +615,7 @@ router.post("/updateAccount", authenticateJWT, async (req, res) => {
       email: finalEmail,
     });
   } catch (err) {
-    console.log("Error updating account:", err);
+    console.error("[User] Error updating account:", err);
     return res.status(200).json({ code: 2, message: "Error updating account" });
   }
 });

@@ -27,7 +27,7 @@ async function processNewsletterForUser(
   user: IUser,
   timeSlot: string
 ): Promise<void> {
-  console.log(`📧 [Debug] Generating newsletter for: ${user.email}`);
+  console.log(`[Newsletter] Generating newsletter for ${user.email}`);
 
   let newsletter = null;
   if (user.wise === "categorywise") {
@@ -47,7 +47,7 @@ async function processNewsletterForUser(
 
   if (newsletter) {
     await sendNewsletterEmail(user, newsletter);
-    console.log(`✅ [Debug] Newsletter sent to: ${user.email}`);
+    console.log(`[Newsletter] Sent to ${user.email}`);
   }
 }
 
@@ -61,7 +61,7 @@ async function processNewsletterForUser(
 async function dispatchNewsletterTasks(timeSlot: string): Promise<void> {
   const users = await User.find({ time: timeSlot }).exec();
   if (users.length === 0) {
-    console.log(`📭 [Debug] No users found for time slot: ${timeSlot}`);
+    console.log(`[Newsletter] No users found for time slot ${timeSlot}`);
     return;
   }
 
@@ -70,12 +70,12 @@ async function dispatchNewsletterTasks(timeSlot: string): Promise<void> {
 
   for (const user of users) {
     if (!isValidEmail(user.email)) {
-      console.log(`⚠️ [Debug] Skipping user with invalid email: ${user.email}`);
+      console.warn(`[Newsletter] Skipping user with invalid email: ${user.email}`);
       continue;
     }
     if (!user.time || user.time.length === 0) {
-      console.log(
-        `⚠️ [Debug] Skipping user with no time preferences: ${user.email}`
+      console.warn(
+        `[Newsletter] Skipping user with no time preferences: ${user.email}`
       );
       continue;
     }
@@ -89,7 +89,7 @@ async function dispatchNewsletterTasks(timeSlot: string): Promise<void> {
   }
 
   console.log(
-    `📤 [Debug] Dispatched ${dispatched} newsletter tasks for time slot: ${timeSlot}`
+    `[Newsletter] Dispatched ${dispatched} newsletter tasks for time slot ${timeSlot}`
   );
 }
 
@@ -115,14 +115,14 @@ export async function startNewsletterScheduler(): Promise<void> {
     QUEUE_NAMES.NEWSLETTER,
     async (job) => {
       console.log(
-        `🎯 [Debug] Time matched for ${job.data.timeSlot}, dispatch claimed by ${INSTANCE_ID}`
+        `[Newsletter] Dispatch claimed by ${INSTANCE_ID} for time slot ${job.data.timeSlot}`
       );
       await dispatchNewsletterTasks(job.data.timeSlot);
     },
     { connection, concurrency: 1 }
   );
   newsletterWorker.on("failed", (job, error) => {
-    console.error(`❌ [Debug] Newsletter dispatch "${job?.id}" failed:`, error);
+    console.error(`[Newsletter] Dispatch job "${job?.id}" failed:`, error);
   });
 
   // Every replica runs one of these workers, listening on the same task
@@ -133,20 +133,20 @@ export async function startNewsletterScheduler(): Promise<void> {
     async (job) => {
       const user = await User.findById(job.data.userId).exec();
       if (!user) {
-        console.log(
-          `⚠️ [Debug] User ${job.data.userId} no longer exists, skipping newsletter task "${job.id}"`
+        console.warn(
+          `[Newsletter] User ${job.data.userId} no longer exists, skipping task "${job.id}"`
         );
         return;
       }
       console.log(
-        `🎯 [Debug] Newsletter task "${job.id}" claimed by ${INSTANCE_ID}`
+        `[Newsletter] Task "${job.id}" claimed by ${INSTANCE_ID}`
       );
       await processNewsletterForUser(user, job.data.timeSlot);
     },
     { connection, concurrency: 5 }
   );
   newsletterTaskWorker.on("failed", (job, error) => {
-    console.error(`❌ [Debug] Newsletter task "${job?.id}" failed:`, error);
+    console.error(`[Newsletter] Task "${job?.id}" failed:`, error);
   });
 }
 
