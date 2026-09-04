@@ -145,7 +145,7 @@ export default function Home() {
 
           {/* Subheading */}
           <h2 className="text-lg sm:text-2xl text-white mb-8 mx-2 sm:mx-0">
-            FeedRecap delivers the top X posts you care about—straight to your
+            FeedRecap delivers the top X posts you care about straight to your
             inbox
           </h2>
 
