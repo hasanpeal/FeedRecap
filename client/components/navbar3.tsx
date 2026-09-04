@@ -6,7 +6,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useEmail } from "@/context/UserContext";
 import axios from "axios";
-import emailjs from "@emailjs/browser";
 import { Toaster, toast } from "react-hot-toast";
 import { useNotification } from "@/utils/notifications";
 
@@ -160,48 +159,32 @@ export default function Navbar2() {
 
     if (!form.current) return;
 
-    const modal = document.getElementById("report_modal") as HTMLDialogElement;
-    if (modal) {
-      modal.close();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please sign in to submit feedback");
+      return;
     }
 
-    // Log feedback
+    const formData = new FormData(form.current);
+
     try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const formData = new FormData(form.current);
-        await axios.post(
-          `${process.env.NEXT_PUBLIC_SERVER}/logFeedback`,
-          {
-            feedback: formData.get("message"),
-            subject: "Feedback from user",
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-      }
-    } catch (error) {
-      // Silently fail
-    }
-
-    emailjs
-      .sendForm(
-        process.env.NEXT_PUBLIC_SERVICE_ID || "",
-        process.env.NEXT_PUBLIC_TEMPLATE_ID || "",
-        form.current,
-        process.env.NEXT_PUBLIC_PUBLIC_KEY || ""
-      )
-      .then(
-        () => {
-          toast.success("Report submitted successfully");
-        },
-        (error) => {
-          toast.error("Failed to submit the report");
-        }
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/contact`,
+        { message: formData.get("message") },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      const modal = document.getElementById(
+        "report_modal"
+      ) as HTMLDialogElement;
+      if (modal) {
+        modal.close();
+      }
+
+      toast.success("Report submitted successfully");
+    } catch (error) {
+      toast.error("Failed to submit the report");
+    }
   };
 
   useEffect(() => {

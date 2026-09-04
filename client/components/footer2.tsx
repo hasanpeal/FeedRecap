@@ -1,34 +1,43 @@
 "use client";
 import Link from "next/link";
 import React, { useRef } from "react";
-import emailjs from "@emailjs/browser";
+import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function Footer2() {
-  const form = useRef(null);
+  const form = useRef<HTMLFormElement | null>(null);
 
-  const sendEmail = (e: any) => {
+  const sendEmail = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (form.current) {
-      emailjs
-        .sendForm(
-          process.env.NEXT_PUBLIC_SERVICE_ID || "",
-          process.env.NEXT_PUBLIC_TEMPLATE_ID || "",
-          form.current,
-          {
-            publicKey: process.env.NEXT_PUBLIC_PUBLIC_KEY,
-          }
-        )
-        .then(
-          () => {
-            toast.success("Email sent successfully");
-          },
-          (error) => {
-            console.log("FAILED...", error.text);
-            toast.error("Failed to send email");
-          }
-        );
+    if (!form.current) return;
+
+    const message = (
+      form.current.elements.namedItem("message") as HTMLTextAreaElement
+    )?.value;
+
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      toast.error("Please sign in to send a message");
+      return;
+    }
+
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER}/contact`,
+        { message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Email sent successfully");
+      const modal = document.getElementById(
+        "contact_modal"
+      ) as HTMLDialogElement;
+      if (modal) modal.close();
+      form.current.reset();
+    } catch (error) {
+      console.error("Failed to send contact message", error);
+      toast.error("Failed to send email");
     }
   };
 
