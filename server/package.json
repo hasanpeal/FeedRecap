@@ -28,7 +28,9 @@
     "openai": "^4.86.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "passport-local": "^1.0.0"
+    "passport-local": "^1.0.0",
+    "winston": "^3.19.0",
+    "winston-loki": "^6.1.7"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

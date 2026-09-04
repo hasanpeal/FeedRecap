@@ -1,4 +1,5 @@
 import "./config/env";
+import "./config/logger";
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
