@@ -1,6 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
 import db from "./db";
-import dbTweet from "./dbTweet";
 
 // MongoDB Tweet Document Interface for Category POSTS
 export interface ITweet extends Document {
@@ -61,7 +60,7 @@ export const tweetSchema: Schema = new mongoose.Schema({
 });
 
 // Models
-export const StoredTweets = dbTweet.model<ITweet>("StoredTweets", tweetSchema);
+export const StoredTweets = db.model<ITweet>("StoredTweets", tweetSchema);
 
 export interface ICustomProfilePost extends Document {
   screenName: string;
