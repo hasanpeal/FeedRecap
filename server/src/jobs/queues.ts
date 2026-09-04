@@ -15,6 +15,7 @@ export const QUEUE_NAMES = {
   TWEET_FETCH: "tweet-fetch",
   TWEET_FETCH_TASK: "tweet-fetch-task",
   WEEKLY_DIGEST: "weekly-digest",
+  RETENTION_CLEANUP: "retention-cleanup",
 } as const;
 
 const defaultJobOptions = {
@@ -55,6 +56,10 @@ export const weeklyDigestQueue = new Queue(QUEUE_NAMES.WEEKLY_DIGEST, {
   connection,
   defaultJobOptions,
 });
+export const retentionCleanupQueue = new Queue(QUEUE_NAMES.RETENTION_CLEANUP, {
+  connection,
+  defaultJobOptions,
+});
 
 export const allQueues = [
   newsletterQueue,
@@ -62,4 +67,5 @@ export const allQueues = [
   tweetFetchQueue,
   tweetFetchTaskQueue,
   weeklyDigestQueue,
+  retentionCleanupQueue,
 ];
