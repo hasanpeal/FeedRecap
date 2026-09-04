@@ -1,7 +1,5 @@
 import IORedis from "ioredis";
-import env from "dotenv";
-
-env.config();
+import "./env";
 
 // Single shared Redis connection for every BullMQ Queue/Worker in this
 // process. `maxRetriesPerRequest: null` is required by BullMQ for any
@@ -23,7 +21,7 @@ const connection = process.env.REDIS_URL
     });
 
 connection.on("error", (err) => console.error("❌ [Redis]: connection error", err));
-connection.on("connect", () => console.log("🔌 Connected to Redis"));
+connection.on("connect", () => console.log("Connected to Redis"));
 
 export default connection;
 

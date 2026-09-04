@@ -82,10 +82,10 @@ Accessible only to users with `isAdmin: true` in the database, at the `/admin` r
 - Framework: Express.js
 - Authentication: JWT, Google OAuth, email-based login with OTP verification
 - Database: MongoDB with Mongoose
+- Queue/Scheduling: BullMQ (Redis-backed) for newsletter sends and tweet fetching
 - Email: SendGrid
 - AI: OpenAI-compatible API (configurable model)
 - Language: TypeScript
-- Automation: node-cron for newsletter scheduling
 
 ---
 
@@ -109,16 +109,17 @@ FeedRecap/
 │   └── public/                # Static assets
 ├── server/                    # Backend (Express.js)
 │   ├── src/
-│   │   ├── server.ts          # Main server file with JWT auth
-│   │   ├── userModel.ts       # User MongoDB model
-│   │   ├── newsletterModel.ts # Newsletter MongoDB model
-│   │   ├── tweetModel.ts      # Tweet MongoDB model
-│   │   ├── auditLogModel.ts   # Audit log MongoDB model
-│   │   ├── auditLogger.ts     # Audit logging utilities
-│   │   ├── digest.ts          # Newsletter generation logic
-│   │   └── db.ts              # Database connection
+│   │   ├── config/            # Mongo/Redis connections, env loading, Passport strategies
+│   │   ├── models/             # Mongoose models (user, newsletter, tweet, auditLog)
+│   │   ├── services/           # Business logic (auth, email, twitter, newsletter, auditLog)
+│   │   ├── jobs/                # BullMQ queues + schedulers (tweet fetch, newsletter, weekly digest)
+│   │   ├── middleware/          # Express middleware (JWT/admin auth)
+│   │   ├── routes/              # Express routers (auth, user, newsletter, activity, admin)
+│   │   ├── utils/                # Shared helpers
+│   │   ├── types/                # Ambient type augmentations
+│   │   ├── app.ts                # Express app assembly
+│   │   └── server.ts             # Entrypoint: starts background jobs + HTTP server
 │   └── dist/                  # Compiled JavaScript
-├── start.sh                   # Startup script
 └── README.md
 ```
 
@@ -131,6 +132,7 @@ FeedRecap/
 - Node.js v18 or higher
 - npm or yarn
 - MongoDB (Railway or local)
+- Redis (Railway or local) — required for BullMQ newsletter/tweet-fetch jobs
 - Environment variables configured (see below)
 
 ### Environment Variables
@@ -139,6 +141,7 @@ FeedRecap/
 
 ```env
 MONGO_URL=mongodb://user:password@host:port
+REDIS_URL=redis://user:password@host:port
 
 JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRES_IN=7d
@@ -160,21 +163,9 @@ CLIENT_URL=http://localhost:3000
 NEXT_PUBLIC_SERVER=http://localhost:3001
 ```
 
-### Quick Start
+### Setup
 
-```bash
-chmod +x start.sh
-./start.sh
-```
-
-This will install dependencies for both client and server, build the TypeScript server, and start both services.
-
-- Client: http://localhost:3000
-- Server: http://localhost:3001
-
-### Manual Setup
-
-#### Frontend
+#### Frontend Setup
 
 ```bash
 cd client
@@ -182,7 +173,7 @@ npm install
 npm run dev
 ```
 
-#### Backend
+#### Backend Setup
 
 ```bash
 cd server

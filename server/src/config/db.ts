@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
-import env from "dotenv";
+import "./env";
 
-env.config();
 const MONGO_URL = `${process.env.MONGO_URL}/feedrecap?authSource=admin`;
 
 const db = mongoose.createConnection(MONGO_URL, {});

@@ -1,8 +1,8 @@
 import { Queue } from "bullmq";
-import connection from "./redis";
+import connection from "../config/redis";
 
-// Single source of truth for queue names, shared between digest.ts (which
-// creates the matching Worker for each) and anything else that needs to
+// Single source of truth for queue names, shared between the job files (which
+// create the matching Worker for each) and anything else that needs to
 // inspect them later (e.g. a future admin health route).
 //
 // NEWSLETTER/TWEET_FETCH are lightweight "dispatch" queues: their scheduled

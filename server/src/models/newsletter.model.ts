@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import db from "./db"; // Assuming db is the primary database connection
+import db from "../config/db";
 
 // Define the Newsletter interface
 export interface INewsletter extends Document {
@@ -18,4 +18,4 @@ const NewsletterSchema: Schema = new Schema({
 // Create the Newsletter model
 const Newsletter = db.model<INewsletter>("Newsletter", NewsletterSchema);
 
-export {Newsletter, NewsletterSchema};
+export { Newsletter, NewsletterSchema };
