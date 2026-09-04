@@ -130,7 +130,7 @@ FeedRecap/
 
 - Node.js v18 or higher
 - npm or yarn
-- MongoDB (local or Atlas)
+- MongoDB (Railway or local)
 - Environment variables configured (see below)
 
 ### Environment Variables
@@ -138,8 +138,7 @@ FeedRecap/
 #### Server (`server/.env`)
 
 ```env
-MONGO_USERNAME=your_mongodb_username
-MONGO_PASSWORD=your_mongodb_password
+MONGO_URL=mongodb://user:password@host:port
 
 JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRES_IN=7d
