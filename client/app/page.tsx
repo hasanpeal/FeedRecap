@@ -7,42 +7,38 @@ import { useEmail } from "@/context/UserContext";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Twitter } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export default function Home() {
   const { setEmailContext } = useEmail();
   const router = useRouter();
-  const newsletterText = `<p><strong>Summary:</strong> 📣 Market volatility persists as sentiment shifts rapidly, with bullish and bearish tweets vying for attention. While some fear a market downturn, others remain optimistic about Bitcoin&#39;s future. Breaking news on Trump&#39;s comments about the Ukraine-Russia war and institutional investments in crypto provide reasons for both celebration and concern.</p> </br>
+  const newsletterText = `<p><strong>Summary:</strong> 🌐 A quiet morning turned into a busy news day. A major chipmaker unveiled a next-gen AI accelerator, a surprise trade agreement moved markets, and a last-second buzzer-beater had sports fans buzzing. Here's what's trending on X today, curated just for you.</p></br>
 
-<p><strong>Market News and Sentiment:</strong> 🚨</p>
+<p><strong>Tech &amp; AI:</strong> 🤖</p>
 <ul>
-<li>Crypto pundit expresses frustration with substantial losses, urging patience despite the bear market. 📈</li>
-<li>Despite recent sell-offs, bullish predictions abound, with altcoins expected to surge exponentially. 🚀</li>
-<li>Institutional interest remains strong, with Citadel Securities&#39; plans to support Bitcoin liquidity 💰</li>
-<li>U.S. stocks are in decline, raising concerns for crypto markets. 📉</li>
+<li>A leading chipmaker unveils its next-gen AI accelerator, promising a major leap in on-device inference speed ⚡</li>
+<li>A new open-source framework is going viral for cutting LLM response times in half 🚀</li>
+<li>A widely-used app ships an overnight redesign, and the timeline is split on whether it's an upgrade 🎨</li>
 </ul></br>
 
-<p><strong>Data Points and Industry Analysis:</strong> 📊</p>
+<p><strong>Business &amp; Markets:</strong> 📊</p>
 <ul>
-<li>Bitcoin dominance at 66% remains possible, indicating potential weakness in altcoins. 💡</li>
-<li>Beware of narratives chasing price action, especially in post-capitulation rallies. 💬</li>
-<li>&quot;Alpha&quot; stems from identifying narratives ahead of consensus. 💡</li>
-<li>Stock market weakness may persist until March 21st, based on historical trends. 📈</li>
+<li>Futures tick up after a surprise trade agreement eases supply-chain concerns 📈</li>
+<li>A founder's offhand comment on an earnings call sends the stock swinging after-hours 💬</li>
+<li>Analysts break down what a cooling jobs report means for the next rate decision 💡</li>
 </ul></br>
 
-<p><strong>Political Pulse:</strong> ⚖️</p>
+<p><strong>World &amp; Culture:</strong> 🌍</p>
 <ul>
-<li>House Republicans remain steadfast in their budget cuts despite protests. 💪</li>
-<li>Democrats plan to highlight Republicans&#39; healthcare stance as a campaign strategy. ⛑️</li>
-<li>Elon Musk&#39;s involvement in the upcoming California governor&#39;s race adds another layer of intrigue. 💡</li>
-<li>Politicians on the local and national stage face challenges and endorsements as the political landscape shifts. 📣</li>
+<li>Lawmakers strike a late-night compromise on a closely watched spending bill 🏛️</li>
+<li>A movie trailer breaks a same-day view record, and fans are already dissecting every frame 🎬</li>
 </ul></br>
 <p><strong>TOP POSTS OF TODAY:</strong></p>
   <ul class="list-disc pl-5 space-y-4">
-    <li>FUCK THIS CRYPTO SHIT! DOWN $5M IN LAST 24HRS LONGED ETH AND IT WENT TO SHIT. I HAVE SOLD EVERYTHING. WE ARE FUCKED. BULL MARKET IS OVER - @Ashcryptoreal <a href="https://x.com/Ashcryptoreal/status/1894295330021412969" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline"> View Post</a></li>
-    <li>DON’T SELL EARLY! DON’T GET SHAKEN OUT ALTSEASON HAS NOT STARTED YET. ALTCOINS WILL PUMP 10X-20X FROM HERE EASILY. PATIENCE. - @Ashcryptoreal <a href="https://x.com/Ashcryptoreal/status/1894093027901071457" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline"> View Post</a></li>
-    <li>IF YOU SELL BITCOIN NOW YOU ARE A LITTLE BITCH - @Ashcryptoreal <a href="https://x.com/Ashcryptoreal/status/1894290223775060217" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline"> View Post</a></li>
-    <li>Woke up and saw this, WHAT THE FUCK JUST HAPPENED?? - @Ashcryptoreal <a href="https://x.com/Ashcryptoreal/status/1894216247291642138" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline"> View Post</a></li>
+    <li>&quot;This chip changes the math on what's possible on-device. No cloud round-trip needed.&quot; - @TechPulse <a href="#" class="text-blue-500 underline"> View Post</a></li>
+    <li>BREAKING: Negotiators confirm the trade deal is signed. Markets are already reacting. - @MarketWatch <a href="#" class="text-blue-500 underline"> View Post</a></li>
+    <li>That final shot is going to be replayed for years. Absolute chaos in the arena tonight 🏀 - @CourtsideNow <a href="#" class="text-blue-500 underline"> View Post</a></li>
+    <li>Read the fine print on the spending bill before you celebrate. Here's what actually changed - @PolicyWatch <a href="#" class="text-blue-500 underline"> View Post</a></li>
   </ul>
 `;
 
@@ -98,13 +94,7 @@ export default function Home() {
               }
             );
 
-            if (userResponse.status === 200 && userResponse.data.isNewUser)
-              router.push("/newuser");
-            else if (
-              userResponse.status === 200 &&
-              !userResponse.data.isNewUser
-            )
-              router.push("/dashboard");
+            if (userResponse.status === 200) router.push("/dashboard");
           } else {
             // Invalid token, remove it
             localStorage.removeItem("token");
@@ -145,8 +135,9 @@ export default function Home() {
 
           {/* Subheading */}
           <h2 className="text-lg sm:text-2xl text-white mb-8 mx-2 sm:mx-0">
-            FeedRecap delivers the top X posts you care about—straight to your
-            inbox
+            FeedRecap reads X so you don&apos;t have to, delivering an
+            AI-curated digest of the top posts on your topics straight to
+            your inbox
           </h2>
 
           {/* Buttons */}
@@ -166,56 +157,25 @@ export default function Home() {
           {/* Information Section */}
           <div className="mt-10 text-gray-300 space-y-4  mx-2 sm:mx-auto">
             <p className="text-[#7FFFD4] font-semibold text-xl">
-              ∞ Stay in the loop without the noise
+              Stay in the loop without the scroll
             </p>
             <p className="text-white sm:text-xl">
-              FeedRecap analyzes X for you, summarizing the biggest events,
-              updates, and posts from the accounts you follow or topics you
-              love. Get AI-powered daily newsletters (up to 3x a day) with
-              bite-sized recaps and direct links to the must-see posts—curated
-              just for you
+              FeedRecap&apos;s AI scans X around the clock, summarizing the
+              biggest events, updates, and posts from the accounts you follow
+              or topics you love. Get bite-sized newsletters (up to 3x a day)
+              with direct links to the must-see posts, curated just for you
             </p>
 
             <p className="text-[#7FFFD4] font-semibold text-xl">
-              ☑ Take control of your feed
+              Take control of your feed
             </p>
             <p className="text-white sm:text-xl">
-              Log into FeedRecap and explore a custom newsfeed of the latest top
-              posts, free from X’s algorithm clutter
+              Log into your dashboard for a live newsfeed of the latest top
+              posts on your topics, free from X&apos;s algorithm and the noise
             </p>
           </div>
         </div>
       </main>
-
-      {/* Featured Topics Section */}
-      {/* <section className="py-20 ">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl font-bold mb-10 text-center bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
-            Curated Topics
-          </h2>
-          <div className="flex flex-wrap justify-center gap-4">
-            {[
-              "Politics",
-              "Crime",
-              "Breaking",
-              "Sports",
-              "Crypto",
-              "World",
-              "Comedy",
-            ].map((topic) => (
-              <div
-                key={topic}
-                className="border border-[#7FFFD4]/30 text-[#7FFFD4] px-6 py-2 rounded-full hover:bg-[#7FFFD4]/10 transition-all cursor-pointer"
-              >
-                {topic}
-              </div>
-            ))}
-          </div>
-          <p className="text-gray-400 text-sm text-center mt-4">
-            *Select topics to filter your feed
-          </p>
-        </div>
-      </section> */}
 
       {/* How It Works Section */}
       <section className="py-20 bg-black">
@@ -257,7 +217,7 @@ export default function Home() {
               </h3>
               <p className="text-gray-400">
                 Check newsletters on your dashboard, tweak settings anytime, and
-                track what’s landed—all in one spot
+                track what’s landed, all in one spot
               </p>
             </div>
           </div>
@@ -357,8 +317,8 @@ export default function Home() {
                 Perfect Timing
               </h3>
               <p className="text-gray-400">
-                Pick morning, afternoon, or night delivery—stay informed when it
-                works for you
+                Pick morning, afternoon, or night delivery, and stay informed
+                when it works for you
               </p>
             </div>
           </div>
@@ -485,7 +445,7 @@ export default function Home() {
             Our Mission
           </h2>
           <p className="text-md sm:text-xl mb-10 text-gray-300">
-            The news landscape is changing—X is where it breaks first. Our
+            The news landscape is changing. X is where it breaks first. Our
             mission is to make sense of it all, curating top posts from your
             favorite sources to keep you dialed into what matters most.
             FeedRecap cuts through the noise, skips the scroll, and delivers
@@ -509,7 +469,6 @@ export default function Home() {
 
       {/* Footer */}
       <Footer />
-      {/* <CookieConsent /> */}
     </div>
   );
 }

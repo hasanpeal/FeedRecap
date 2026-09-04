@@ -381,7 +381,6 @@ const Signup: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* <Footer /> */}
     </div>
   );
 };

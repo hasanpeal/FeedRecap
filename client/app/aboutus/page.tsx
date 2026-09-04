@@ -28,7 +28,7 @@ export default function AboutUs() {
           <p className="text-gray-300 text-lg mb-8">
             Our mission is to simplify the way you consume news. By curating top
             tweets from trusted sources, we help you stay informed about what
-            matters to you—without wasting time scrolling. We aim to deliver
+            matters to you, without wasting time scrolling. We aim to deliver
             valuable, personalized content that keeps you connected to the
             topics you care about most.
           </p>
@@ -47,8 +47,8 @@ export default function AboutUs() {
             </li>
             <li>
               At your specified time, you&apos;ll receive a beautifully curated
-              newsletter straight to your inbox—keeping you informed without the
-              hassle
+              newsletter straight to your inbox, keeping you informed without
+              the hassle
             </li>
           </ul>
         </div>
@@ -84,8 +84,8 @@ export default function AboutUs() {
                 Can I receive more than one newsletter a day?
               </h4>
               <p className="text-gray-300 text-lg">
-                Yes! You can choose up to three times a day—morning, afternoon,
-                and night—for your newsletters.
+                Yes! You can choose up to three times a day (morning,
+                afternoon, and night) for your newsletters.
               </p>
             </div>
           </div>

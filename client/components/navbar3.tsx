@@ -11,7 +11,7 @@ import { useNotification } from "@/utils/notifications";
 
 export default function Navbar2() {
   const router = useRouter();
-  const { emailContext, setEmailContext } = useEmail();
+  const { emailContext } = useEmail();
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>(emailContext || "");
@@ -71,62 +71,6 @@ export default function Navbar2() {
       checkAdmin();
     }
   }, [emailContext, fetchUserDetails]);
-
-  const handleAccountUpdate = async () => {
-    if (!firstName || !lastName || !email) {
-      toast.error("Please ensure all fields are filled.");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER}/updateAccount`,
-        {
-          newFirstName: firstName,
-          newLastName: lastName,
-          newEmail: email,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status === 200 && response.data.code === 0) {
-        toast.success("Account updated successfully");
-        // Store new JWT token if provided
-        if (response.data.token) {
-          localStorage.setItem("token", response.data.token);
-          // Get email from backend using the new token
-          try {
-            const emailResponse = await axios.get(
-              `${process.env.NEXT_PUBLIC_SERVER}/check-session`,
-              {
-                headers: {
-                  Authorization: `Bearer ${response.data.token}`,
-                },
-              }
-            );
-            if (emailResponse.data.isAuthenticated) {
-              setEmailContext(emailResponse.data.email);
-            } else {
-              setEmailContext(email);
-            }
-          } catch (err) {
-            setEmailContext(email);
-          }
-        } else {
-          setEmailContext(email);
-        }
-      } else {
-        toast.error(response.data.message);
-      }
-    } catch (err) {
-      toast.error("Error updating account.");
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -270,19 +214,6 @@ export default function Navbar2() {
           >
             Feedback
           </button>
-          {/* <button
-            className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
-            onClick={() => {
-              const modal = document.getElementById(
-                "account_modal"
-              ) as HTMLDialogElement;
-              if (modal) {
-                modal.showModal();
-              }
-            }}
-          >
-            Account
-          </button> */}
           <button
             className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
             onClick={handleLogout}
@@ -291,49 +222,6 @@ export default function Navbar2() {
           </button>
         </nav>
       </div>
-
-      {/* Account Modal */}
-      <dialog
-        id="account_modal"
-        className="bg-[#111] p-6 rounded-lg max-w-lg text-white"
-      >
-        <h2 className="text-xl font-bold mb-4 text-[#7FFFD4]">
-          Update Account
-        </h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded bg-black text-white border-gray-700 focus:border-[#7FFFD4] focus:outline-none"
-              placeholder="Email"
-            />
-          </div>
-        </div>
-        <div className="mt-6 space-x-4">
-          <button
-            className="bg-[#7FFFD4] text-black px-4 py-2 rounded hover:bg-[#00CED1] transition-colors"
-            onClick={handleAccountUpdate}
-          >
-            Update Account
-          </button>
-          <button
-            className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
-            onClick={() => {
-              const modal = document.getElementById(
-                "account_modal"
-              ) as HTMLDialogElement;
-              if (modal) {
-                modal.close();
-              }
-            }}
-          >
-            Close
-          </button>
-        </div>
-      </dialog>
 
       {/* Report Modal */}
       <dialog

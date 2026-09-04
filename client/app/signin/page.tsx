@@ -741,7 +741,6 @@ export default function Signin() {
           </div>
         </div>
       </div>
-      {/* <Footer /> */}
     </div>
   );
 }

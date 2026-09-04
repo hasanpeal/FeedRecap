@@ -6,8 +6,6 @@ import apiClient from "@/utils/axios";
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
