@@ -31,6 +31,46 @@ function extractVideoThumbnail(tweet: any): string | null {
   return null; // No video thumbnail found
 }
 
+const RETENTION_DAYS = 7;
+
+interface StoredTweetEntry {
+  text: string;
+  likes: number;
+  tweet_id: string;
+  createdAt: Date;
+  mediaThumbnail: string | null;
+  video: string | null;
+  videoThumbnail: string | null;
+  screenName?: string;
+  quotedTweet: any;
+}
+
+// Merges freshly-fetched tweets into whatever is already stored for this
+// account, deduping by tweet_id (a re-fetched tweet's like count etc. is
+// refreshed from the new data) and dropping anything older than the
+// retention window. This replaces the old "just overwrite with this fetch's
+// top 25" approach, which meant nothing ever accumulated across fetches.
+function mergeTweets(
+  existingTweets: StoredTweetEntry[],
+  newTweets: StoredTweetEntry[]
+): StoredTweetEntry[] {
+  const cutoff = moment().subtract(RETENTION_DAYS, "days").toDate();
+  const byId = new Map<string, StoredTweetEntry>();
+
+  for (const tweet of existingTweets) {
+    if (tweet.createdAt >= cutoff) {
+      byId.set(tweet.tweet_id, tweet);
+    }
+  }
+  for (const tweet of newTweets) {
+    byId.set(tweet.tweet_id, tweet);
+  }
+
+  return Array.from(byId.values()).sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  );
+}
+
 function extractQuotedTweet(quoted: any): any | null {
   if (!quoted || !quoted.tweet_id) return null;
 
@@ -131,10 +171,8 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
           return tweetTime.isAfter(past24Hours);
         });
 
-        const topTweets = recentTweets
-          .sort((a: any, b: any) => b.favorites - a.favorites)
-          .slice(0, 25) // Was 10 before
-          .map((tweet: any) => ({
+        const newTweets: StoredTweetEntry[] = recentTweets.map(
+          (tweet: any) => ({
             text: removeLinksFromText(tweet.text),
             likes: tweet.favorites, // Accessing the 'favorites' field for likes
             tweet_id: tweet.tweet_id,
@@ -147,14 +185,22 @@ export async function fetchAndStoreTweets(categories: string[]): Promise<void> {
             video: extractVideoUrl(tweet),
             videoThumbnail: extractVideoThumbnail(tweet),
             quotedTweet: extractQuotedTweet(tweet.quoted),
-          }));
+          })
+        );
 
         let avatar = await fetchAvatar(screenName);
 
-        // Store the tweets in MongoDB
+        // Merge into whatever's already stored so posts accumulate across
+        // fetches instead of being replaced each time.
+        const existing = await StoredTweets.findOne({
+          category,
+          screenName,
+        }).exec();
+        const mergedTweets = mergeTweets(existing?.tweets ?? [], newTweets);
+
         await StoredTweets.findOneAndUpdate(
           { category, screenName },
-          { tweets: topTweets, avatar, createdAt: new Date() },
+          { tweets: mergedTweets, avatar, createdAt: new Date() },
           { upsert: true }
         );
       } catch (err: any) {
@@ -206,10 +252,8 @@ export async function fetchAndStoreTweetsForProfiles(
         throw new Error(`No tweets found for @${profile}`);
       }
 
-      const topTweets = recentTweets
-        .sort((a: any, b: any) => b.favorites - a.favorites)
-        .slice(0, 25)
-        .map((tweet: any) => ({
+      const newTweets: StoredTweetEntry[] = recentTweets.map(
+        (tweet: any) => ({
           text: removeLinksFromText(tweet.text),
           likes: tweet.favorites,
           tweet_id: tweet.tweet_id,
@@ -221,14 +265,22 @@ export async function fetchAndStoreTweetsForProfiles(
           video: extractVideoUrl(tweet),
           videoThumbnail: extractVideoThumbnail(tweet),
           quotedTweet: extractQuotedTweet(tweet.quoted),
-        }));
+        })
+      );
 
       let avatar = await fetchAvatar(profile);
+
+      // Merge into whatever's already stored so posts accumulate across
+      // fetches instead of being replaced each time.
+      const existing = await CustomProfilePosts.findOne({
+        screenName: profile,
+      }).exec();
+      const mergedTweets = mergeTweets(existing?.tweets ?? [], newTweets);
 
       // ✅ Store tweets in MongoDB
       const post = await CustomProfilePosts.findOneAndUpdate(
         { screenName: profile },
-        { $set: { tweets: topTweets, avatar, createdAt: new Date() } },
+        { $set: { tweets: mergedTweets, avatar, createdAt: new Date() } },
         { new: true, upsert: true, setDefaultsOnInsert: true }
       ).exec();
 
@@ -238,7 +290,7 @@ export async function fetchAndStoreTweetsForProfiles(
         );
       } else {
         console.log(
-          `✅ [Stored]: Successfully saved ${topTweets.length} tweets for @${profile}`
+          `✅ [Stored]: Successfully saved ${newTweets.length} new tweet(s) for @${profile} (${mergedTweets.length} total in retention window)`
         );
       }
     } catch (err) {

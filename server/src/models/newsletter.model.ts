@@ -15,6 +15,15 @@ const NewsletterSchema: Schema = new Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// TTL index: MongoDB's background TTL monitor deletes a newsletter 7 days
+// after it was sent, so /readnewsletter links and the newsletters collection
+// don't grow forever. No app-level cron needed — this runs even if the
+// server is down.
+NewsletterSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 7 * 24 * 60 * 60 }
+);
+
 // Create the Newsletter model
 const Newsletter = db.model<INewsletter>("Newsletter", NewsletterSchema);
 

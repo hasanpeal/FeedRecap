@@ -17,6 +17,25 @@ export function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
+// Posts are now retained for 7 days for the newsfeed, but the newsletter
+// should keep summarizing what's fresh, not resurface a viral post from
+// days ago every time it runs. So newsletter generation only looks at this
+// recent window, then takes the top-liked posts within it — same behavior
+// as before the 7-day retention was added, when storage itself only ever
+// held the last 24 hours.
+const NEWSLETTER_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+const NEWSLETTER_TOP_PER_ACCOUNT = 25;
+
+function topRecentTweets<
+  T extends { createdAt: Date; likes: number }
+>(tweets: T[]): T[] {
+  const cutoff = new Date(Date.now() - NEWSLETTER_LOOKBACK_MS);
+  return tweets
+    .filter((tweet) => tweet.createdAt >= cutoff)
+    .sort((a, b) => b.likes - a.likes)
+    .slice(0, NEWSLETTER_TOP_PER_ACCOUNT);
+}
+
 // Function to calculate top 15 tweets from different users, ensuring diversity
 export async function fetchTweetsForCategories(
   categories: string[]
@@ -40,13 +59,13 @@ export async function fetchTweetsForCategories(
     if (storedTweets.length) {
       const tweetsByUser = storedTweets.map((tweetRecord) => ({
         screenName: tweetRecord.screenName,
-        tweets: tweetRecord.tweets.map((tweet) => tweet.text),
+        tweets: topRecentTweets(tweetRecord.tweets).map((tweet) => tweet.text),
       }));
       tweetsByCategory.push({ category, tweetsByUser });
 
       // Store tweets with likes for the Top 15 calculation
       storedTweets.forEach((tweetRecord) => {
-        tweetRecord.tweets.forEach((tweet) => {
+        topRecentTweets(tweetRecord.tweets).forEach((tweet) => {
           allTweetsWithLikes.push({
             screenName: tweetRecord.screenName,
             category: tweetRecord.category,
@@ -210,15 +229,14 @@ export async function getStoredTweetsForUser(
     for (const post of posts) {
       if (!post.tweets.length) continue;
 
-      const topTweets = post.tweets
-        .sort((a, b) => Number(b.likes) - Number(a.likes))
-        .slice(0, 25)
-        .map((tweet: { text: any; likes: any; tweet_id: any }) => ({
+      const topTweets = topRecentTweets(post.tweets).map(
+        (tweet: { text: any; likes: any; tweet_id: any }) => ({
           text: tweet.text.toString().slice(0, 300),
           likes: Number(tweet.likes),
           tweet_id: tweet.tweet_id.toString(),
           screenName: post.screenName, // Use screenName from post
-        }));
+        })
+      );
 
       tweetsByProfiles.push({
         profile: post.screenName,
