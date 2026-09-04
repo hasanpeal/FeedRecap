@@ -23,7 +23,7 @@ const connection = process.env.REDIS_URL
     });
 
 connection.on("error", (err) => console.error("❌ [Redis]: connection error", err));
-connection.on("connect", () => console.log("🔌 Connected to Redis"));
+connection.on("connect", () => console.log("Connected to Redis"));
 
 export default connection;
 
