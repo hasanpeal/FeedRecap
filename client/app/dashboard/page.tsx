@@ -78,7 +78,13 @@ export default function Dashboard() {
   const [updatingFeed, setUpdatingFeed] = useState(false);
 
   // Posts and profiles
+  const NEWSFEED_PAGE_SIZE = 50;
   const [posts, setPosts] = useState<Post[]>([]);
+  const [postsPage, setPostsPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
+  const [loadingTrending, setLoadingTrending] = useState<boolean>(true);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
 
   // Bookmarks
@@ -261,10 +267,24 @@ export default function Dashboard() {
     if (emailContext) {
       // JWT token should already be in localStorage from login
       fetchData();
+      fetchTrending();
       fetchBookmarks();
     }
     // Don't remove token here - let the token validation in loadEmailFromToken handle it
   }, [emailContext]);
+
+  const didLoadInitialFilters = useRef(false);
+  useEffect(() => {
+    if (!didLoadInitialFilters.current) {
+      didLoadInitialFilters.current = true;
+      return;
+    }
+    // Filtering/sorting now happens server-side, so switching them
+    // must re-fetch page 1 instead of re-filtering already-loaded posts.
+    if (emailContext) {
+      fetchData();
+    }
+  }, [selectedCategory, selectedProfile, sortBy, sortOrder]);
 
   useEffect(() => {
     const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -460,6 +480,14 @@ export default function Dashboard() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          params: {
+            page: 1,
+            limit: NEWSFEED_PAGE_SIZE,
+            category: selectedCategory || undefined,
+            profile: selectedProfile || undefined,
+            sortBy,
+            sortOrder,
+          },
         }
       );
 
@@ -476,23 +504,18 @@ export default function Dashboard() {
         );
         setNewsID(userData.latestNewsletterId);
 
+        const profileAvatars: Record<string, string> =
+          response.data.profileAvatars || {};
         setProfiles(
-          userData.profiles.map((profile: string) => {
-            const matchedPost = response.data.posts.find(
-              (post: { username: string }) => post.username === profile
-            );
-            return {
-              username: profile,
-              avatar: matchedPost?.avatar || "/placeholder.svg",
-            };
-          })
+          userData.profiles.map((profile: string) => ({
+            username: profile,
+            avatar: profileAvatars[profile] || "/placeholder.svg",
+          }))
         );
 
-        const sortedPosts = response.data.posts.sort(
-          (a: Post, b: Post) =>
-            new Date(b.time).getTime() - new Date(a.time).getTime()
-        );
-        setPosts(sortedPosts);
+        setPosts(response.data.posts);
+        setPostsPage(1);
+        setHasMorePosts(Boolean(response.data.pagination?.hasMore));
       } else {
         showNotification("Error loading data.", "error");
       }
@@ -502,6 +525,64 @@ export default function Dashboard() {
       setLoadingProfiles(false);
       setLoadingPosts(false);
       setPageLoading(false);
+    }
+  };
+
+  const fetchMorePosts = async () => {
+    if (loadingMorePosts || !hasMorePosts) return;
+    setLoadingMorePosts(true);
+    try {
+      const token = localStorage.getItem("token");
+      const nextPage = postsPage + 1;
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/data`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            page: nextPage,
+            limit: NEWSFEED_PAGE_SIZE,
+            category: selectedCategory || undefined,
+            profile: selectedProfile || undefined,
+            sortBy,
+            sortOrder,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        setPosts((prev) => [...prev, ...response.data.posts]);
+        setPostsPage(nextPage);
+        setHasMorePosts(Boolean(response.data.pagination?.hasMore));
+      }
+    } catch (err) {
+      showNotification("Error loading more posts.", "error");
+    } finally {
+      setLoadingMorePosts(false);
+    }
+  };
+
+  const fetchTrending = async () => {
+    setLoadingTrending(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_SERVER}/trending`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        setTrendingPosts(response.data.posts || []);
+      }
+    } catch (err) {
+      // Silently fail; trending is non-critical to the main experience
+    } finally {
+      setLoadingTrending(false);
     }
   };
 
@@ -807,6 +888,7 @@ export default function Dashboard() {
       );
       if (response.status === 200) {
         fetchData();
+        fetchTrending();
         showNotification("Profiles updated successfully!", "success");
         setUnsavedProfiles(false);
       } else {
@@ -835,6 +917,7 @@ export default function Dashboard() {
         }
       );
       await fetchData();
+      await fetchTrending();
       if (response.status === 200) {
         showNotification("Categories Updated", "success");
       } else showNotification("Server Error", "error");
@@ -913,6 +996,7 @@ export default function Dashboard() {
       if (response.status === 200) {
         setRegisteredWise(wise);
         await fetchData();
+        await fetchTrending();
         showNotification("Feed type updated successfully!", "success");
         setUnsavedProfiles(false);
       } else {
@@ -1230,6 +1314,8 @@ export default function Dashboard() {
             <NewsfeedContent
               posts={posts}
               loadingPosts={loadingPosts}
+              trendingPosts={trendingPosts}
+              loadingTrending={loadingTrending}
               wise={wise}
               categories={categories}
               profiles={profiles}
@@ -1247,6 +1333,9 @@ export default function Dashboard() {
               scrollProfiles={scrollProfiles}
               bookmarkedTweetIds={bookmarkedTweetIds}
               onToggleBookmark={handleToggleBookmark}
+              hasMorePosts={hasMorePosts}
+              loadingMorePosts={loadingMorePosts}
+              onLoadMore={fetchMorePosts}
             />
           )}
 

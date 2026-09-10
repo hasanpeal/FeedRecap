@@ -42,22 +42,9 @@ export const TrendingPosts = ({ posts, loadingPosts }: TrendingPostsProps) => {
     );
   }
 
-  const fourHoursAgo = new Date().getTime() - 4 * 60 * 60 * 1000;
-  const recentPosts = posts.filter(
-    (post) => new Date(post.time).getTime() >= fourHoursAgo
-  );
-
-  // Pick top-liked post per unique account (max 5 posts)
-  const uniqueTopPosts = [];
-  const seenUsernames = new Set();
-
-  for (const post of recentPosts.sort((a, b) => b.likes - a.likes)) {
-    if (!seenUsernames.has(post.username)) {
-      uniqueTopPosts.push(post);
-      seenUsernames.add(post.username);
-    }
-    if (uniqueTopPosts.length === 5) break;
-  }
+  // Server already scopes this to the last few hours, dedupes by account,
+  // sorts by likes, and caps the count — see GET /trending.
+  const uniqueTopPosts = posts;
 
   if (uniqueTopPosts.length === 0) {
     return (
