@@ -6,7 +6,6 @@ interface FilterBarProps {
   wise: FeedType;
   categories: string[];
   profiles: UserProfile[];
-  posts: any[];
   selectedCategory: string | null;
   selectedProfile: string | null;
   sortBy: SortBy;
@@ -23,7 +22,6 @@ export const FilterBar = ({
   wise,
   categories,
   profiles,
-  posts,
   selectedCategory,
   selectedProfile,
   sortBy,
@@ -93,11 +91,7 @@ export const FilterBar = ({
                 >
                   All Profiles
                 </button>
-                {profiles
-                  .filter((profile) =>
-                    posts.some((post) => post.username === profile.username)
-                  )
-                  .map((profile) => (
+                {profiles.map((profile) => (
                     <button
                       key={profile.username}
                       onClick={() => onProfileSelect(profile.username)}

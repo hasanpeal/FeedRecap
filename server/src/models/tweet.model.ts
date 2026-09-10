@@ -31,7 +31,7 @@ export interface ITweet extends Document {
 
 // Tweet Schema for category posts
 export const tweetSchema: Schema = new mongoose.Schema({
-  category: { type: String, required: true },
+  category: { type: String, required: true, index: true },
   screenName: { type: String, required: true },
   avatar: { type: String, required: false },
   tweets: [
@@ -89,7 +89,7 @@ export interface ICustomProfilePost extends Document {
 }
 
 const CustomProfilePostSchema: Schema = new Schema({
-  screenName: { type: String, required: true },
+  screenName: { type: String, required: true, index: true },
   avatar: { type: String, required: false },
   tweets: [
     {

@@ -85,7 +85,7 @@ export const PostCard = ({
   };
 
   return (
-    <div className="post-card break-inside-avoid mb-4 overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30">
+    <div className="post-card overflow-hidden rounded-xl border border-gray-800 bg-[#111] p-4 transition-all hover:border-[#7FFFD4]/30">
       <div className="post-header mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar

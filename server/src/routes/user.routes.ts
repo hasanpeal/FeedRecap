@@ -19,6 +19,63 @@ const router = express.Router();
 
 const MAX_CUSTOM_PROFILES = 10;
 
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 50;
+
+interface QuotedTweetDoc {
+  tweet_id?: string | null;
+  text?: string | null;
+  likes?: number | null;
+  createdAt?: Date | null;
+  mediaThumbnail?: string | null;
+  video?: string | null;
+  videoThumbnail?: string | null;
+  avatar?: string | null;
+  screenName?: string | null;
+}
+
+interface RawAggregatedPost {
+  username: string;
+  avatar?: string;
+  time: Date;
+  likes: number;
+  category?: string;
+  text: string;
+  tweet_id: string;
+  mediaThumbnail?: string;
+  video?: string;
+  videoThumbnail?: string;
+  quotedTweet?: QuotedTweetDoc;
+}
+
+function normalizePost(post: RawAggregatedPost) {
+  return {
+    username: post.username,
+    avatar: post.avatar,
+    time: post.time,
+    likes: post.likes,
+    category: post.category,
+    text: post.text,
+    tweet_id: post.tweet_id,
+    mediaThumbnail: post.mediaThumbnail || undefined,
+    video: post.video || undefined,
+    videoThumbnail: post.videoThumbnail || undefined,
+    quotedTweet: post.quotedTweet
+      ? {
+          tweet_id: post.quotedTweet.tweet_id || null,
+          text: post.quotedTweet.text || null,
+          likes: post.quotedTweet.likes || null,
+          createdAt: post.quotedTweet.createdAt || null,
+          mediaThumbnail: post.quotedTweet.mediaThumbnail || null,
+          video: post.quotedTweet.video || null,
+          videoThumbnail: post.quotedTweet.videoThumbnail || null,
+          avatar: post.quotedTweet.avatar || null,
+          username: post.quotedTweet.screenName || null,
+        }
+      : undefined,
+  };
+}
+
 router.get("/data", authenticateJWT, async (req, res) => {
   try {
     const userFromToken = req.user!;
@@ -37,102 +94,117 @@ router.get("/data", authenticateJWT, async (req, res) => {
       .sort({ createdAt: -1 }) // Get the latest newsletter
       .select("_id"); // Only return the ID
 
-    interface QuotedTweet {
-      tweet_id?: string | null;
-      text?: string | null;
-      likes?: number | null;
-      createdAt?: Date | null;
-      mediaThumbnail?: string | null;
-      video?: string | null;
-      videoThumbnail?: string | null;
-      avatar?: string | null;
-      username?: string | null;
-    }
+    const page = Math.max(parseInt(String(req.query.page ?? "1"), 10) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(String(req.query.limit ?? DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE, 1),
+      MAX_PAGE_SIZE
+    );
+    const sortByLikes = req.query.sortBy === "likes";
+    const sortDirection = req.query.sortOrder === "asc" ? 1 : -1;
+    const categoryFilter = (req.query.category as string) || null;
+    const profileFilter = (req.query.profile as string) || null;
+    const sortField = sortByLikes ? "tweets.likes" : "tweets.createdAt";
 
-    let posts: {
-      username: string;
-      avatar: string;
-      time: Date;
-      likes: number;
-      category?: string;
-      text: string;
-      tweet_id: string;
-      mediaThumbnail?: string;
-      video?: string;
-      videoThumbnail?: string;
-      quotedTweet?: QuotedTweet;
-    }[] = [];
+    let posts: ReturnType<typeof normalizePost>[] = [];
+    let hasMore = false;
+    let profileAvatars: Record<string, string> = {};
 
     if (user.wise === "categorywise") {
-      // Fetch posts based on category-wise selection
-      const categoryPosts = await StoredTweets.find({
+      const matchStage: Record<string, unknown> = {
         category: { $in: user.categories },
-      }).select("screenName createdAt tweets category avatar"); // ✅ Include avatar
+      };
+      if (categoryFilter && user.categories.includes(categoryFilter)) {
+        matchStage.category = categoryFilter;
+      }
 
-      posts = categoryPosts.flatMap((post) =>
-        post.tweets.map((tweet) => ({
-          username: post.screenName,
-          avatar: post.avatar, // ✅ Include avatar
-          time: tweet.createdAt,
-          likes: tweet.likes,
-          category: post.category,
-          text: tweet.text,
-          tweet_id: tweet.tweet_id,
-          mediaThumbnail: tweet.mediaThumbnail || undefined,
-          video: tweet.video || undefined,
-          videoThumbnail: tweet.videoThumbnail || undefined,
-          quotedTweet: tweet.quotedTweet
-            ? {
-                tweet_id: tweet.quotedTweet.tweet_id || null,
-                text: tweet.quotedTweet.text || null,
-                likes: tweet.quotedTweet.likes || null,
-                createdAt: tweet.quotedTweet.createdAt || null,
-                mediaThumbnail: tweet.quotedTweet.mediaThumbnail || null,
-                video: tweet.quotedTweet.video || null,
-                videoThumbnail: tweet.quotedTweet.videoThumbnail || null,
-                avatar: tweet.quotedTweet.avatar || null, // ✅ Include quoted tweet's avatar
-                username: tweet.quotedTweet.screenName || null,
-              }
-            : undefined,
-        }))
+      const rawPosts = await StoredTweets.aggregate<RawAggregatedPost>(
+        [
+          { $match: matchStage },
+          { $unwind: "$tweets" },
+          { $sort: { [sortField]: sortDirection } },
+          { $skip: (page - 1) * limit },
+          { $limit: limit + 1 },
+          {
+            $project: {
+              _id: 0,
+              username: "$screenName",
+              avatar: "$avatar",
+              time: "$tweets.createdAt",
+              likes: "$tweets.likes",
+              category: "$category",
+              text: "$tweets.text",
+              tweet_id: "$tweets.tweet_id",
+              mediaThumbnail: "$tweets.mediaThumbnail",
+              video: "$tweets.video",
+              videoThumbnail: "$tweets.videoThumbnail",
+              quotedTweet: "$tweets.quotedTweet",
+            },
+          },
+        ],
+        { allowDiskUse: true }
+      );
+
+      hasMore = rawPosts.length > limit;
+      posts = rawPosts.slice(0, limit).map(normalizePost);
+
+      // Cheap, tweets-array-free query so profile avatars are available
+      // regardless of which page of posts is currently loaded.
+      const avatarDocs = await StoredTweets.find({
+        category: { $in: user.categories },
+      })
+        .select("screenName avatar")
+        .lean();
+      profileAvatars = Object.fromEntries(
+        avatarDocs.map((d) => [d.screenName, d.avatar])
       );
     } else if (user.wise === "customProfiles") {
-      // Fetch posts based on custom profile-wise selection
-      const profilePosts = await CustomProfilePosts.find({
+      const matchStage: Record<string, unknown> = {
+        screenName: { $in: user.profiles },
+      };
+      if (profileFilter && user.profiles.includes(profileFilter)) {
+        matchStage.screenName = profileFilter;
+      }
+
+      const rawPosts = await CustomProfilePosts.aggregate<RawAggregatedPost>(
+        [
+          { $match: matchStage },
+          { $unwind: "$tweets" },
+          { $sort: { [sortField]: sortDirection } },
+          { $skip: (page - 1) * limit },
+          { $limit: limit + 1 },
+          {
+            $project: {
+              _id: 0,
+              username: "$screenName",
+              avatar: "$avatar",
+              time: "$tweets.createdAt",
+              likes: "$tweets.likes",
+              text: "$tweets.text",
+              tweet_id: "$tweets.tweet_id",
+              mediaThumbnail: "$tweets.mediaThumbnail",
+              video: "$tweets.video",
+              videoThumbnail: "$tweets.videoThumbnail",
+              quotedTweet: "$tweets.quotedTweet",
+            },
+          },
+        ],
+        { allowDiskUse: true }
+      );
+
+      hasMore = rawPosts.length > limit;
+      posts = rawPosts.slice(0, limit).map(normalizePost);
+
+      const avatarDocs = await CustomProfilePosts.find({
         screenName: { $in: user.profiles },
       })
-        .select("screenName tweets avatar")
-        .lean(); // ✅ Include avatar
-
-      posts = profilePosts.flatMap((post) =>
-        post.tweets.map((tweet) => ({
-          username: post.screenName,
-          avatar: post.avatar, // ✅ Include avatar
-          time: tweet.createdAt,
-          likes: tweet.likes,
-          text: tweet.text,
-          tweet_id: tweet.tweet_id,
-          mediaThumbnail: tweet.mediaThumbnail || undefined,
-          video: tweet.video || undefined,
-          videoThumbnail: tweet.videoThumbnail || undefined,
-          quotedTweet: tweet.quotedTweet
-            ? {
-                tweet_id: tweet.quotedTweet.tweet_id || null,
-                text: tweet.quotedTweet.text || null,
-                likes: tweet.quotedTweet.likes || null,
-                createdAt: tweet.quotedTweet.createdAt || null,
-                mediaThumbnail: tweet.quotedTweet.mediaThumbnail || null,
-                video: tweet.quotedTweet.video || null,
-                videoThumbnail: tweet.quotedTweet.videoThumbnail || null,
-                avatar: tweet.quotedTweet.avatar || null, // ✅ Include quoted tweet's avatar
-                username: tweet.quotedTweet.screenName || null,
-              }
-            : undefined,
-        }))
+        .select("screenName avatar")
+        .lean();
+      profileAvatars = Object.fromEntries(
+        avatarDocs.map((d) => [d.screenName, d.avatar])
       );
     }
 
-    // ✅ Send user details + posts in response
+    // ✅ Send user details + paginated posts in response
     res.status(200).json({
       user: {
         categories: user.categories,
@@ -145,6 +217,8 @@ router.get("/data", authenticateJWT, async (req, res) => {
         latestNewsletterId: latestNewsletter ? latestNewsletter._id : null, // Send the latest newsletter ID
       },
       posts,
+      profileAvatars,
+      pagination: { page, limit, hasMore },
       code: 0,
     });
   } catch (error) {
@@ -152,6 +226,91 @@ router.get("/data", authenticateJWT, async (req, res) => {
     res
       .status(500)
       .json({ error: "An error occurred while fetching data", code: 1 });
+  }
+});
+
+const TRENDING_WINDOW_HOURS = 4;
+const TRENDING_LIMIT = 5;
+
+// Top-liked post per account from the last few hours, independent of the
+// paginated /data feed so it doesn't depend on which page is loaded.
+router.get("/trending", authenticateJWT, async (req, res) => {
+  try {
+    const userFromToken = req.user!;
+
+    const user = await User.findOne({ email: userFromToken.email }).select(
+      "wise categories profiles"
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found", code: 1 });
+    }
+
+    let Model: typeof StoredTweets | typeof CustomProfilePosts | null = null;
+    let matchStage: Record<string, unknown> | null = null;
+
+    if (user.wise === "categorywise") {
+      Model = StoredTweets;
+      matchStage = { category: { $in: user.categories } };
+    } else if (user.wise === "customProfiles") {
+      Model = CustomProfilePosts;
+      matchStage = { screenName: { $in: user.profiles } };
+    }
+
+    if (!Model || !matchStage) {
+      return res.status(200).json({ posts: [], code: 0 });
+    }
+
+    const windowStart = new Date(
+      Date.now() - TRENDING_WINDOW_HOURS * 60 * 60 * 1000
+    );
+
+    const trendingPosts = await Model.aggregate(
+      [
+        { $match: matchStage },
+        { $unwind: "$tweets" },
+        { $match: { "tweets.createdAt": { $gte: windowStart } } },
+        { $sort: { "tweets.likes": -1 } },
+        {
+          $group: {
+            _id: "$screenName",
+            username: { $first: "$screenName" },
+            avatar: { $first: "$avatar" },
+            time: { $first: "$tweets.createdAt" },
+            likes: { $first: "$tweets.likes" },
+            text: { $first: "$tweets.text" },
+            tweet_id: { $first: "$tweets.tweet_id" },
+            mediaThumbnail: { $first: "$tweets.mediaThumbnail" },
+            video: { $first: "$tweets.video" },
+            videoThumbnail: { $first: "$tweets.videoThumbnail" },
+          },
+        },
+        { $sort: { likes: -1 } },
+        { $limit: TRENDING_LIMIT },
+        {
+          $project: {
+            _id: 0,
+            username: 1,
+            avatar: 1,
+            time: 1,
+            likes: 1,
+            text: 1,
+            tweet_id: 1,
+            mediaThumbnail: 1,
+            video: 1,
+            videoThumbnail: 1,
+          },
+        },
+      ],
+      { allowDiskUse: true }
+    );
+
+    res.status(200).json({ posts: trendingPosts, code: 0 });
+  } catch (error) {
+    console.error("[User] Error fetching trending posts:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching trending posts", code: 1 });
   }
 });
 
