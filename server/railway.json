@@ -6,7 +6,7 @@
   },
   "deploy": {
     "runtime": "V2",
-    "numReplicas": 5,
+    "numReplicas": 3,
     "startCommand": "node dist/server.js",
     "sleepApplication": false,
     "useLegacyStacker": false,
