@@ -102,7 +102,7 @@ export const NewsfeedContent = ({
     : [];
 
   return (
-    <div className="newsfeed-content">
+    <div className="newsfeed-content w-full">
       <TrendingPosts posts={trendingPosts} loadingPosts={loadingTrending} />
 
       <FilterBar
@@ -122,9 +122,9 @@ export const NewsfeedContent = ({
       />
 
       {isLoading ? (
-        <div className="flex gap-4">
+        <div className="flex w-full gap-4">
           {skeletonColumns.map((column, columnIndex) => (
-            <div key={columnIndex} className="flex flex-1 flex-col gap-4">
+            <div key={columnIndex} className="flex min-w-0 flex-1 flex-col gap-4">
               {column.map((_, itemIndex) => (
                 <PostSkeleton key={itemIndex} />
               ))}
@@ -132,9 +132,9 @@ export const NewsfeedContent = ({
           ))}
         </div>
       ) : !isEmpty ? (
-        <div className="flex gap-4">
+        <div className="flex w-full gap-4">
           {postColumns.map((column, columnIndex) => (
-            <div key={columnIndex} className="flex flex-1 flex-col gap-4">
+            <div key={columnIndex} className="flex min-w-0 flex-1 flex-col gap-4">
               {column.map((post) => (
                 <PostCard
                   key={post.tweet_id}
@@ -156,7 +156,7 @@ export const NewsfeedContent = ({
       )}
 
       {!loadingPosts && hasMorePosts && (
-        <div className="flex justify-center mt-6">
+        <div className="mt-6 flex w-full justify-center">
           <button
             onClick={onLoadMore}
             disabled={loadingMorePosts}
