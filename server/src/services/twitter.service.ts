@@ -293,8 +293,8 @@ export async function fetchAndStoreTweetsForProfiles(
           `[Twitter] Saved ${newTweets.length} new tweet(s) for @${profile} (${mergedTweets.length} total in retention window)`
         );
       }
-    } catch (err) {
-      console.error(`[Twitter] Fetching tweets failed for ${profile}:`, err);
+    } catch (err: any) {
+      console.error(`[Twitter] Fetching tweets failed for ${profile}: ${err.message}`);
     }
   }
 }
