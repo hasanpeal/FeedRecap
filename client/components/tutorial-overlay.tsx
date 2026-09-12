@@ -18,19 +18,12 @@ interface TutorialOverlayProps {
   onStepChange?: (step: number) => void;
 }
 
-export const TutorialOverlay = ({
-  isOpen,
-  onClose,
-  onComplete,
-  currentStep: externalCurrentStep,
-  onStepChange,
-}: TutorialOverlayProps) => {
-  const [currentStep, setCurrentStep] = useState(externalCurrentStep || 0);
-  const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
-  const [tooltipStyle, setTooltipStyle] = useState({});
-
-  // Modify the tutorialSteps array to have fewer steps and simpler navigation
-  const tutorialSteps: TutorialStep[] = [
+// Module-level, not component-local: this is a dependency of the tooltip
+// positioning effect below. A fresh array literal on every render would give
+// that effect a new reference each time, so it would never stop re-running
+// (it calls setTooltipStyle/setTargetElement, which re-renders, which would
+// recreate the array, forever).
+const tutorialSteps: TutorialStep[] = [
     {
       target: "[data-tutorial='newsfeed']",
       title: "Newsfeed",
@@ -87,7 +80,18 @@ export const TutorialOverlay = ({
         "Set your preferred time to receive newsletters. Choose morning, afternoon, or night based on when you prefer to catch up on content.",
       position: "right",
     },
-  ];
+];
+
+export const TutorialOverlay = ({
+  isOpen,
+  onClose,
+  onComplete,
+  currentStep: externalCurrentStep,
+  onStepChange,
+}: TutorialOverlayProps) => {
+  const [currentStep, setCurrentStep] = useState(externalCurrentStep || 0);
+  const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
+  const [tooltipStyle, setTooltipStyle] = useState({});
 
   // Update internal state when external state changes
   useEffect(() => {
@@ -195,7 +199,7 @@ export const TutorialOverlay = ({
         targetElement.classList.remove("tutorial-highlight");
       }
     };
-  }, [isOpen, currentStep, tutorialSteps, targetElement]);
+  }, [isOpen, currentStep, targetElement]);
 
   const handleNext = () => {
     if (currentStep < tutorialSteps.length - 1) {
