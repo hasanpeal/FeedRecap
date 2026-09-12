@@ -110,6 +110,7 @@ const fetchAvatar = async (username: string): Promise<string | null> => {
       if (response.data?.avatar) {
         return response.data.avatar;
       }
+      retries++;
     } catch (error) {
       console.error(
         `[Twitter] Error fetching avatar for ${username} (attempt ${retries + 1}/${maxRetries}):`,
