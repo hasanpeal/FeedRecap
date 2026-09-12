@@ -12,6 +12,8 @@ process.env.SECRET = "test-client-secret";
 process.env.SERVER = "http://localhost:5001";
 process.env.ORIGIN = "http://localhost:3000";
 process.env.CLIENT_URL = "http://localhost:3000";
+process.env.OPENAI = "test-openai-key";
+process.env.OPENAI_API_KEY = "test-openai-key";
 process.env.MONGO_URL = "mongodb://disabled-in-tests";
 process.env.REDIS_URL = "redis://disabled-in-tests";
 
