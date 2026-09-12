@@ -23,7 +23,10 @@ jest.mock("@/components/dashboard/utils", () => ({
   isIOS: jest.fn(() => false),
 }));
 
-jest.mock("@/components/navbar3", () => () => <div>navbar3</div>);
+jest.mock("@/components/navbar3", () => {
+  const Navbar3Mock = () => <div>navbar3</div>;
+  return Navbar3Mock;
+});
 jest.mock("@/components/tutorial-overlay", () => ({
   TutorialOverlay: () => <div>tutorial-overlay</div>,
 }));

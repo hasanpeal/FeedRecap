@@ -3,8 +3,14 @@ import SampleNewsletter from "../page";
 
 // This page is entirely static markup (hardcoded sample newsletter content,
 // no hooks/state/branching), so a render smoke test covers it fully.
-jest.mock("@/components/navbar2", () => () => <div>navbar2</div>);
-jest.mock("@/components/footer", () => () => <div>footer</div>);
+jest.mock("@/components/navbar2", () => {
+  const Navbar2Mock = () => <div>navbar2</div>;
+  return Navbar2Mock;
+});
+jest.mock("@/components/footer", () => {
+  const FooterMock = () => <div>footer</div>;
+  return FooterMock;
+});
 
 describe("SampleNewsletter page", () => {
   it("renders the hero heading, navbar, footer, and sample newsletter content", () => {

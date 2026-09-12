@@ -199,7 +199,7 @@ export const TutorialOverlay = ({
         targetElement.classList.remove("tutorial-highlight");
       }
     };
-  }, [isOpen, currentStep, tutorialSteps, targetElement]);
+  }, [isOpen, currentStep, targetElement]);
 
   const handleNext = () => {
     if (currentStep < tutorialSteps.length - 1) {
