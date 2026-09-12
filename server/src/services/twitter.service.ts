@@ -250,7 +250,8 @@ export async function fetchAndStoreTweetsForProfiles(
       });
 
       if (!recentTweets.length) {
-        throw new Error(`No tweets found for @${profile}`);
+        console.log(`[Twitter] No tweets found for @${profile} in the last 24 hours`);
+        continue;
       }
 
       const newTweets: StoredTweetEntry[] = recentTweets.map(
