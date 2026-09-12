@@ -250,7 +250,8 @@ export async function fetchAndStoreTweetsForProfiles(
       });
 
       if (!recentTweets.length) {
-        throw new Error(`No tweets found for @${profile}`);
+        console.log(`[Twitter] No tweets found for @${profile} in the last 24 hours`);
+        continue;
       }
 
       const newTweets: StoredTweetEntry[] = recentTweets.map(
@@ -292,8 +293,8 @@ export async function fetchAndStoreTweetsForProfiles(
           `[Twitter] Saved ${newTweets.length} new tweet(s) for @${profile} (${mergedTweets.length} total in retention window)`
         );
       }
-    } catch (err) {
-      console.error(`[Twitter] Fetching tweets failed for ${profile}:`, err);
+    } catch (err: any) {
+      console.error(`[Twitter] Fetching tweets failed for ${profile}: ${err.message}`);
     }
   }
 }
