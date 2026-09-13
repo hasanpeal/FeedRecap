@@ -1,24 +1,10 @@
 import winston from "winston";
-import LokiTransport from "winston-loki";
 
 const transports: winston.transport[] = [
   new winston.transports.Console({
     format: winston.format.simple(),
   }),
 ];
-
-if (process.env.LOKI_URL) {
-  transports.push(
-    new LokiTransport({
-      host: process.env.LOKI_URL,
-      labels: { app: "feedrecap-server" },
-      json: true,
-      replaceTimestamp: true,
-      onConnectionError: (err: unknown) =>
-        console.error("[Loki] connection error:", err),
-    })
-  );
-}
 
 const logger = winston.createLogger({
   level: "info",
