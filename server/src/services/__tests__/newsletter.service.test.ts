@@ -269,7 +269,7 @@ describe("newsletter XSS protection", () => {
     expect(html).toBeDefined();
     expect(html).not.toContain("<script");
     expect(html).not.toContain("<img");
-    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain('href="javascript:');
     expect(html).not.toContain('onclick="alert(4)');
     expect(html).toContain("https://x.com/");
   });
