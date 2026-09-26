@@ -354,7 +354,7 @@ describe("SettingsSection — Categories", () => {
       />
     );
     await user.click(
-      screen.getByRole("button", { name: "Update Categories" })
+      screen.getByText("Update Categories").closest("button") as HTMLButtonElement
     );
     expect(onCategoryUpdate).toHaveBeenCalledTimes(1);
   });
