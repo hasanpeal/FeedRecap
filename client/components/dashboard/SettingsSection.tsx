@@ -72,7 +72,7 @@ const availableCategories = [
 
 const availableTimes = ["Morning", "Afternoon", "Night"];
 
-const renderSettingInfo = (setting: string, showSettingInfo: string | null) => {
+const renderSettingInfo = (\n  setting: string,\n  showSettingInfo: string | null,\n  onClose: () => void\n) => {
   const infoContent = {
     "feed-type":
       'Choose how your feed is organized. "Categories" shows content organized by topics like Tech, Finance, AI etc. "Profiles" shows content from specific accounts you follow',
@@ -89,8 +89,16 @@ const renderSettingInfo = (setting: string, showSettingInfo: string | null) => {
   if (!showSettingInfo || showSettingInfo !== setting) return null;
 
   return (
-    <div className="mt-2 p-3 bg-[#111] border border-[#7FFFD4] rounded-lg text-white text-sm">
+    <div className="relative mt-2 rounded-lg border border-[#7FFFD4] bg-[#111] p-3 pr-9 text-sm text-white">
       {infoContent[setting as keyof typeof infoContent]}
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-2 top-2 text-gray-400 transition-colors hover:text-white"
+        aria-label="Close setting information"
+      >
+        <X size={16} />
+      </button>
     </div>
   );
 };
@@ -207,7 +215,12 @@ export const SettingsSection = ({
           onClick={onFeedTypeUpdate}
           disabled={loading}
         >
-          {loading ? "Updating..." : "Update Feed Type"}
+          {loading ? "Updating..." : (
+            <>
+              <span className="sm:hidden">Update</span>
+              <span className="hidden sm:inline">Update Feed Type</span>
+            </>
+          )}
         </button>
       </section>
 
@@ -269,9 +282,6 @@ export const SettingsSection = ({
           </>
         ) : (
           <>
-            <p className="text-sm text-gray-400 sm:text-base">
-              Optional: connect your X account to quickly import profiles you already follow
-            </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 relative">
                 <input
@@ -477,7 +487,12 @@ export const SettingsSection = ({
             onClick={onCategoryUpdate}
             disabled={loading}
           >
-            {loading ? "Updating..." : "Update Categories"}
+            {loading ? "Updating..." : (
+              <>
+                <span className="sm:hidden">Update</span>
+                <span className="hidden sm:inline">Update Categories</span>
+              </>
+            )}
           </button>
         )}
       </section>}
@@ -617,7 +632,12 @@ export const SettingsSection = ({
             onClick={onProfileUpdate}
             disabled={loading}
           >
-            {loading ? "Updating..." : "Update Profiles"}
+            {loading ? "Updating..." : (
+              <>
+                <span className="sm:hidden">Update</span>
+                <span className="hidden sm:inline">Update Profiles</span>
+              </>
+            )}
           </button>
         )}
       </section>}
@@ -678,7 +698,12 @@ export const SettingsSection = ({
           onClick={onTimeUpdate}
           disabled={loading}
         >
-          {loading ? "Updating..." : "Save Delivery Time"}
+          {loading ? "Updating..." : (
+            <>
+              <span className="sm:hidden">Save</span>
+              <span className="hidden sm:inline">Save Delivery Time</span>
+            </>
+          )}
         </button>
       </section>
     </div>
