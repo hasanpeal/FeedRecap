@@ -14,7 +14,7 @@ export default function Signin() {
   const [forget, setForget] = useState(true);
   const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
   const [otpError, setOtpError] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [passFlag, setPassFlag] = useState(false);
   const [verified, setVerified] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -237,7 +237,9 @@ export default function Signin() {
           email: email,
         }
       );
-      setGeneratedOtp(result.data.otp);
+      if (result.data.code !== 0) {
+        throw new Error("Unable to send OTP");
+      }
     } catch (error) {}
   };
 
@@ -363,10 +365,19 @@ export default function Signin() {
     } else {
       setOtpError(false);
 
-      if (generatedOtp === otp.join("")) {
-        setPassFlag(true);
-        setForget(true);
-      } else {
+      try {
+        const result = await axios.post(
+          `${process.env.NEXT_PUBLIC_SERVER}/verifyResetOTP`,
+          { email, otp: otp.join("") }
+        );
+        if (result.status === 200 && result.data.resetToken) {
+          setResetToken(result.data.resetToken);
+          setPassFlag(true);
+          setForget(true);
+        } else {
+          throw new Error("Invalid OTP");
+        }
+      } catch {
         setVerified(true);
         setTimeout(() => {
           setVerified(false);
@@ -400,6 +411,7 @@ export default function Signin() {
           {
             email: email,
             newPassword: confirmNewPassword,
+            resetToken,
           }
         );
         if (result.status === 200) {

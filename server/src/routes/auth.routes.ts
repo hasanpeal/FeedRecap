@@ -12,6 +12,12 @@ import {
   sendNewsletterEmail,
 } from "../services/newsletter.service";
 import sgMail, { sendAdminAlert } from "../services/email.service";
+import {
+  canRequestOtp,
+  consumeResetToken,
+  createOtp,
+  verifyOtp,
+} from "../services/passwordReset.service";
 
 const router = express.Router();
 
@@ -165,19 +171,25 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Reset password route
+// Reset password route. A short-lived token issued only after server-side OTP
+// verification is required, preventing direct password-reset bypasses.
 router.post("/resetPassword", async (req, res) => {
-  const { email, newPassword } = req.body;
+  const { email, newPassword, resetToken } = req.body;
+  if (!email || !newPassword || !resetToken) {
+    return res.status(400).json({ code: 1, message: "Invalid reset request" });
+  }
+  if (!(await consumeResetToken(email, resetToken))) {
+    return res.status(401).json({ code: 1, message: "Invalid or expired reset authorization" });
+  }
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(200).json({ code: 1, message: "User doesn't exist" });
+      return res.status(400).json({ code: 1, message: "Invalid reset request" });
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
 
-    // Log password change
     await logActivity(req, {
       userId: (user._id as mongoose.Types.ObjectId).toString(),
       email: user.email,
@@ -185,34 +197,61 @@ router.post("/resetPassword", async (req, res) => {
       activityDescription: "Password changed",
     });
 
-    res.status(200).json({ code: 0, message: "Password updated successfully" });
+    return res.status(200).json({ code: 0, message: "Password updated successfully" });
   } catch (err) {
     console.error("[Auth] Error resetting password:", err);
-    res.status(200).json({ code: 1, message: "Error updating password" });
+    return res.status(500).json({ code: 1, message: "Error updating password" });
   }
 });
 
-// POST Route for sending OTP
+// Generate and email an OTP. The OTP is intentionally never returned in the
+// API response; verification happens only on the server.
 router.post("/sentOTP", async (req, res) => {
-  const email = req.body.email;
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const email = String(req.body.email || "").trim().toLowerCase();
+  if (!email) {
+    return res.status(400).send({ code: 1, message: "Email is required" });
+  }
+  if (!(await canRequestOtp(email))) {
+    return res.status(429).send({ code: 1, message: "Too many OTP requests. Please try again later." });
+  }
 
+  // Use the same generic response for unknown accounts to avoid account
+  // enumeration through this endpoint.
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(200).send({ code: 0, message: "If the account exists, an OTP has been sent." });
+  }
+
+  const otp = await createOtp(email);
   const msg = {
     to: email,
     from: process.env.FROM_EMAIL || "",
     subject: "Your FeedRecap OTP Code is here",
-    text: `Your OTP code is ${otp}`,
-    html: `<strong> Your OTP code is ${otp}</strong>`,
+    text: `Your OTP code is ${otp}. It expires in 10 minutes.`,
+    html: `<strong>Your OTP code is ${otp}. It expires in 10 minutes.</strong>`,
   };
-  await sgMail
-    .send(msg)
-    .then(async () => {
-      res.status(200).send({ code: 0, otp: otp });
-    })
-    .catch((err: any) => {
-      console.error("[Auth] Error sending OTP email:", err);
-      res.status(200).send({ code: 1 });
-    });
+
+  try {
+    await sgMail.send(msg);
+    return res.status(200).send({ code: 0, message: "If the account exists, an OTP has been sent." });
+  } catch (err) {
+    console.error("[Auth] Error sending OTP email:", err);
+    return res.status(500).send({ code: 1, message: "Unable to send OTP" });
+  }
+});
+
+router.post("/verifyResetOTP", async (req, res) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const otp = String(req.body.otp || "");
+  if (!email || !/^\d{6}$/.test(otp)) {
+    return res.status(400).json({ code: 1, message: "Invalid OTP" });
+  }
+
+  const result = await verifyOtp(email, otp);
+  if (!result.ok) {
+    return res.status(401).json({ code: 1, message: "Invalid or expired OTP" });
+  }
+  return res.status(200).json({ code: 0, resetToken: result.resetToken });
 });
 
 // Google sign-up route
