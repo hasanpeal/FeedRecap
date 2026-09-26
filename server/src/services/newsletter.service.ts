@@ -384,7 +384,7 @@ export async function generateCustomProfileNewsletter(
       model: process.env.OPENAI_MODEL || "",
     });
 
-    let result = response.choices[0].message.content;
+    let result = escapeUntrustedMarkdown(response.choices[0].message.content);
 
     // Validate `top15Tweets` to ensure all objects have a valid `text`
     const validTopTweets = top15Tweets.filter(
