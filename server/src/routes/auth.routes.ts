@@ -356,6 +356,11 @@ router.get("/auth/google/callback", (req, res, next) => {
           userId: (existingUser._id as mongoose.Types.ObjectId).toString(),
           email: existingUser.email,
         });
+        await setRefreshCookie(
+          res,
+          (existingUser._id as mongoose.Types.ObjectId).toString(),
+          existingUser.email
+        );
         return res.redirect(
           `${
             process.env.CLIENT_URL
@@ -372,6 +377,11 @@ router.get("/auth/google/callback", (req, res, next) => {
           userId: (user._id as mongoose.Types.ObjectId).toString(),
           email: user.email,
         });
+        await setRefreshCookie(
+          res,
+          (user._id as mongoose.Types.ObjectId).toString(),
+          user.email
+        );
         return res.redirect(
           `${
             process.env.CLIENT_URL
