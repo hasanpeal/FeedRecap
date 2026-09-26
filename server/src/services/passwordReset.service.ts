@@ -72,7 +72,7 @@ export function verifyOtp(
   const expected = Buffer.from(record.otpHash);
   if (
     candidate.length !== expected.length ||
-    !crypto.timingSafeEqual(candidate, expected)
+    !crypto.timingSafeEqual(Uint8Array.from(candidate), Uint8Array.from(expected))
   ) {
     return { ok: false };
   }
