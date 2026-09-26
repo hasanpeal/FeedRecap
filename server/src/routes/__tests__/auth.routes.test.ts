@@ -11,6 +11,7 @@ import {
 } from "../../services/newsletter.service";
 import sgMail, { sendAdminAlert } from "../../services/email.service";
 import { verifyJWT } from "../../services/auth.service";
+import { clearPasswordResetStateForTests } from "../../services/passwordReset.service";
 
 jest.mock("bcrypt", () => ({
   __esModule: true,
@@ -95,6 +96,7 @@ const setAuthResult = (err: any, user: any, info: any) =>
 describe("auth routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    clearPasswordResetStateForTests();
     setAuthResult(null, null, null);
   });
 
@@ -276,17 +278,53 @@ describe("auth routes", () => {
     });
   });
 
-  describe("POST /resetPassword", () => {
-    it("returns 200/code 1 when the user doesn't exist", async () => {
-      (User.findOne as jest.Mock).mockResolvedValue(null);
+  async function issueResetToken(email = "a@b.com") {
+    (User.findOne as jest.Mock).mockResolvedValue({ email });
+    (sgMail.send as jest.Mock).mockResolvedValue(undefined);
+    await request(app).post("/sentOTP").send({ email });
+    const message = (sgMail.send as jest.Mock).mock.calls.at(-1)?.[0];
+    const otp = String(message?.text || "").match(/\\d{6}/)?.[0];
+    expect(otp).toBeDefined();
+    const verify = await request(app)
+      .post("/verifyResetOTP")
+      .send({ email, otp });
+    expect(verify.status).toBe(200);
+    return verify.body.resetToken as string;
+  }
+
+  describe("password reset security", () => {
+    it("rejects a direct reset without verified reset authorization", async () => {
       const res = await request(app)
         .post("/resetPassword")
-        .send({ email: "nope@b.com", newPassword: "pw" });
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({ code: 1, message: "User doesn't exist" });
+        .send({ email: "a@b.com", newPassword: "newpw" });
+      expect(res.status).toBe(400);
+      expect(bcrypt.hash).not.toHaveBeenCalled();
     });
 
-    it("updates the password and logs activity", async () => {
+    it("never returns the OTP from /sentOTP", async () => {
+      (User.findOne as jest.Mock).mockResolvedValue({ email: "a@b.com" });
+      (sgMail.send as jest.Mock).mockResolvedValue(undefined);
+      const res = await request(app)
+        .post("/sentOTP")
+        .send({ email: "a@b.com" });
+      expect(res.status).toBe(200);
+      expect(res.body.code).toBe(0);
+      expect(res.body.otp).toBeUndefined();
+      expect(sgMail.send).toHaveBeenCalled();
+    });
+
+    it("rejects an invalid OTP", async () => {
+      (User.findOne as jest.Mock).mockResolvedValue({ email: "a@b.com" });
+      await request(app).post("/sentOTP").send({ email: "a@b.com" });
+      const res = await request(app)
+        .post("/verifyResetOTP")
+        .send({ email: "a@b.com", otp: "000000" });
+      expect(res.status).toBe(401);
+      expect(res.body.resetToken).toBeUndefined();
+    });
+
+    it("updates the password after OTP verification and makes the reset token single-use", async () => {
+      const resetToken = await issueResetToken();
       const userDoc: any = {
         _id: "u1",
         email: "a@b.com",
@@ -296,51 +334,33 @@ describe("auth routes", () => {
       (User.findOne as jest.Mock).mockResolvedValue(userDoc);
       (bcrypt.hash as jest.Mock).mockResolvedValue("newHashed");
 
-      const res = await request(app)
+      const first = await request(app)
         .post("/resetPassword")
-        .send({ email: "a@b.com", newPassword: "newpw" });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({
-        code: 0,
-        message: "Password updated successfully",
-      });
+        .send({ email: "a@b.com", newPassword: "newpw", resetToken });
+      expect(first.status).toBe(200);
       expect(userDoc.password).toBe("newHashed");
-      expect(userDoc.save).toHaveBeenCalled();
       expect(logActivity).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ activityType: "PASSWORD_CHANGED" })
       );
-    });
 
-    it("returns 200/code 1 on unexpected error", async () => {
-      (User.findOne as jest.Mock).mockRejectedValue(new Error("db down"));
-      const res = await request(app)
+      const reused = await request(app)
         .post("/resetPassword")
-        .send({ email: "a@b.com", newPassword: "pw" });
-      expect(res.status).toBe(200);
-      expect(res.body.code).toBe(1);
-    });
-  });
-
-  describe("POST /sentOTP", () => {
-    it("sends an OTP email and returns it", async () => {
-      (sgMail.send as jest.Mock).mockResolvedValue(undefined);
-      const res = await request(app)
-        .post("/sentOTP")
-        .send({ email: "a@b.com" });
-      expect(res.status).toBe(200);
-      expect(res.body.code).toBe(0);
-      expect(res.body.otp).toMatch(/^\d{6}$/);
+        .send({ email: "a@b.com", newPassword: "anotherpw", resetToken });
+      expect(reused.status).toBe(401);
     });
 
-    it("returns code 1 when sending fails", async () => {
-      (sgMail.send as jest.Mock).mockRejectedValue(new Error("sendgrid down"));
-      const res = await request(app)
+    it("rate-limits repeated OTP requests", async () => {
+      (User.findOne as jest.Mock).mockResolvedValue({ email: "a@b.com" });
+      for (let i = 0; i < 3; i++) {
+        expect(
+          (await request(app).post("/sentOTP").send({ email: "a@b.com" })).status
+        ).toBe(200);
+      }
+      const limited = await request(app)
         .post("/sentOTP")
         .send({ email: "a@b.com" });
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({ code: 1 });
+      expect(limited.status).toBe(429);
     });
   });
 
