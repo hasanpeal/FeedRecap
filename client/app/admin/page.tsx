@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { safeExternalHref } from "@/utils/sanitizeHtml";
 import { useRouter } from "next/navigation";
 import { useEmail } from "@/context/UserContext";
 import apiClient from "@/utils/axios";
@@ -394,7 +395,7 @@ export default function AdminDashboard() {
                     >
                       <div className="flex justify-between items-start mb-1">
                         <a
-                          href={click.metadata?.link}
+                          href={safeExternalHref(click.metadata?.link)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#7FFFD4] hover:underline break-all text-sm"
