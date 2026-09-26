@@ -9,6 +9,7 @@ jest.mock("../../config/redis", () => ({
     }),
     get: jest.fn(async (key: string) => mockRedisState.get(key) ?? null),
     del: jest.fn(async (key: string) => (mockRedisState.delete(key) ? 1 : 0)),
+    disconnect: jest.fn(),
   },
 }));
 
