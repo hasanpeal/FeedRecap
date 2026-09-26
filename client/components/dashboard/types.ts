@@ -52,6 +52,8 @@ export interface Bookmark {
   createdAt: string;
 }
 
-export type FeedType = "categorywise" | "customProfiles";
+declare const feedTypeBrand: unique symbol;
+type BrandedFeedType = string & { readonly [feedTypeBrand]: never };
+export type FeedType = "categorywise" | "customProfiles" | BrandedFeedType;
 export type SortBy = "time" | "likes";
 export type SortOrder = "desc" | "asc";

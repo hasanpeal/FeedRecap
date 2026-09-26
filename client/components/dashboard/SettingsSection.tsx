@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Loader2, Check, UserPlus, X } from "lucide-react";
 import { XLogo } from "./XLogo";
 import { Avatar } from "./Avatar";
@@ -150,10 +149,14 @@ export const SettingsSection = ({
 }: SettingsSectionProps) => {
   return (
     <div className="settings-content space-y-8 rounded-xl border border-gray-800 bg-[#111] p-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-white">Newsletter Settings</h1>
+        <p className="mt-1 text-sm text-gray-400">Choose what you want to receive, then pick when you want it delivered.</p>
+      </div>
       {/* Feed Type Selection */}
-      <section className="space-y-4">
+      <section className="space-y-4 border-t border-gray-800 pt-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold text-[#7FFFD4]">Feed Type</h2>
+          <h2 className="text-xl font-semibold text-[#7FFFD4]">1. Choose your feed</h2>
           <button
             onClick={() => setShowSettingInfo("feed-type")}
             className="text-[#7FFFD4] hover:text-white transition-colors"
@@ -209,10 +212,10 @@ export const SettingsSection = ({
       </section>
 
       {/* Twitter Integration Section */}
-      <section className="space-y-4 border-t border-gray-800 pt-6">
+      {wise === "customProfiles" && <section className="space-y-4 border-t border-gray-800 pt-6">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-[#7FFFD4]">
-            Connect X Account
+            2. Choose X profiles
           </h2>
           <button
             onClick={() => setShowSettingInfo("twitter-connect")}
@@ -267,7 +270,7 @@ export const SettingsSection = ({
         ) : (
           <>
             <p className="text-gray-400">
-              Connect your X account to import profiles you follow
+              Optional: connect your X account to quickly import profiles you already follow
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 relative">
@@ -414,50 +417,13 @@ export const SettingsSection = ({
           </div>
         )}
 
-        {/* Warning for unsaved profiles */}
-        {unsavedProfiles && (
-          <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg text-yellow-400">
-            <div className="flex items-start gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mt-0.5 flex-shrink-0"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div>
-                <p className="font-medium mb-1">Action required</p>
-                {wise === "customProfiles" &&
-                registeredWise === "customProfiles" ? (
-                  <p className="text-sm">
-                    You&apos;ve added new profiles but haven&apos;t saved them
-                    yet. Click &quot;Update Profiles&quot; to save your changes.
-                  </p>
-                ) : (
-                  <p className="text-sm">
-                    {wise === "categorywise"
-                      ? "You've added profiles but you're currently using Category-wise feed. Switch to Profiles feed type and click \"Update Feed Type\" to use these profiles."
-                      : "You've added profiles but haven't updated your feed type. Click \"Update Feed Type\" to save your changes."}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
+      </section>}
 
-      {/* Update Categories Section */}
-      <section
-        className={`space-y-4 ${wise === "customProfiles" ? "opacity-50" : ""}`}
-      >
+      {/* 2. Choose topics Section */}
+      {wise === "categorywise" && <section className="space-y-4 border-t border-gray-800 pt-6">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-[#7FFFD4]">
-            Update Categories
+            2. Choose topics
           </h2>
           <button
             onClick={() => setShowSettingInfo("categories")}
@@ -482,11 +448,7 @@ export const SettingsSection = ({
           </button>
         </div>
         {renderSettingInfo("categories", showSettingInfo)}
-        {wise === "customProfiles" && (
-          <p className="text-gray-400">
-            Switch to <strong>Category-wise feed</strong> to update categories.
-          </p>
-        )}
+
         <div className="flex flex-wrap gap-2">
           {availableCategories.map((category) => (
             <button
@@ -518,15 +480,13 @@ export const SettingsSection = ({
             {loading ? "Updating..." : "Update Categories"}
           </button>
         )}
-      </section>
+      </section>}
 
       {/* Manage Followed Profiles Section */}
-      <section
-        className={`space-y-4 ${wise === "categorywise" ? "opacity-50" : ""}`}
-      >
+      {wise === "customProfiles" && <section className="space-y-4">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-[#7FFFD4]">
-            Manage Followed Profiles ({profiles.length}/{MAX_CUSTOM_PROFILES})
+            Your profiles ({profiles.length}/{MAX_CUSTOM_PROFILES})
           </h2>
           <button
             onClick={() => setShowSettingInfo("profiles-manage")}
@@ -660,13 +620,13 @@ export const SettingsSection = ({
             {loading ? "Updating..." : "Update Profiles"}
           </button>
         )}
-      </section>
+      </section>}
 
       {/* Update Time Section */}
-      <section className="space-y-4">
+      <section className="space-y-4 border-t border-gray-800 pt-6">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-[#7FFFD4]">
-            Update Preferred Time
+            3. Choose delivery time
           </h2>
           <button
             onClick={() => setShowSettingInfo("time-settings")}
@@ -718,7 +678,7 @@ export const SettingsSection = ({
           onClick={onTimeUpdate}
           disabled={loading}
         >
-          {loading ? "Updating..." : "Update Time"}
+          {loading ? "Updating..." : "Save Delivery Time"}
         </button>
       </section>
     </div>

@@ -100,15 +100,11 @@ describe("SettingsSection — Feed Type", () => {
   it("wires up every other settings info icon", async () => {
     const user = userEvent.setup();
     const setShowSettingInfo = jest.fn();
-    render(<SettingsSection {...baseProps({ setShowSettingInfo })} />);
+    render(<SettingsSection {...baseProps({ wise: "customProfiles", setShowSettingInfo })} />);
     await user.click(
       screen.getByRole("button", { name: "Show Twitter connect information" })
     );
     expect(setShowSettingInfo).toHaveBeenCalledWith("twitter-connect");
-    await user.click(
-      screen.getByRole("button", { name: "Show categories information" })
-    );
-    expect(setShowSettingInfo).toHaveBeenCalledWith("categories");
     await user.click(
       screen.getByRole("button", {
         name: "Show profiles management information",
@@ -123,9 +119,6 @@ describe("SettingsSection — Feed Type", () => {
 
   it("shows each info panel's content for the other settings", () => {
     const cases: [string, RegExp][] = [
-      ["twitter-connect", /Connect your X\/Twitter account/],
-      ["categories", /Select the topics you want to see/],
-      ["profiles-manage", /Add or remove specific accounts/],
       ["time-settings", /Choose when you'd like to receive/],
     ];
     cases.forEach(([setting, text]) => {
@@ -140,7 +133,7 @@ describe("SettingsSection — Feed Type", () => {
 
 describe("SettingsSection — Twitter connect", () => {
   it("shows the connect form when not linked", () => {
-    render(<SettingsSection {...baseProps({ linkedTwitter: null })} />);
+    render(<SettingsSection {...baseProps({ linkedTwitter: null, wise: "customProfiles" })} />);
     expect(
       screen.getByPlaceholderText("@YourUsername")
     ).toBeInTheDocument();
@@ -150,7 +143,7 @@ describe("SettingsSection — Twitter connect", () => {
     const user = userEvent.setup();
     const onTwitterUsernameChange = jest.fn();
     render(
-      <SettingsSection {...baseProps({ onTwitterUsernameChange })} />
+      <SettingsSection {...baseProps({ wise: "customProfiles", onTwitterUsernameChange })} />
     );
     await user.type(screen.getByPlaceholderText("@YourUsername"), "a");
     expect(onTwitterUsernameChange).toHaveBeenCalled();
@@ -161,14 +154,14 @@ describe("SettingsSection — Twitter connect", () => {
     const onConnectTwitter = jest.fn();
     render(
       <SettingsSection
-        {...baseProps({ twitterUsername: "", onConnectTwitter })}
+        {...baseProps({ wise: "customProfiles", twitterUsername: "", onConnectTwitter })}
       />
     );
     expect(screen.getByText("Connect").closest("button")).toBeDisabled();
 
     render(
       <SettingsSection
-        {...baseProps({ twitterUsername: "elon", onConnectTwitter })}
+        {...baseProps({ wise: "customProfiles", twitterUsername: "elon", onConnectTwitter })}
       />
     );
     const connectBtns = screen.getAllByText("Connect");
@@ -179,7 +172,7 @@ describe("SettingsSection — Twitter connect", () => {
   it("shows a connecting spinner state", () => {
     render(
       <SettingsSection
-        {...baseProps({ isConnectingTwitter: true, twitterUsername: "elon" })}
+        {...baseProps({ wise: "customProfiles", isConnectingTwitter: true, twitterUsername: "elon" })}
       />
     );
     expect(screen.getByText("Connecting...")).toBeInTheDocument();
@@ -192,6 +185,7 @@ describe("SettingsSection — Twitter connect", () => {
     render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           showTwitterSuggestions: true,
           twitterSuggestions: ["elonmusk"],
           setTwitterUsername,
@@ -208,6 +202,7 @@ describe("SettingsSection — Twitter connect", () => {
     const { rerender } = render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           showTwitterSuggestions: true,
           loadingTwitterSuggestions: true,
         })}
@@ -218,6 +213,7 @@ describe("SettingsSection — Twitter connect", () => {
     rerender(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           showTwitterSuggestions: true,
           loadingTwitterSuggestions: false,
           twitterSuggestions: [],
@@ -234,6 +230,7 @@ describe("SettingsSection — Twitter connect", () => {
     render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           linkedTwitter: "elonmusk",
           onUnlinkTwitter,
           onShowFollowedProfiles,
@@ -250,7 +247,8 @@ describe("SettingsSection — Twitter connect", () => {
   it("shows an unlinking spinner label while loading", () => {
     render(
       <SettingsSection
-        {...baseProps({ linkedTwitter: "elonmusk", loading: true })}
+        {...baseProps({ wise: "customProfiles",
+          linkedTwitter: "elonmusk", loading: true })}
       />
     );
     expect(screen.getByText("Unlinking...")).toBeInTheDocument();
@@ -268,6 +266,7 @@ describe("SettingsSection — Twitter connect", () => {
     render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           linkedTwitter: "elonmusk",
           showTwitterFollowing: true,
           twitterFollowing: [account],
@@ -288,6 +287,7 @@ describe("SettingsSection — Twitter connect", () => {
     render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           linkedTwitter: "elonmusk",
           showTwitterFollowing: true,
           isLoadingMoreProfiles: true,
@@ -297,34 +297,10 @@ describe("SettingsSection — Twitter connect", () => {
     expect(screen.getByText("Loading more profiles...")).toBeInTheDocument();
   });
 
-  it("shows unsaved-profiles warning copy for the customProfiles+registered case", () => {
-    render(
-      <SettingsSection
-        {...baseProps({
-          unsavedProfiles: true,
-          wise: "customProfiles",
-          registeredWise: "customProfiles",
-        })}
-      />
-    );
-    expect(
-      screen.getByText(/Click "Update Profiles" to save your changes/)
-    ).toBeInTheDocument();
-  });
-
-  it("shows unsaved-profiles warning copy for the categorywise case", () => {
-    render(
-      <SettingsSection
-        {...baseProps({
-          unsavedProfiles: true,
-          wise: "categorywise",
-          registeredWise: "categorywise",
-        })}
-      />
-    );
-    expect(
-      screen.getByText(/currently using Category-wise feed/)
-    ).toBeInTheDocument();
+  it("shows the single unsaved-profile warning in profile mode", () => {
+    render(<SettingsSection {...baseProps({ unsavedProfiles: true, wise: "customProfiles", registeredWise: "customProfiles" })} />);
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    expect(screen.getByText(/save your profile changes/i)).toBeInTheDocument();
   });
 });
 
@@ -342,7 +318,7 @@ describe("SettingsSection — Categories", () => {
 
   it("disables category buttons in customProfiles mode and hides the update button", () => {
     render(<SettingsSection {...baseProps({ wise: "customProfiles" })} />);
-    expect(screen.getByText("Tech").closest("button")).toBeDisabled();
+    expect(screen.queryByText("Tech")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Update Categories" })
     ).not.toBeInTheDocument();
@@ -380,7 +356,7 @@ describe("SettingsSection — Manage Profiles", () => {
         })}
       />
     );
-    expect(screen.getByText("Manage Followed Profiles (1/10)")).toBeInTheDocument();
+    expect(screen.getByText("Your profiles (1/10)")).toBeInTheDocument();
     await user.click(screen.getByText("×"));
     expect(onRemoveProfile).toHaveBeenCalledWith("alice");
   });
@@ -447,7 +423,7 @@ describe("SettingsSection — Time", () => {
     expect(updater(["Morning"])).toEqual(["Morning", "Afternoon"]);
     expect(updater(["Morning", "Afternoon"])).toEqual(["Morning"]);
 
-    await user.click(screen.getByText("Update Time"));
+    await user.click(screen.getByText("Save Delivery Time"));
     expect(onTimeUpdate).toHaveBeenCalledTimes(1);
   });
 
