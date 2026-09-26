@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import connection from "../config/redis";
 import { StoredTweets, CustomProfilePosts } from "../models/tweet.model";
 import { INSTANCE_ID } from "./instanceId";
+import { sendCriticalSystemAlert } from "../services/email.service";
 import { retentionCleanupQueue, QUEUE_NAMES } from "./queues";
 
 const RETENTION_DAYS = 7;
@@ -51,6 +52,7 @@ export async function startRetentionCleanupJob(): Promise<void> {
 
   retentionCleanupWorker.on("failed", (job, error) => {
     console.error(`[Retention] Job "${job?.id}" failed:`, error);
+    void sendCriticalSystemAlert("Retention job failure", error, `jobId=${job?.id || "unknown"}`);
   });
 }
 
