@@ -15,7 +15,7 @@ async function refreshAccessToken(): Promise<string> {
       .post(
         `${process.env.NEXT_PUBLIC_SERVER}/refresh`,
         {},
-        { withCredentials: true, headers: { "X-Requested-With": "XMLHttpRequest" } }
+        { withCredentials: true, headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRF-Protection": "1" } }
       )
       .then((response) => {
         const token = response.data?.token;
