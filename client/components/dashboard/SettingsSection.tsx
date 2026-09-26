@@ -148,15 +148,15 @@ export const SettingsSection = ({
   twitterSuggestionsRef,
 }: SettingsSectionProps) => {
   return (
-    <div className="settings-content space-y-8 rounded-xl border border-gray-800 bg-[#111] p-6">
+    <div className="settings-content space-y-6 rounded-xl border border-gray-800 bg-[#111] p-4 sm:space-y-8 sm:p-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Newsletter Settings</h1>
-        <p className="mt-1 text-sm text-gray-400">Choose what you want to receive, then pick when you want it delivered.</p>
+        <h1 className="text-xl font-semibold text-white sm:text-2xl">Newsletter Settings</h1>
+        <p className="mt-1 text-xs text-gray-400 sm:text-sm">Choose what you want to receive, then pick when you want it delivered.</p>
       </div>
       {/* Feed Type Selection */}
-      <section className="space-y-4 border-t border-gray-800 pt-6">
+      <section className="space-y-3 border-t border-gray-800 pt-4 sm:space-y-4 sm:pt-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold text-[#7FFFD4]">1. Choose your feed</h2>
+          <h2 className="text-lg font-semibold text-[#7FFFD4] sm:text-xl">1. Choose your feed</h2>
           <button
             onClick={() => setShowSettingInfo("feed-type")}
             className="text-[#7FFFD4] hover:text-white transition-colors"
@@ -180,9 +180,9 @@ export const SettingsSection = ({
           </button>
         </div>
         {renderSettingInfo("feed-type", showSettingInfo)}
-        <div className="flex gap-4">
+        <div className="flex gap-2 sm:gap-4">
           <button
-            className={`rounded-full px-6 py-2 transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm transition-colors sm:px-6 sm:py-2 sm:text-base ${
               wise === "categorywise"
                 ? "bg-[#7FFFD4] text-black"
                 : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
@@ -192,7 +192,7 @@ export const SettingsSection = ({
             Categories
           </button>
           <button
-            className={`rounded-full px-6 py-2 transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm transition-colors sm:px-6 sm:py-2 sm:text-base ${
               wise === "customProfiles"
                 ? "bg-[#7FFFD4] text-black"
                 : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
@@ -203,7 +203,7 @@ export const SettingsSection = ({
           </button>
         </div>
         <button
-          className="mt-4 rounded-full bg-black px-14 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+          className="mt-3 rounded-full bg-black px-6 py-1.5 text-sm text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black sm:mt-4 sm:px-14 sm:py-2 sm:text-base"
           onClick={onFeedTypeUpdate}
           disabled={loading}
         >
@@ -212,9 +212,9 @@ export const SettingsSection = ({
       </section>
 
       {/* Twitter Integration Section */}
-      {wise === "customProfiles" && <section className="space-y-4 border-t border-gray-800 pt-6">
+      {wise === "customProfiles" && <section className="space-y-3 border-t border-gray-800 pt-4 sm:space-y-4 sm:pt-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold text-[#7FFFD4]">
+          <h2 className="text-lg font-semibold text-[#7FFFD4] sm:text-xl">
             2. Choose X profiles
           </h2>
           <button
@@ -243,19 +243,19 @@ export const SettingsSection = ({
 
         {linkedTwitter ? (
           <>
-            <p className="text-gray-400">
+            <p className="text-sm text-gray-400 sm:text-base">
               Connected as <strong>@{linkedTwitter}</strong>
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-2 sm:gap-4">
               <button
-                className="rounded-lg bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600"
+                className="rounded-lg bg-red-500 px-3 py-1.5 text-sm text-white transition-colors hover:bg-red-600 sm:px-4 sm:py-2 sm:text-base"
                 onClick={onUnlinkTwitter}
                 disabled={loading}
               >
                 {loading ? "Unlinking..." : "Unlink"}
               </button>
               <button
-                className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+                className="rounded-lg bg-black px-3 py-1.5 text-sm text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black sm:px-4 sm:py-2 sm:text-base"
                 onClick={onShowFollowedProfiles}
                 disabled={isLoadingMoreProfiles}
               >
@@ -269,7 +269,7 @@ export const SettingsSection = ({
           </>
         ) : (
           <>
-            <p className="text-gray-400">
+            <p className="text-sm text-gray-400 sm:text-base">
               Optional: connect your X account to quickly import profiles you already follow
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -279,7 +279,7 @@ export const SettingsSection = ({
                   value={twitterUsername}
                   onChange={onTwitterUsernameChange}
                   placeholder="@YourUsername"
-                  className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none"
+                  className="w-full rounded-lg border border-gray-800 bg-black px-3 py-1.5 text-sm text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none sm:px-4 sm:py-2 sm:text-base"
                   disabled={isConnectingTwitter}
                 />
                 {showTwitterSuggestions && (
@@ -320,7 +320,7 @@ export const SettingsSection = ({
                 )}
               </div>
               <button
-                className="rounded-lg bg-black px-4 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black flex items-center justify-center gap-2"
+                className="rounded-lg bg-black px-3 py-1.5 text-sm text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black flex items-center justify-center gap-2 sm:px-4 sm:py-2 sm:text-base"
                 onClick={onConnectTwitter}
                 disabled={isConnectingTwitter || !twitterUsername}
               >
@@ -420,9 +420,9 @@ export const SettingsSection = ({
       </section>}
 
       {/* 2. Choose topics Section */}
-      {wise === "categorywise" && <section className="space-y-4 border-t border-gray-800 pt-6">
+      {wise === "categorywise" && <section className="space-y-3 border-t border-gray-800 pt-4 sm:space-y-4 sm:pt-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold text-[#7FFFD4]">
+          <h2 className="text-lg font-semibold text-[#7FFFD4] sm:text-xl">
             2. Choose topics
           </h2>
           <button
@@ -453,7 +453,7 @@ export const SettingsSection = ({
           {availableCategories.map((category) => (
             <button
               key={category}
-              className={`rounded-full px-4 py-2 text-sm transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-xs transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 categories.includes(category)
                   ? "bg-[#7FFFD4] text-black"
                   : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
@@ -473,7 +473,7 @@ export const SettingsSection = ({
         </div>
         {wise === "categorywise" && registeredWise === "categorywise" && (
           <button
-            className="mt-4 rounded-full bg-black px-20 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+            className="mt-3 rounded-full bg-black px-6 py-1.5 text-sm text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black sm:mt-4 sm:px-20 sm:py-2 sm:text-base"
             onClick={onCategoryUpdate}
             disabled={loading}
           >
@@ -485,7 +485,7 @@ export const SettingsSection = ({
       {/* Manage Followed Profiles Section */}
       {wise === "customProfiles" && <section className="space-y-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold text-[#7FFFD4]">
+          <h2 className="text-lg font-semibold text-[#7FFFD4] sm:text-xl">
             Your profiles ({profiles.length}/{MAX_CUSTOM_PROFILES})
           </h2>
           <button
@@ -542,7 +542,7 @@ export const SettingsSection = ({
           {profiles.map((profile) => (
             <div
               key={profile.username}
-              className="flex items-center gap-2 rounded-full border border-[#7FFFD4] px-4 py-2 text-sm"
+              className="flex items-center gap-2 rounded-full border border-[#7FFFD4] px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
             >
               <Avatar
                 username={profile.username}
@@ -573,7 +573,7 @@ export const SettingsSection = ({
               value={newProfile}
               onChange={onSearchInputChange}
               placeholder="@username"
-              className="w-full rounded-lg border border-gray-800 bg-black px-4 py-2 text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none disabled:opacity-50"
+              className="w-full rounded-lg border border-gray-800 bg-black px-3 py-1.5 text-sm text-white placeholder-gray-400 focus:border-[#7FFFD4] focus:outline-none disabled:opacity-50 sm:px-4 sm:py-2 sm:text-base"
               disabled={loading || profiles.length >= MAX_CUSTOM_PROFILES}
             />
             {showDropdown && (
@@ -613,7 +613,7 @@ export const SettingsSection = ({
         )}
         {wise === "customProfiles" && registeredWise === "customProfiles" && (
           <button
-            className="mt-4 rounded-full bg-black px-24 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+            className="mt-3 rounded-full bg-black px-6 py-1.5 text-sm text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black sm:mt-4 sm:px-24 sm:py-2 sm:text-base"
             onClick={onProfileUpdate}
             disabled={loading}
           >
@@ -623,9 +623,9 @@ export const SettingsSection = ({
       </section>}
 
       {/* Update Time Section */}
-      <section className="space-y-4 border-t border-gray-800 pt-6">
+      <section className="space-y-3 border-t border-gray-800 pt-4 sm:space-y-4 sm:pt-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold text-[#7FFFD4]">
+          <h2 className="text-lg font-semibold text-[#7FFFD4] sm:text-xl">
             3. Choose delivery time
           </h2>
           <button
@@ -655,7 +655,7 @@ export const SettingsSection = ({
           {availableTimes.map((timeOption) => (
             <button
               key={timeOption}
-              className={`rounded-full px-6 py-2 text-sm transition-colors ${
+              className={`rounded-full px-4 py-1.5 text-xs transition-colors sm:px-6 sm:py-2 sm:text-sm ${
                 time.includes(timeOption)
                   ? "bg-[#7FFFD4] text-black"
                   : "border border-[#7FFFD4] text-[#7FFFD4] hover:bg-[#7FFFD4]/10"
@@ -674,7 +674,7 @@ export const SettingsSection = ({
           ))}
         </div>
         <button
-          className="mt-4 rounded-full bg-black px-28 py-2 text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black"
+          className="mt-3 rounded-full bg-black px-6 py-1.5 text-sm text-[#7FFFD4] border border-[#7FFFD4] transition-colors hover:bg-[#7FFFD4] hover:text-black sm:mt-4 sm:px-28 sm:py-2 sm:text-base"
           onClick={onTimeUpdate}
           disabled={loading}
         >
