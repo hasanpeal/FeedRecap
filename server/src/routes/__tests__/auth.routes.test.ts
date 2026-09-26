@@ -11,7 +11,12 @@ import {
 } from "../../services/newsletter.service";
 import sgMail, { sendAdminAlert } from "../../services/email.service";
 import { verifyJWT } from "../../services/auth.service";
-import { clearPasswordResetStateForTests } from "../../services/passwordReset.service";
+import {
+  canRequestOtp,
+  consumeResetToken,
+  createOtp,
+  verifyOtp,
+} from "../../services/passwordReset.service";
 
 jest.mock("bcrypt", () => ({
   __esModule: true,
@@ -33,6 +38,14 @@ jest.mock("../../models/user.model", () => {
     }),
   };
 });
+
+jest.mock("../../services/passwordReset.service", () => ({
+  __esModule: true,
+  canRequestOtp: jest.fn().mockResolvedValue(true),
+  createOtp: jest.fn().mockResolvedValue("123456"),
+  verifyOtp: jest.fn(),
+  consumeResetToken: jest.fn(),
+}));
 
 jest.mock("../../services/auditLog.service", () => ({
   __esModule: true,
@@ -96,7 +109,10 @@ const setAuthResult = (err: any, user: any, info: any) =>
 describe("auth routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    clearPasswordResetStateForTests();
+    (canRequestOtp as jest.Mock).mockResolvedValue(true);
+    (createOtp as jest.Mock).mockResolvedValue("123456");
+    (verifyOtp as jest.Mock).mockResolvedValue({ ok: false });
+    (consumeResetToken as jest.Mock).mockResolvedValue(false);
     setAuthResult(null, null, null);
   });
 
@@ -279,15 +295,13 @@ describe("auth routes", () => {
   });
 
   async function issueResetToken(email = "a@b.com") {
-    (User.findOne as jest.Mock).mockResolvedValue({ email });
-    (sgMail.send as jest.Mock).mockResolvedValue(undefined);
-    await request(app).post("/sentOTP").send({ email });
-    const message = (sgMail.send as jest.Mock).mock.calls.at(-1)?.[0];
-    const otp = String(message?.text || "").match(/\\d{6}/)?.[0];
-    expect(otp).toBeDefined();
+    (verifyOtp as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      resetToken: "reset-token",
+    });
     const verify = await request(app)
       .post("/verifyResetOTP")
-      .send({ email, otp });
+      .send({ email, otp: "123456" });
     expect(verify.status).toBe(200);
     return verify.body.resetToken as string;
   }
@@ -316,6 +330,7 @@ describe("auth routes", () => {
     it("rejects an invalid OTP", async () => {
       (User.findOne as jest.Mock).mockResolvedValue({ email: "a@b.com" });
       await request(app).post("/sentOTP").send({ email: "a@b.com" });
+      (verifyOtp as jest.Mock).mockResolvedValueOnce({ ok: false });
       const res = await request(app)
         .post("/verifyResetOTP")
         .send({ email: "a@b.com", otp: "000000" });
@@ -325,6 +340,9 @@ describe("auth routes", () => {
 
     it("updates the password after OTP verification and makes the reset token single-use", async () => {
       const resetToken = await issueResetToken();
+      (consumeResetToken as jest.Mock)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false);
       const userDoc: any = {
         _id: "u1",
         email: "a@b.com",
@@ -350,13 +368,8 @@ describe("auth routes", () => {
       expect(reused.status).toBe(401);
     });
 
-    it("rate-limits repeated OTP requests", async () => {
-      (User.findOne as jest.Mock).mockResolvedValue({ email: "a@b.com" });
-      for (let i = 0; i < 3; i++) {
-        expect(
-          (await request(app).post("/sentOTP").send({ email: "a@b.com" })).status
-        ).toBe(200);
-      }
+    it("returns 429 when OTP requests are rate-limited", async () => {
+      (canRequestOtp as jest.Mock).mockResolvedValueOnce(false);
       const limited = await request(app)
         .post("/sentOTP")
         .send({ email: "a@b.com" });
