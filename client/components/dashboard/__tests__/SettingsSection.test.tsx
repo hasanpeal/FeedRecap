@@ -185,6 +185,7 @@ describe("SettingsSection — Twitter connect", () => {
     render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           showTwitterSuggestions: true,
           twitterSuggestions: ["elonmusk"],
           setTwitterUsername,
@@ -211,6 +212,7 @@ describe("SettingsSection — Twitter connect", () => {
     rerender(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           showTwitterSuggestions: true,
           loadingTwitterSuggestions: false,
           twitterSuggestions: [],
