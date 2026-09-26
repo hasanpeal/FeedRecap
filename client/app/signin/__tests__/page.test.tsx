@@ -217,7 +217,10 @@ describe("Signin page", () => {
     });
     mockedAxios.post.mockImplementation((url: string) => {
       if (url.includes("/sentOTP")) {
-        return Promise.resolve({ data: { otp: "123456" } });
+        return Promise.resolve({ data: { code: 0 } });
+      }
+      if (url.includes("/verifyResetOTP")) {
+        return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
       }
       return Promise.reject(new Error("unexpected url"));
     });
@@ -260,7 +263,10 @@ describe("Signin page", () => {
     });
     mockedAxios.post.mockImplementation((url: string) => {
       if (url.includes("/sentOTP")) {
-        return Promise.resolve({ data: { otp: "999999" } });
+        return Promise.resolve({ data: { code: 0 } });
+      }
+      if (url.includes("/verifyResetOTP")) {
+        return Promise.reject({ response: { status: 401 } });
       }
       return Promise.reject(new Error("unexpected url"));
     });
@@ -503,7 +509,7 @@ describe("Signin page", () => {
     await waitFor(() =>
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining("/resetPassword"),
-        { email: "user@example.com", newPassword: "newpassword1" }
+        { email: "user@example.com", newPassword: "newpassword1", resetToken: "reset-token" }
       )
     );
     await waitFor(() =>
@@ -625,7 +631,7 @@ describe("Signin page", () => {
     await waitFor(() =>
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining("/resetPassword"),
-        { email: "ghost@example.com", newPassword: "newpassword1" }
+        { email: "ghost@example.com", newPassword: "newpassword1", resetToken: "reset-token" }
       )
     );
     expect(document.querySelector(".loading-spinner")).not.toBeInTheDocument();
