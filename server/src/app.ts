@@ -13,6 +13,7 @@ import activityRoutes from "./routes/activity.routes";
 import adminRoutes from "./routes/admin.routes";
 import contactRoutes from "./routes/contact.routes";
 import bookmarkRoutes from "./routes/bookmark.routes";
+import { apiRateLimit } from "./middleware/rateLimit.middleware";
 
 const app = express();
 
@@ -40,6 +41,9 @@ process.on("SIGTERM", async () => {
   }
   process.exit(0);
 });
+
+// Apply a shared Redis-backed safety limit across API traffic before routes.
+app.use(apiRateLimit);
 
 // Passport is only used for OAuth, not for session management
 app.use(passport.initialize());
