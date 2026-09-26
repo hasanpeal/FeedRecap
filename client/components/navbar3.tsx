@@ -211,9 +211,9 @@ export default function Navbar2() {
   return (
     <header className="bg-black border-b border-gray-800">
       <Toaster />
-      <div className="py-4 px-6 flex items-center justify-between max-w-7xl mx-auto">
+      <div className="relative py-3 sm:py-4 px-4 sm:px-6 flex items-center justify-between max-w-7xl mx-auto">
         <Link href="/dashboard" className="flex items-center">
-          <span className="text-3xl font-extrabold tracking-tight">
+          <span className="text-xl sm:text-3xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
               Feed
             </span>
@@ -221,44 +221,58 @@ export default function Navbar2() {
           </span>
         </Link>
 
-        {menuOpen || (
-          <button
-            className="md:hidden text-[#7FFFD4]"
-            onClick={() => setMenuOpen(true)}
+        <button
+          type="button"
+          aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={menuOpen}
+          className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-700 bg-[#111] text-[#7FFFD4] transition-colors hover:border-[#7FFFD4]/60 hover:bg-[#7FFFD4]/10 focus:outline-none focus:ring-2 focus:ring-[#7FFFD4]/50"
+          onClick={(event) => {
+            event.stopPropagation();
+            setMenuOpen((open) => !open);
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
+            {menuOpen ? (
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d="M4 6h16M4 12h16m-7 6h7"
+                d="M6 18 18 6M6 6l12 12"
               />
-            </svg>
-          </button>
-        )}
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 7h16M4 12h16M4 17h16"
+              />
+            )}
+          </svg>
+        </button>
 
         <nav
           ref={dropdownRef}
           className={`${
-            menuOpen ? "block bg-black" : "hidden"
-          } md:flex md:bg-transparent md:shadow-none flex-col md:flex-row items-center md:space-x-7 space-y-2 md:space-y-0 p-4 md:p-0 rounded md:rounded-none shadow md:shadow-none`}
+            menuOpen ? "flex" : "hidden"
+          } absolute right-4 top-[calc(100%+0.5rem)] z-50 min-w-44 flex-col items-stretch gap-1 rounded-xl border border-gray-800 bg-[#111] p-2 shadow-xl md:static md:z-auto md:flex md:min-w-0 md:flex-row md:items-center md:gap-0 md:space-x-7 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
         >
           {isAdmin && (
             <Link
               href="/admin"
-              className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
+              className="text-[#7FFFD4] font-semibold w-full md:w-auto rounded-lg px-3 py-2 text-left md:px-0 md:py-0 md:text-center hover:bg-white/5 md:hover:bg-transparent hover:text-white transition-colors"
             >
               Admin
             </Link>
           )}
           <button
-            className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
+            className="text-[#7FFFD4] font-semibold w-full md:w-auto rounded-lg px-3 py-2 text-left md:px-0 md:py-0 md:text-center hover:bg-white/5 md:hover:bg-transparent hover:text-white transition-colors"
             onClick={() => {
               const modal = document.getElementById(
                 "report_modal"
@@ -271,7 +285,7 @@ export default function Navbar2() {
             Feedback
           </button>
           {/* <button
-            className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
+            className="text-[#7FFFD4] font-semibold w-full md:w-auto rounded-lg px-3 py-2 text-left md:px-0 md:py-0 md:text-center hover:bg-white/5 md:hover:bg-transparent hover:text-white transition-colors"
             onClick={() => {
               const modal = document.getElementById(
                 "account_modal"
@@ -284,7 +298,7 @@ export default function Navbar2() {
             Account
           </button> */}
           <button
-            className="text-[#7FFFD4] font-semibold w-full md:w-auto text-left md:text-center hover:text-white transition-colors"
+            className="text-[#7FFFD4] font-semibold w-full md:w-auto rounded-lg px-3 py-2 text-left md:px-0 md:py-0 md:text-center hover:bg-white/5 md:hover:bg-transparent hover:text-white transition-colors"
             onClick={handleLogout}
           >
             Logout
