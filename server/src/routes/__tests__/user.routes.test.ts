@@ -392,7 +392,7 @@ describe("user routes", () => {
     it("uses JWT identity and ignores a caller-supplied email", async () => {
       (User.findOneAndUpdate as jest.Mock).mockResolvedValue({
         _id: "u1",
-        email: "a@b.com",
+        email: "user@example.com",
       });
       const res = await request(app)
         .post("/saveX")
@@ -404,7 +404,7 @@ describe("user routes", () => {
 
       expect(res.status).toBe(200);
       expect(User.findOneAndUpdate).toHaveBeenCalledWith(
-        { email: "a@b.com" },
+        { email: "user@example.com" },
         { twitterUsername: "handle" }
       );
       expect(User.findOneAndUpdate).not.toHaveBeenCalledWith(
@@ -415,7 +415,7 @@ describe("user routes", () => {
         expect.anything(),
         expect.objectContaining({
           userId: "u1",
-          email: "a@b.com",
+          email: "user@example.com",
           activityType: "TWITTER_ACCOUNT_LINKED",
         })
       );
