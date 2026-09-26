@@ -10,11 +10,7 @@ describe("sanitizeNewsletterHtml", () => {
     expect(clean).not.toContain("<script");
     expect(clean).not.toContain("onclick");
     expect(clean).not.toContain("onerror");
-    it("rejects javascript URLs used by dynamic React links", () => {
-    expect(safeExternalHref("javascript:alert(1)")).toBeUndefined();
-    expect(safeExternalHref("https://feedrecap.com")).toBe("https://feedrecap.com");
   });
-});
 
   it("removes dangerous URL schemes and hardens safe links", () => {
     const clean = sanitizeNewsletterHtml(
@@ -33,5 +29,10 @@ describe("sanitizeNewsletterHtml", () => {
     );
 
     expect(clean).toBe("<div>safe</div>");
+  });
+
+  it("rejects javascript URLs used by dynamic React links", () => {
+    expect(safeExternalHref("javascript:alert(1)")).toBeUndefined();
+    expect(safeExternalHref("https://feedrecap.com")).toBe("https://feedrecap.com");
   });
 });
