@@ -373,32 +373,69 @@ describe("user routes", () => {
   });
 
   describe("POST /saveX", () => {
-    it("returns 400 when email or twitterUsername missing", async () => {
-      const res = await request(app).post("/saveX").send({ email: "a@b.com" });
+    it("returns 401 without a token", async () => {
+      const res = await request(app)
+        .post("/saveX")
+        .send({ twitterUsername: "handle" });
+      expect(res.status).toBe(401);
+      expect(User.findOneAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when twitterUsername is missing", async () => {
+      const res = await request(app)
+        .post("/saveX")
+        .set("Authorization", `Bearer ${token}`)
+        .send({});
       expect(res.status).toBe(400);
     });
 
-    it("links and logs activity when the user exists", async () => {
+    it("uses JWT identity and ignores a caller-supplied email", async () => {
       (User.findOneAndUpdate as jest.Mock).mockResolvedValue({
         _id: "u1",
         email: "a@b.com",
       });
       const res = await request(app)
         .post("/saveX")
-        .send({ email: "a@b.com", twitterUsername: "handle" });
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          email: "victim@example.com",
+          twitterUsername: "handle",
+        });
+
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
+      expect(User.findOneAndUpdate).toHaveBeenCalledWith(
+        { email: "a@b.com" },
+        { twitterUsername: "handle" }
+      );
+      expect(User.findOneAndUpdate).not.toHaveBeenCalledWith(
+        { email: "victim@example.com" },
+        expect.anything()
+      );
       expect(logActivity).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ activityType: "TWITTER_ACCOUNT_LINKED" })
+        expect.objectContaining({
+          userId: "u1",
+          email: "a@b.com",
+          activityType: "TWITTER_ACCOUNT_LINKED",
+        })
       );
+    });
+
+    it("returns 404 when the authenticated user no longer exists", async () => {
+      (User.findOneAndUpdate as jest.Mock).mockResolvedValue(null);
+      const res = await request(app)
+        .post("/saveX")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ twitterUsername: "handle" });
+      expect(res.status).toBe(404);
     });
 
     it("returns 500 on unexpected error", async () => {
       (User.findOneAndUpdate as jest.Mock).mockRejectedValue(new Error("db down"));
       const res = await request(app)
         .post("/saveX")
-        .send({ email: "a@b.com", twitterUsername: "handle" });
+        .set("Authorization", `Bearer ${token}`)
+        .send({ twitterUsername: "handle" });
       expect(res.status).toBe(500);
     });
   });
