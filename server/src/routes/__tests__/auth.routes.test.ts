@@ -117,6 +117,8 @@ const setAuthResult = (err: any, user: any, info: any) =>
 
 describe("auth routes", () => {
   beforeEach(() => {
+    process.env.ORIGIN = "http://localhost:3000";
+    process.env.CLIENT_URL = "http://localhost:3000";
     jest.clearAllMocks();
     (canRequestOtp as jest.Mock).mockResolvedValue(true);
     (createOtp as jest.Mock).mockResolvedValue("123456");
@@ -192,7 +194,10 @@ describe("auth routes", () => {
 
   describe("POST /refresh", () => {
     it("returns 401 when the refresh cookie is missing", async () => {
-      const res = await request(app).post("/refresh");
+      const res = await request(app)
+        .post("/refresh")
+        .set("Origin", "http://localhost:3000")
+        .set("X-CSRF-Protection", "1");
       expect(res.status).toBe(401);
     });
 
@@ -223,6 +228,8 @@ describe("auth routes", () => {
       });
       const res = await request(app)
         .post("/refresh")
+        .set("Origin", "http://localhost:3000")
+        .set("X-CSRF-Protection", "1")
         .set("Cookie", "feedrecap_refresh=old-token");
 
       expect(res.status).toBe(200);
@@ -245,6 +252,8 @@ describe("auth routes", () => {
       });
       const res = await request(app)
         .post("/logout")
+        .set("Origin", "http://localhost:3000")
+        .set("X-CSRF-Protection", "1")
         .set("Authorization", `Bearer ${token}`);
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ code: 0, message: "Logout successful" });
