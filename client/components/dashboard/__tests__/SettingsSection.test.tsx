@@ -101,14 +101,11 @@ describe("SettingsSection — Feed Type", () => {
     const user = userEvent.setup();
     const setShowSettingInfo = jest.fn();
     render(<SettingsSection {...baseProps({ setShowSettingInfo })} />);
+    render(<SettingsSection {...baseProps({ wise: "customProfiles", setShowSettingInfo })} />);
     await user.click(
       screen.getByRole("button", { name: "Show Twitter connect information" })
     );
     expect(setShowSettingInfo).toHaveBeenCalledWith("twitter-connect");
-    await user.click(
-      screen.getByRole("button", { name: "Show categories information" })
-    );
-    expect(setShowSettingInfo).toHaveBeenCalledWith("categories");
     await user.click(
       screen.getByRole("button", {
         name: "Show profiles management information",
@@ -140,7 +137,7 @@ describe("SettingsSection — Feed Type", () => {
 
 describe("SettingsSection — Twitter connect", () => {
   it("shows the connect form when not linked", () => {
-    render(<SettingsSection {...baseProps({ linkedTwitter: null })} />);
+    render(<SettingsSection {...baseProps({ linkedTwitter: null, wise: "customProfiles" })} />);
     expect(
       screen.getByPlaceholderText("@YourUsername")
     ).toBeInTheDocument();
@@ -150,7 +147,7 @@ describe("SettingsSection — Twitter connect", () => {
     const user = userEvent.setup();
     const onTwitterUsernameChange = jest.fn();
     render(
-      <SettingsSection {...baseProps({ onTwitterUsernameChange })} />
+      <SettingsSection {...baseProps({ wise: "customProfiles", onTwitterUsernameChange })} />
     );
     await user.type(screen.getByPlaceholderText("@YourUsername"), "a");
     expect(onTwitterUsernameChange).toHaveBeenCalled();
@@ -161,14 +158,14 @@ describe("SettingsSection — Twitter connect", () => {
     const onConnectTwitter = jest.fn();
     render(
       <SettingsSection
-        {...baseProps({ twitterUsername: "", onConnectTwitter })}
+        {...baseProps({ wise: "customProfiles", twitterUsername: "", onConnectTwitter })}
       />
     );
     expect(screen.getByText("Connect").closest("button")).toBeDisabled();
 
     render(
       <SettingsSection
-        {...baseProps({ twitterUsername: "elon", onConnectTwitter })}
+        {...baseProps({ wise: "customProfiles", twitterUsername: "elon", onConnectTwitter })}
       />
     );
     const connectBtns = screen.getAllByText("Connect");
@@ -179,7 +176,7 @@ describe("SettingsSection — Twitter connect", () => {
   it("shows a connecting spinner state", () => {
     render(
       <SettingsSection
-        {...baseProps({ isConnectingTwitter: true, twitterUsername: "elon" })}
+        {...baseProps({ wise: "customProfiles", isConnectingTwitter: true, twitterUsername: "elon" })}
       />
     );
     expect(screen.getByText("Connecting...")).toBeInTheDocument();
@@ -234,6 +231,7 @@ describe("SettingsSection — Twitter connect", () => {
     render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           linkedTwitter: "elonmusk",
           onUnlinkTwitter,
           onShowFollowedProfiles,
@@ -250,7 +248,8 @@ describe("SettingsSection — Twitter connect", () => {
   it("shows an unlinking spinner label while loading", () => {
     render(
       <SettingsSection
-        {...baseProps({ linkedTwitter: "elonmusk", loading: true })}
+        {...baseProps({ wise: "customProfiles",
+          linkedTwitter: "elonmusk", loading: true })}
       />
     );
     expect(screen.getByText("Unlinking...")).toBeInTheDocument();
@@ -268,6 +267,7 @@ describe("SettingsSection — Twitter connect", () => {
     render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           linkedTwitter: "elonmusk",
           showTwitterFollowing: true,
           twitterFollowing: [account],
@@ -288,6 +288,7 @@ describe("SettingsSection — Twitter connect", () => {
     render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           linkedTwitter: "elonmusk",
           showTwitterFollowing: true,
           isLoadingMoreProfiles: true,
@@ -380,7 +381,7 @@ describe("SettingsSection — Manage Profiles", () => {
         })}
       />
     );
-    expect(screen.getByText("Manage Followed Profiles (1/10)")).toBeInTheDocument();
+    expect(screen.getByText("Your profiles (1/10)")).toBeInTheDocument();
     await user.click(screen.getByText("×"));
     expect(onRemoveProfile).toHaveBeenCalledWith("alice");
   });
@@ -447,7 +448,7 @@ describe("SettingsSection — Time", () => {
     expect(updater(["Morning"])).toEqual(["Morning", "Afternoon"]);
     expect(updater(["Morning", "Afternoon"])).toEqual(["Morning"]);
 
-    await user.click(screen.getByText("Update Time"));
+    await user.click(screen.getByText("Save Delivery Time"));
     expect(onTimeUpdate).toHaveBeenCalledTimes(1);
   });
 
