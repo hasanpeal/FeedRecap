@@ -1,7 +1,7 @@
 import app from "./app";
 import { startBackgroundJobs } from "./jobs";
 
-const port = 3001;
+const port = Number(process.env.PORT) || 3001;
 
 startBackgroundJobs();
 
