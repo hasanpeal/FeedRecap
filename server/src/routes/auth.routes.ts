@@ -178,7 +178,7 @@ router.post("/resetPassword", async (req, res) => {
   if (!email || !newPassword || !resetToken) {
     return res.status(400).json({ code: 1, message: "Invalid reset request" });
   }
-  if (!consumeResetToken(email, resetToken)) {
+  if (!(await consumeResetToken(email, resetToken))) {
     return res.status(401).json({ code: 1, message: "Invalid or expired reset authorization" });
   }
   try {
@@ -211,7 +211,7 @@ router.post("/sentOTP", async (req, res) => {
   if (!email) {
     return res.status(400).send({ code: 1, message: "Email is required" });
   }
-  if (!canRequestOtp(email)) {
+  if (!(await canRequestOtp(email))) {
     return res.status(429).send({ code: 1, message: "Too many OTP requests. Please try again later." });
   }
 
@@ -222,7 +222,7 @@ router.post("/sentOTP", async (req, res) => {
     return res.status(200).send({ code: 0, message: "If the account exists, an OTP has been sent." });
   }
 
-  const otp = createOtp(email);
+  const otp = await createOtp(email);
   const msg = {
     to: email,
     from: process.env.FROM_EMAIL || "",
@@ -247,7 +247,7 @@ router.post("/verifyResetOTP", async (req, res) => {
     return res.status(400).json({ code: 1, message: "Invalid OTP" });
   }
 
-  const result = verifyOtp(email, otp);
+  const result = await verifyOtp(email, otp);
   if (!result.ok) {
     return res.status(401).json({ code: 1, message: "Invalid or expired OTP" });
   }
