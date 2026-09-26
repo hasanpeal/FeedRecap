@@ -40,6 +40,7 @@ import { Newsletter } from "../../models/newsletter.model";
 import { StoredTweets, CustomProfilePosts } from "../../models/tweet.model";
 import {
   isValidEmail,
+  escapeUntrustedMarkdown,
   fetchTweetsForCategories,
   getStoredTweetsForUser,
   generateNewsletter,
@@ -235,6 +236,42 @@ describe("getStoredTweetsForUser", () => {
     const result = await getStoredTweetsForUser(userId);
 
     expect(result).toEqual({ tweetsByProfiles: [], top15Tweets: [] });
+  });
+});
+
+describe("newsletter XSS protection", () => {
+  it("escapes raw HTML and neutralizes Markdown links in untrusted content", () => {
+    const value = escapeUntrustedMarkdown(
+      '<img src=x onerror="alert(1)"> [click](javascript:alert(1))'
+    );
+    expect(value).toContain("&lt;img");
+    expect(value).not.toContain("<img");
+    expect(value).toContain("\\[click\\]");
+  });
+
+  it("does not emit executable HTML from model output or tweet text", async () => {
+    mockCreate.mockResolvedValue({
+      choices: [{
+        message: {
+          content: '<script>alert("model")</script> [bad](javascript:alert(1))',
+        },
+      }],
+    });
+
+    const html = await generateNewsletter([], [{
+      screenName: 'attacker"><img src=x onerror=alert(2)>',
+      category: "Tech",
+      tweet: '<img src=x onerror="alert(3)">',
+      likes: 1,
+      tweet_id: '1" onclick="alert(4)',
+    }]);
+
+    expect(html).toBeDefined();
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain('onclick="alert(4)');
+    expect(html).toContain("https://x.com/");
   });
 });
 
