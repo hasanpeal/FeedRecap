@@ -12,6 +12,7 @@ import {
   isValidEmail,
 } from "../services/newsletter.service";
 import { INSTANCE_ID } from "./instanceId";
+import { sendCriticalSystemAlert } from "../services/email.service";
 import {
   newsletterQueue,
   newsletterTaskQueue,
@@ -123,6 +124,7 @@ export async function startNewsletterScheduler(): Promise<void> {
   );
   newsletterWorker.on("failed", (job, error) => {
     console.error(`[Newsletter] Dispatch job "${job?.id}" failed:`, error);
+    void sendCriticalSystemAlert("Newsletter dispatch failure", error, `jobId=${job?.id || "unknown"}`);
   });
 
   // Every replica runs one of these workers, listening on the same task
@@ -147,6 +149,10 @@ export async function startNewsletterScheduler(): Promise<void> {
   );
   newsletterTaskWorker.on("failed", (job, error) => {
     console.error(`[Newsletter] Task "${job?.id}" failed:`, error);
+    const attempts = job?.opts?.attempts || 1;
+    if ((job?.attemptsMade || 0) >= attempts) {
+      void sendCriticalSystemAlert("Newsletter task exhausted retries", error, `jobId=${job?.id || "unknown"}`);
+    }
   });
 }
 
