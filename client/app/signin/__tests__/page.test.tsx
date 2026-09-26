@@ -348,7 +348,11 @@ describe("Signin page", () => {
       if (url.includes("/validateEmail")) return Promise.resolve({ status: 200 });
       return Promise.reject(new Error("unexpected url"));
     });
-    mockedAxios.post.mockResolvedValue({ data: { otp: "123456" } });
+    mockedAxios.post.mockImplementation((url: string) => {
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
+      return Promise.reject(new Error("unexpected url"));
+    });
 
     renderSignin();
     const user = userEvent.setup();
@@ -382,7 +386,8 @@ describe("Signin page", () => {
       return Promise.reject(new Error("unexpected url"));
     });
     mockedAxios.post.mockImplementation((url: string) => {
-      if (url.includes("/sentOTP")) return Promise.resolve({ data: { otp: "111111" } });
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
       return Promise.reject(new Error("unexpected url"));
     });
 
@@ -447,7 +452,8 @@ describe("Signin page", () => {
       return Promise.reject(new Error("unexpected url"));
     });
     mockedAxios.post.mockImplementation((url: string) => {
-      if (url.includes("/sentOTP")) return Promise.resolve({ data: { otp: "111111" } });
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
       if (url.includes("/resetPassword")) return Promise.resolve({ status: 200 });
       return Promise.reject(new Error("unexpected url"));
     });
@@ -512,7 +518,8 @@ describe("Signin page", () => {
       return Promise.reject(new Error("unexpected url"));
     });
     mockedAxios.post.mockImplementation((url: string) => {
-      if (url.includes("/sentOTP")) return Promise.resolve({ data: { otp: "111111" } });
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
       if (url.includes("/resetPassword")) return Promise.reject(new Error("network error"));
       return Promise.reject(new Error("unexpected url"));
     });
@@ -568,7 +575,8 @@ describe("Signin page", () => {
       return Promise.reject(new Error("unexpected url"));
     });
     mockedAxios.post.mockImplementation((url: string) => {
-      if (url.includes("/sentOTP")) return Promise.resolve({ data: { otp: "111111" } });
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
       if (url.includes("/resetPassword"))
         return Promise.reject({ response: { status: 404 } });
       return Promise.reject(new Error("unexpected url"));
@@ -902,7 +910,11 @@ describe("Signin page", () => {
       if (url.includes("/validateEmail")) return Promise.resolve({ status: 200 });
       return Promise.reject(new Error("unexpected url"));
     });
-    mockedAxios.post.mockResolvedValue({ data: { otp: "123456" } });
+    mockedAxios.post.mockImplementation((url: string) => {
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
+      return Promise.reject(new Error("unexpected url"));
+    });
 
     renderSignin();
     const user = userEvent.setup();
@@ -934,7 +946,11 @@ describe("Signin page", () => {
       if (url.includes("/validateEmail")) return Promise.resolve({ status: 200 });
       return Promise.reject(new Error("unexpected url"));
     });
-    mockedAxios.post.mockResolvedValue({ data: { otp: "123456" } });
+    mockedAxios.post.mockImplementation((url: string) => {
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
+      return Promise.reject(new Error("unexpected url"));
+    });
 
     renderSignin();
     const user = userEvent.setup();
@@ -969,7 +985,8 @@ describe("Signin page", () => {
       return Promise.reject(new Error("unexpected url"));
     });
     mockedAxios.post.mockImplementation((url: string) => {
-      if (url.includes("/sentOTP")) return Promise.resolve({ data: { otp: "111111" } });
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
       return Promise.reject(new Error("unexpected url"));
     });
 
@@ -1021,7 +1038,8 @@ describe("Signin page", () => {
       return Promise.reject(new Error("unexpected url"));
     });
     mockedAxios.post.mockImplementation((url: string) => {
-      if (url.includes("/sentOTP")) return Promise.resolve({ data: { otp: "111111" } });
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
       return Promise.reject(new Error("unexpected url"));
     });
 
@@ -1070,7 +1088,8 @@ describe("Signin page", () => {
       return Promise.reject(new Error("unexpected url"));
     });
     mockedAxios.post.mockImplementation((url: string) => {
-      if (url.includes("/sentOTP")) return Promise.resolve({ data: { otp: "111111" } });
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
       if (url.includes("/resetPassword")) return Promise.resolve({ status: 500 });
       return Promise.reject(new Error("unexpected url"));
     });
@@ -1126,7 +1145,8 @@ describe("Signin page", () => {
       return Promise.reject(new Error("unexpected url"));
     });
     mockedAxios.post.mockImplementation((url: string) => {
-      if (url.includes("/sentOTP")) return Promise.resolve({ data: { otp: "111111" } });
+      if (url.includes("/sentOTP")) return Promise.resolve({ data: { code: 0 } });
+      if (url.includes("/verifyResetOTP")) return Promise.resolve({ status: 200, data: { code: 0, resetToken: "reset-token" } });
       return Promise.reject(new Error("unexpected url"));
     });
 
