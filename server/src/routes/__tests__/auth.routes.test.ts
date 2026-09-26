@@ -11,6 +11,7 @@ import {
 } from "../../services/newsletter.service";
 import sgMail, { sendAdminAlert } from "../../services/email.service";
 import { verifyJWT } from "../../services/auth.service";
+import { rotateRefreshToken, revokeRefreshToken } from "../../services/refreshToken.service";
 import {
   canRequestOtp,
   consumeResetToken,
@@ -189,6 +190,45 @@ describe("auth routes", () => {
     });
   });
 
+  describe("POST /refresh", () => {
+    it("returns 401 when the refresh cookie is missing", async () => {
+      const res = await request(app).post("/refresh");
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects an untrusted browser origin", async () => {
+      const res = await request(app)
+        .post("/refresh")
+        .set("Origin", "https://evil.example");
+      expect(res.status).toBe(403);
+      expect(rotateRefreshToken).not.toHaveBeenCalled();
+    });
+
+    it("returns 401 and clears an invalid refresh token", async () => {
+      (rotateRefreshToken as jest.Mock).mockResolvedValueOnce(null);
+      const res = await request(app)
+        .post("/refresh")
+        .set("Cookie", "feedrecap_refresh=old-token");
+      expect(res.status).toBe(401);
+      expect(String(res.headers["set-cookie"])).toContain("feedrecap_refresh=");
+    });
+
+    it("rotates the refresh token and returns a new access token", async () => {
+      (rotateRefreshToken as jest.Mock).mockResolvedValueOnce({
+        token: "next-refresh",
+        session: { userId: "u1", email: "a@b.com" },
+      });
+      const res = await request(app)
+        .post("/refresh")
+        .set("Cookie", "feedrecap_refresh=old-token");
+
+      expect(res.status).toBe(200);
+      expect(res.body.token).toEqual(expect.any(String));
+      expect(verifyJWT(res.body.token).email).toBe("a@b.com");
+      expect(String(res.headers["set-cookie"])).toContain("next-refresh");
+    });
+  });
+
   describe("POST /logout", () => {
     it("returns 401 without a token", async () => {
       const res = await request(app).post("/logout");
@@ -205,6 +245,7 @@ describe("auth routes", () => {
         .set("Authorization", `Bearer ${token}`);
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ code: 0, message: "Logout successful" });
+      expect(revokeRefreshToken).not.toHaveBeenCalled();
       expect(logActivity).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ activityType: "LOGOUT" })
