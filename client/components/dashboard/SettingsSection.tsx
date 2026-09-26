@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Loader2, Check, UserPlus, X } from "lucide-react";
 import { XLogo } from "./XLogo";
 import { Avatar } from "./Avatar";
