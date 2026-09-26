@@ -87,6 +87,23 @@ describe("SettingsSection — Feed Type", () => {
     expect(screen.getByText(/Choose how your feed is organized/)).toBeInTheDocument();
   });
 
+  it("closes an open info panel from its dismiss button", async () => {
+    const user = userEvent.setup();
+    const setShowSettingInfo = jest.fn();
+    render(
+      <SettingsSection
+        {...baseProps({
+          showSettingInfo: "feed-type",
+          setShowSettingInfo,
+        })}
+      />
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Close setting information" })
+    );
+    expect(setShowSettingInfo).toHaveBeenCalledWith(null);
+  });
+
   it("opens the info panel when the info icon is clicked", async () => {
     const user = userEvent.setup();
     const setShowSettingInfo = jest.fn();
