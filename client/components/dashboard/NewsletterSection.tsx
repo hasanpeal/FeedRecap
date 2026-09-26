@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { XLogo } from "./XLogo";
+import { sanitizeNewsletterHtml } from "@/utils/sanitizeHtml";
 
 interface NewsletterSectionProps {
   latestNewsletter: string | null;
@@ -78,7 +79,7 @@ export const NewsletterSection = ({
         ref={contentRef}
         className="prose prose-invert max-w-none p-4 border border-gray-800 rounded-lg bg-[#111]"
         dangerouslySetInnerHTML={{
-          __html: newlatestNewsletter || "<p>No newsletters available.</p>",
+          __html: sanitizeNewsletterHtml(newlatestNewsletter || "<p>No newsletters available.</p>"),
         }}
       />
     </div>
