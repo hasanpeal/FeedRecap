@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { PasswordReset } from "../models/passwordReset.model";
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
@@ -6,106 +7,112 @@ const MAX_VERIFY_ATTEMPTS = 5;
 const OTP_REQUEST_WINDOW_MS = 15 * 60 * 1000;
 const MAX_OTP_REQUESTS = 3;
 
-interface OtpRecord {
-  otpHash: string;
-  expiresAt: number;
-  attempts: number;
-}
-
-interface ResetRecord {
-  email: string;
-  expiresAt: number;
-}
-
-const otpRecords = new Map<string, OtpRecord>();
-const resetTokens = new Map<string, ResetRecord>();
-const requestHistory = new Map<string, number[]>();
-
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 const hash = (value: string) =>
   crypto.createHash("sha256").update(value).digest("hex");
 
-export function canRequestOtp(email: string): boolean {
+export async function canRequestOtp(email: string): Promise<boolean> {
   const key = normalizeEmail(email);
-  const now = Date.now();
-  const recent = (requestHistory.get(key) || []).filter(
-    (timestamp) => now - timestamp < OTP_REQUEST_WINDOW_MS
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - OTP_REQUEST_WINDOW_MS);
+  const existing = await PasswordReset.findOne({ email: key }).lean();
+  const recent = (existing?.requestTimestamps || []).filter(
+    (timestamp: Date) => new Date(timestamp) >= windowStart
   );
-  if (recent.length >= MAX_OTP_REQUESTS) {
-    requestHistory.set(key, recent);
-    return false;
-  }
+  if (recent.length >= MAX_OTP_REQUESTS) return false;
+
   recent.push(now);
-  requestHistory.set(key, recent);
+  await PasswordReset.findOneAndUpdate(
+    { email: key },
+    {
+      $set: {
+        requestTimestamps: recent,
+        expiresAt: new Date(now.getTime() + OTP_REQUEST_WINDOW_MS),
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
   return true;
 }
 
-export function createOtp(email: string): string {
+export async function createOtp(email: string): Promise<string> {
   const normalizedEmail = normalizeEmail(email);
   const otp = crypto.randomInt(100000, 1000000).toString();
-  otpRecords.set(normalizedEmail, {
-    otpHash: hash(otp),
-    expiresAt: Date.now() + OTP_TTL_MS,
-    attempts: 0,
-  });
+  const now = Date.now();
+  await PasswordReset.findOneAndUpdate(
+    { email: normalizedEmail },
+    {
+      $set: {
+        otpHash: hash(otp),
+        otpExpiresAt: new Date(now + OTP_TTL_MS),
+        otpAttempts: 0,
+        expiresAt: new Date(now + Math.max(OTP_TTL_MS, OTP_REQUEST_WINDOW_MS)),
+      },
+      $unset: { resetTokenHash: 1, resetTokenExpiresAt: 1 },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
   return otp;
 }
 
-export function verifyOtp(
+export async function verifyOtp(
   email: string,
   otp: string
-): { ok: true; resetToken: string } | { ok: false } {
+): Promise<{ ok: true; resetToken: string } | { ok: false }> {
   const normalizedEmail = normalizeEmail(email);
-  const record = otpRecords.get(normalizedEmail);
-  if (!record || record.expiresAt < Date.now()) {
-    otpRecords.delete(normalizedEmail);
-    return { ok: false };
-  }
+  const record = await PasswordReset.findOneAndUpdate(
+    {
+      email: normalizedEmail,
+      otpExpiresAt: { $gt: new Date() },
+      otpAttempts: { $lt: MAX_VERIFY_ATTEMPTS },
+    },
+    { $inc: { otpAttempts: 1 } },
+    { new: true }
+  ).lean();
 
-  record.attempts += 1;
-  if (record.attempts > MAX_VERIFY_ATTEMPTS) {
-    otpRecords.delete(normalizedEmail);
-    return { ok: false };
-  }
+  if (!record?.otpHash) return { ok: false };
 
-  const candidate = Buffer.from(hash(otp));
-  const expected = Buffer.from(record.otpHash);
+  const candidate = Buffer.from(hash(otp), "hex");
+  const expected = Buffer.from(record.otpHash, "hex");
   if (
     candidate.length !== expected.length ||
-    !crypto.timingSafeEqual(Uint8Array.from(candidate), Uint8Array.from(expected))
+    !crypto.timingSafeEqual(
+      Uint8Array.from(candidate),
+      Uint8Array.from(expected)
+    )
   ) {
     return { ok: false };
   }
 
-  otpRecords.delete(normalizedEmail);
   const resetToken = crypto.randomBytes(32).toString("hex");
-  resetTokens.set(hash(resetToken), {
-    email: normalizedEmail,
-    expiresAt: Date.now() + RESET_TOKEN_TTL_MS,
-  });
-  return { ok: true, resetToken };
+  const now = Date.now();
+  // Replace the OTP with a reset-token hash. No raw credential is persisted.
+  const updated = await PasswordReset.findOneAndUpdate(
+    { _id: record._id, otpHash: record.otpHash },
+    {
+      $set: {
+        resetTokenHash: hash(resetToken),
+        resetTokenExpiresAt: new Date(now + RESET_TOKEN_TTL_MS),
+        expiresAt: new Date(now + RESET_TOKEN_TTL_MS),
+      },
+      $unset: { otpHash: 1, otpExpiresAt: 1 },
+    },
+    { new: true }
+  );
+  return updated ? { ok: true, resetToken } : { ok: false };
 }
 
-export function consumeResetToken(email: string, token: string): boolean {
+export async function consumeResetToken(
+  email: string,
+  token: string
+): Promise<boolean> {
   if (!token) return false;
-  const tokenHash = hash(token);
-  const record = resetTokens.get(tokenHash);
-  if (
-    !record ||
-    record.expiresAt < Date.now() ||
-    record.email !== normalizeEmail(email)
-  ) {
-    if (record?.expiresAt && record.expiresAt < Date.now()) {
-      resetTokens.delete(tokenHash);
-    }
-    return false;
-  }
-  resetTokens.delete(tokenHash);
-  return true;
-}
-
-export function clearPasswordResetStateForTests() {
-  otpRecords.clear();
-  resetTokens.clear();
-  requestHistory.clear();
+  // findOneAndDelete makes successful consumption atomic across replicas:
+  // exactly one request can use a reset token.
+  const consumed = await PasswordReset.findOneAndDelete({
+    email: normalizeEmail(email),
+    resetTokenHash: hash(token),
+    resetTokenExpiresAt: { $gt: new Date() },
+  });
+  return Boolean(consumed);
 }
