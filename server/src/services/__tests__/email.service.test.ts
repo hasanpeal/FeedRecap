@@ -12,6 +12,8 @@ jest.mock("@sendgrid/mail", () => ({
 import sgMail, {
   ADMIN_ALERT_RECIPIENTS,
   sendAdminAlert,
+  CRITICAL_ALERT_RECIPIENT,
+  sendCriticalSystemAlert,
 } from "../email.service";
 
 // `clearMocks` (jest.config.js) resets mock.calls before every test, which
@@ -84,6 +86,37 @@ describe("email.service", () => {
     it("does nothing when given an empty recipient list", async () => {
       await sendAdminAlert([], "Subject", "Body");
       expect(sendMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("sendCriticalSystemAlert", () => {
+    it("sends a critical alert only to the configured owner", async () => {
+      sendMock.mockResolvedValue(undefined);
+
+      await sendCriticalSystemAlert("TweetFetch task exhausted retries", new Error("boom"), "jobId=job-1");
+
+      expect(CRITICAL_ALERT_RECIPIENT).toBe("pealh0320@gmail.com");
+      expect(sendMock).toHaveBeenCalledTimes(1);
+      expect(sendMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "pealh0320@gmail.com",
+          from: process.env.FROM_EMAIL,
+          subject: "[FeedRecap Critical] TweetFetch task exhausted retries",
+          text: expect.stringContaining("jobId=job-1"),
+        })
+      );
+    });
+
+    it("includes non-Error failures in the alert body", async () => {
+      sendMock.mockResolvedValue(undefined);
+
+      await sendCriticalSystemAlert("Scheduler", "redis unavailable");
+
+      expect(sendMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: expect.stringContaining("redis unavailable"),
+        })
+      );
     });
   });
 });
