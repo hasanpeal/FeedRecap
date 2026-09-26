@@ -32,3 +32,29 @@ export async function sendAdminAlert(
     }
   }
 }
+
+
+export const CRITICAL_ALERT_RECIPIENT = "pealh0320@gmail.com";
+
+export async function sendCriticalSystemAlert(
+  source: string,
+  error: unknown,
+  context?: string
+): Promise<void> {
+  const message = error instanceof Error ? error.stack || error.message : String(error);
+  const details = [
+    "A critical FeedRecap system failure requires attention.",
+    `Source: ${source}`,
+    `Environment: ${process.env.NODE_ENV || "development"}`,
+    `Time: ${new Date().toISOString()}`,
+    context ? `Context: ${context}` : null,
+    "",
+    message,
+  ].filter((line): line is string => line !== null).join("\n");
+
+  await sendAdminAlert(
+    [CRITICAL_ALERT_RECIPIENT],
+    `[FeedRecap Critical] ${source}`,
+    details
+  );
+}

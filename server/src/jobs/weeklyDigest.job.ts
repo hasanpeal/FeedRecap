@@ -3,6 +3,7 @@ import connection from "../config/redis";
 import { User } from "../models/user.model";
 import { ADMIN_ALERT_RECIPIENTS, sendAdminAlert } from "../services/email.service";
 import { INSTANCE_ID } from "./instanceId";
+import { sendCriticalSystemAlert } from "../services/email.service";
 import { weeklyDigestQueue, QUEUE_NAMES } from "./queues";
 
 const sendDigest = async () => {
@@ -39,6 +40,7 @@ export async function startWeeklyDigestJob(): Promise<void> {
 
   weeklyDigestWorker.on("failed", (job, error) => {
     console.error(`[WeeklyDigest] Job "${job?.id}" failed:`, error);
+    void sendCriticalSystemAlert("WeeklyDigest job failure", error, `jobId=${job?.id || "unknown"}`);
   });
 }
 

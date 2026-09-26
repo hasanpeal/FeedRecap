@@ -7,6 +7,7 @@ import {
   fetchAndStoreTweetsForProfiles,
 } from "../services/twitter.service";
 import { INSTANCE_ID } from "./instanceId";
+import { sendCriticalSystemAlert } from "../services/email.service";
 import {
   tweetFetchQueue,
   tweetFetchTaskQueue,
@@ -88,6 +89,7 @@ export async function startTweetFetchJob(): Promise<void> {
   );
   tweetFetchWorker.on("failed", (job, error) => {
     console.error(`[TweetFetch] Dispatch job "${job?.id}" failed:`, error);
+    void sendCriticalSystemAlert("TweetFetch dispatch failure", error, `jobId=${job?.id || "unknown"}`);
   });
 
   // Every replica runs one of these workers, listening on the same task
@@ -110,6 +112,10 @@ export async function startTweetFetchJob(): Promise<void> {
   );
   tweetFetchTaskWorker.on("failed", (job, error) => {
     console.error(`[TweetFetch] Task "${job?.id}" failed:`, error);
+    const attempts = job?.opts?.attempts || 1;
+    if ((job?.attemptsMade || 0) >= attempts) {
+      void sendCriticalSystemAlert("TweetFetch task exhausted retries", error, `jobId=${job?.id || "unknown"}`);
+    }
   });
 }
 

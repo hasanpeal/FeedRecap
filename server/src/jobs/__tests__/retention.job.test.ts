@@ -2,6 +2,8 @@ import { createBullmqMock, fakeJob } from "./bullmqTestUtils";
 
 jest.mock("bullmq", () => createBullmqMock());
 
+jest.mock("../../services/email.service", () => ({ sendCriticalSystemAlert: jest.fn() }));
+
 jest.mock("../../models/tweet.model", () => ({
   StoredTweets: { updateMany: jest.fn() },
   CustomProfilePosts: { updateMany: jest.fn() },
@@ -10,6 +12,7 @@ jest.mock("../../models/tweet.model", () => ({
 import { Worker } from "bullmq";
 import { StoredTweets, CustomProfilePosts } from "../../models/tweet.model";
 import { retentionCleanupQueue } from "../queues";
+import { sendCriticalSystemAlert } from "../../services/email.service";
 import {
   startRetentionCleanupJob,
   getRetentionCleanupWorkers,
@@ -55,6 +58,11 @@ describe("startRetentionCleanupJob", () => {
     const [, handler] = (worker as any).on.mock.calls.find((c: any[]) => c[0] === "failed");
     handler({ id: "job-x" }, new Error("boom"));
     expect(errorSpy).toHaveBeenCalledWith('[Retention] Job "job-x" failed:', expect.any(Error));
+    expect(sendCriticalSystemAlert).toHaveBeenCalledWith(
+      "Retention job failure",
+      expect.any(Error),
+      "jobId=job-x"
+    );
   });
 });
 

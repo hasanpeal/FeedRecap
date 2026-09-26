@@ -5,6 +5,8 @@ jest.mock("../retention.job");
 jest.mock("../queues", () => ({
   allQueues: [{ close: jest.fn().mockResolvedValue(undefined) }],
 }));
+jest.mock("../../services/email.service", () => ({ sendCriticalSystemAlert: jest.fn() }));
+
 jest.mock("../../config/redis", () => ({
   __esModule: true,
   default: { disconnect: jest.fn() },
@@ -27,6 +29,7 @@ import {
 import { allQueues } from "../queues";
 import { closeRedisConnection } from "../../config/redis";
 import { startBackgroundJobs, stopBackgroundJobs } from "../index";
+import { sendCriticalSystemAlert } from "../../services/email.service";
 
 const mocked = <T extends (...args: any[]) => any>(fn: T) =>
   fn as jest.MockedFunction<T>;
@@ -65,6 +68,10 @@ describe("jobs/index", () => {
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "[TweetFetch] Failed to start job:",
+        expect.any(Error)
+      );
+      expect(sendCriticalSystemAlert).toHaveBeenCalledWith(
+        "TweetFetch scheduler startup",
         expect.any(Error)
       );
       consoleErrorSpy.mockRestore();

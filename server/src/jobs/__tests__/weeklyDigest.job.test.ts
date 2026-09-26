@@ -9,6 +9,7 @@ jest.mock("../../models/user.model", () => ({
 jest.mock("../../services/email.service", () => ({
   ADMIN_ALERT_RECIPIENTS: ["admin@example.com"],
   sendAdminAlert: jest.fn(),
+  sendCriticalSystemAlert: jest.fn(),
 }));
 
 import { Worker } from "bullmq";
@@ -54,6 +55,11 @@ describe("startWeeklyDigestJob", () => {
     const [, handler] = (worker as any).on.mock.calls.find((c: any[]) => c[0] === "failed");
     handler({ id: "job-x" }, new Error("boom"));
     expect(errorSpy).toHaveBeenCalledWith('[WeeklyDigest] Job "job-x" failed:', expect.any(Error));
+    expect(mockedEmailService.sendCriticalSystemAlert).toHaveBeenCalledWith(
+      "WeeklyDigest job failure",
+      expect.any(Error),
+      "jobId=job-x"
+    );
   });
 });
 
