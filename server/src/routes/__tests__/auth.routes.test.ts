@@ -199,7 +199,8 @@ describe("auth routes", () => {
     it("rejects an untrusted browser origin", async () => {
       const res = await request(app)
         .post("/refresh")
-        .set("Origin", "https://evil.example");
+        .set("Origin", "https://evil.example")
+        .set("X-CSRF-Protection", "1");
       expect(res.status).toBe(403);
       expect(rotateRefreshToken).not.toHaveBeenCalled();
     });
@@ -208,6 +209,8 @@ describe("auth routes", () => {
       (rotateRefreshToken as jest.Mock).mockResolvedValueOnce(null);
       const res = await request(app)
         .post("/refresh")
+        .set("Origin", process.env.CLIENT_URL || process.env.ORIGIN || "http://localhost:3000")
+        .set("X-CSRF-Protection", "1")
         .set("Cookie", "feedrecap_refresh=old-token");
       expect(res.status).toBe(401);
       expect(String(res.headers["set-cookie"])).toContain("feedrecap_refresh=");
