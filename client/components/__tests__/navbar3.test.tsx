@@ -271,17 +271,20 @@ describe("Navbar3", () => {
 
   it("toggles the mobile menu open and closes it on an outside click", async () => {
     renderWithEmail();
-    const hamburger = screen.getByRole("button", { name: "" });
+    const hamburger = screen.getByRole("button", { name: /open navigation menu/i });
     await userEvent.click(hamburger);
 
     const nav = screen
       .getByRole("button", { name: /logout/i })
       .closest("nav") as HTMLElement;
-    expect(nav.className).toContain("block bg-black");
+    expect(nav.className).toContain("flex");
+    expect(hamburger).toHaveAttribute("aria-expanded", "true");
+    expect(hamburger).toHaveAccessibleName("Close navigation menu");
 
     fireEvent.click(document.body);
 
     await waitFor(() => expect(nav.className).toContain("hidden"));
+    expect(hamburger).toHaveAttribute("aria-expanded", "false");
   });
 
   it("logs out successfully: clears storage and navigates home", async () => {
