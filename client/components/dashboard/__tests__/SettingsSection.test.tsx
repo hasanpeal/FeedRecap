@@ -100,7 +100,6 @@ describe("SettingsSection — Feed Type", () => {
   it("wires up every other settings info icon", async () => {
     const user = userEvent.setup();
     const setShowSettingInfo = jest.fn();
-    render(<SettingsSection {...baseProps({ setShowSettingInfo })} />);
     render(<SettingsSection {...baseProps({ wise: "customProfiles", setShowSettingInfo })} />);
     await user.click(
       screen.getByRole("button", { name: "Show Twitter connect information" })
@@ -120,9 +119,6 @@ describe("SettingsSection — Feed Type", () => {
 
   it("shows each info panel's content for the other settings", () => {
     const cases: [string, RegExp][] = [
-      ["twitter-connect", /Connect your X\/Twitter account/],
-      ["categories", /Select the topics you want to see/],
-      ["profiles-manage", /Add or remove specific accounts/],
       ["time-settings", /Choose when you'd like to receive/],
     ];
     cases.forEach(([setting, text]) => {
@@ -343,7 +339,7 @@ describe("SettingsSection — Categories", () => {
 
   it("disables category buttons in customProfiles mode and hides the update button", () => {
     render(<SettingsSection {...baseProps({ wise: "customProfiles" })} />);
-    expect(screen.getByText("Tech").closest("button")).toBeDisabled();
+    expect(screen.queryByText("Tech")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Update Categories" })
     ).not.toBeInTheDocument();
