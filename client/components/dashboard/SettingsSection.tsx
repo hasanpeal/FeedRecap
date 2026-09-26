@@ -418,48 +418,13 @@ export const SettingsSection = ({
           </div>
         )}
 
-        {/* Profile changes are summarized once in the profile editor below. */}
-        {false && unsavedProfiles && (
-          <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg text-yellow-400">
-            <div className="flex items-start gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mt-0.5 flex-shrink-0"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div>
-                <p className="font-medium mb-1">Action required</p>
-                {wise === "customProfiles" &&
-                registeredWise === "customProfiles" ? (
-                  <p className="text-sm">
-                    You&apos;ve added new profiles but haven&apos;t saved them
-                    yet. Click &quot;Update Profiles&quot; to save your changes.
-                  </p>
-                ) : (
-                  <p className="text-sm">
-                    {wise === "categorywise"
-                      ? "You've added profiles but you're currently using Category-wise feed. Switch to Profiles feed type and click \"Update Feed Type\" to use these profiles."
-                      : "You've added profiles but haven't updated your feed type. Click \"Update Feed Type\" to save your changes."}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </section>}
 
       {/* 2. Choose topics Section */}
       {wise === "categorywise" && <section className="space-y-4 border-t border-gray-800 pt-6">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-[#7FFFD4]">
-            Update Categories
+            2. Choose topics
           </h2>
           <button
             onClick={() => setShowSettingInfo("categories")}
@@ -659,7 +624,7 @@ export const SettingsSection = ({
       </section>}
 
       {/* Update Time Section */}
-      <section className="space-y-4">
+      <section className="space-y-4 border-t border-gray-800 pt-6">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-[#7FFFD4]">
             3. Choose delivery time
