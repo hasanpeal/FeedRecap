@@ -4,9 +4,9 @@ import Link from "next/link";
 export default function Navbar() {
   return (
     <header className="bg-black border-b border-gray-800">
-      <div className="py-4 px-6 flex items-center justify-between max-w-7xl mx-auto">
+      <div className="py-3 sm:py-4 px-4 sm:px-6 flex items-center justify-between max-w-7xl mx-auto">
         <Link href="/" className="flex items-center">
-          <span className="text-3xl font-extrabold tracking-tight">
+          <span className="text-xl sm:text-3xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-white to-[#7FFFD4] bg-clip-text text-transparent">
               Feed
             </span>
