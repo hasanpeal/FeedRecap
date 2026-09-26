@@ -18,11 +18,17 @@ import {
   createOtp,
   verifyOtp,
 } from "../services/passwordReset.service";
+import {
+  emailValidationRateLimit,
+  loginRateLimit,
+  passwordResetRateLimit,
+  registerRateLimit,
+} from "../middleware/rateLimit.middleware";
 
 const router = express.Router();
 
 // Login route - JWT based
-router.post("/login", async (req, res) => {
+router.post("/login", loginRateLimit, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -90,7 +96,7 @@ router.post("/logout", authenticateJWT, async (req, res) => {
 });
 
 // Validate email route
-router.get("/validateEmail", async (req, res) => {
+router.get("/validateEmail", emailValidationRateLimit, async (req, res) => {
   const email: string = req.query.email as string;
   try {
     const user = await User.findOne({ email });
@@ -106,7 +112,7 @@ router.get("/validateEmail", async (req, res) => {
 });
 
 // Register route
-router.post("/register", async (req, res) => {
+router.post("/register", registerRateLimit, async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
   try {
     const existingUser = await User.findOne({ email });
@@ -173,7 +179,7 @@ router.post("/register", async (req, res) => {
 
 // Reset password route. A short-lived token issued only after server-side OTP
 // verification is required, preventing direct password-reset bypasses.
-router.post("/resetPassword", async (req, res) => {
+router.post("/resetPassword", passwordResetRateLimit, async (req, res) => {
   const { email, newPassword, resetToken } = req.body;
   if (!email || !newPassword || !resetToken) {
     return res.status(400).json({ code: 1, message: "Invalid reset request" });
@@ -206,7 +212,7 @@ router.post("/resetPassword", async (req, res) => {
 
 // Generate and email an OTP. The OTP is intentionally never returned in the
 // API response; verification happens only on the server.
-router.post("/sentOTP", async (req, res) => {
+router.post("/sentOTP", passwordResetRateLimit, async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   if (!email) {
     return res.status(400).send({ code: 1, message: "Email is required" });
@@ -240,7 +246,7 @@ router.post("/sentOTP", async (req, res) => {
   }
 });
 
-router.post("/verifyResetOTP", async (req, res) => {
+router.post("/verifyResetOTP", passwordResetRateLimit, async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   const otp = String(req.body.otp || "");
   if (!email || !/^\d{6}$/.test(otp)) {
