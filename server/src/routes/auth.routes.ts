@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import { User } from "../models/user.model";
 import { authenticateJWT } from "../middleware/auth.middleware";
+import { requireCsrfProtection } from "../middleware/csrf.middleware";
 import { signJWT, verifyJWT } from "../services/auth.service";
 import {
   createRefreshToken,
@@ -47,12 +48,6 @@ function readRefreshCookie(req: express.Request): string | undefined {
     if (key === REFRESH_COOKIE) return decodeURIComponent(value.join("="));
   }
   return undefined;
-}
-
-function trustedOrigin(req: express.Request): boolean {
-  const origin = req.get("origin");
-  if (!origin) return true;
-  return origin === process.env.ORIGIN || origin === process.env.CLIENT_URL;
 }
 
 async function setRefreshCookie(res: express.Response, userId: string, email: string) {
@@ -112,8 +107,7 @@ router.post("/login", loginRateLimit, async (req, res) => {
   }
 });
 
-router.post("/refresh", async (req, res) => {
-  if (!trustedOrigin(req)) return res.status(403).json({ code: 1, message: "Invalid request origin" });
+router.post("/refresh", requireCsrfProtection, async (req, res) => {
   const current = readRefreshCookie(req);
   if (!current) return res.status(401).json({ code: 1, message: "Refresh token required" });
   const rotated = await rotateRefreshToken(current);
@@ -125,8 +119,7 @@ router.post("/refresh", async (req, res) => {
   return res.status(200).json({ code: 0, token: signJWT(rotated.session), email: rotated.session.email });
 });
 
-router.post("/logout", authenticateJWT, async (req, res) => {
-  if (!trustedOrigin(req)) return res.status(403).json({ code: 1, message: "Invalid request origin" });
+router.post("/logout", authenticateJWT, requireCsrfProtection, async (req, res) => {
   const currentRefreshToken = readRefreshCookie(req);
   if (currentRefreshToken) await revokeRefreshToken(currentRefreshToken);
   res.clearCookie(REFRESH_COOKIE, refreshCookieOptions());
