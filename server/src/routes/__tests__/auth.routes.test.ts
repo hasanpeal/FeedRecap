@@ -172,7 +172,7 @@ describe("auth routes", () => {
       expect(res.status).toBe(200);
       expect(res.body.code).toBe(0);
       expect(res.body.token).toEqual(expect.any(String));
-      expect(res.headers["set-cookie"]?.join(";")).toContain("feedrecap_refresh=");
+      expect(String(res.headers["set-cookie"])).toContain("feedrecap_refresh=");
       expect(verifyJWT(res.body.token).email).toBe("a@b.com");
       expect(logActivity).toHaveBeenCalledWith(
         expect.anything(),
