@@ -5,6 +5,7 @@ import axios from "axios";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import "@/app/readnewsletter/readnewsletter.css";
+import { sanitizeNewsletterHtml } from "@/utils/sanitizeHtml";
 
 export default function ReadNewsletter({
   searchParams,
@@ -59,7 +60,7 @@ export default function ReadNewsletter({
               </h2>
               <div
                 className="prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: newsletterContent }}
+                dangerouslySetInnerHTML={{ __html: sanitizeNewsletterHtml(newsletterContent) }}
               />
             </div>
           ) : (
