@@ -414,7 +414,7 @@ describe("user routes", () => {
       expect(logActivity).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          userId: "u1",
+          userId: "user123",
           email: "user@example.com",
           activityType: "TWITTER_ACCOUNT_LINKED",
         })
