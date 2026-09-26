@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET: string =
   process.env.JWT_SECRET || crypto.randomBytes(64).toString("hex");
-const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || "7d"; // 7 days
+const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || "15m";
 
 export interface JWTPayload {
   userId: string;
