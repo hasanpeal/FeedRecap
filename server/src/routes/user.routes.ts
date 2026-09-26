@@ -343,28 +343,32 @@ router.post("/unlinkX", authenticateJWT, async (req, res) => {
   }
 });
 
-router.post("/saveX", async (req, res) => {
+router.post("/saveX", authenticateJWT, async (req, res) => {
   try {
-    const { email, twitterUsername } = req.body;
-    if (!email || !twitterUsername)
-      return res
-        .status(400)
-        .json({ error: "Email and Twitter username required" });
-
-    const user = await User.findOneAndUpdate({ email }, { twitterUsername });
-
-    if (user) {
-      // Log Twitter account linking
-      await logActivity(req, {
-        userId: (user._id as mongoose.Types.ObjectId).toString(),
-        email: user.email,
-        activityType: ActivityType.TWITTER_ACCOUNT_LINKED,
-        activityDescription: `Linked Twitter account: ${twitterUsername}`,
-        metadata: {
-          twitterUsername,
-        },
-      });
+    const userFromToken = req.user!;
+    const { twitterUsername } = req.body;
+    if (!twitterUsername || typeof twitterUsername !== "string") {
+      return res.status(400).json({ error: "Twitter username required" });
     }
+
+    // Authorization comes exclusively from the authenticated JWT. Never use
+    // caller-supplied email/user identifiers to select the account to mutate.
+    const user = await User.findOneAndUpdate(
+      { email: userFromToken.email },
+      { twitterUsername }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    await logActivity(req, {
+      userId: userFromToken.id,
+      email: userFromToken.email,
+      activityType: ActivityType.TWITTER_ACCOUNT_LINKED,
+      activityDescription: `Linked Twitter account: ${twitterUsername}`,
+      metadata: { twitterUsername },
+    });
 
     res.json({ success: true, message: "Twitter account linked successfully" });
   } catch (err) {
