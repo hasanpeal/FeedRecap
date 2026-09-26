@@ -4,7 +4,11 @@ const evalMock = jest.fn();
 
 jest.mock("../../config/redis", () => ({
   __esModule: true,
-  default: { eval: (...args: unknown[]) => evalMock(...args) },
+  default: {
+    eval: (...args: unknown[]) => evalMock(...args),
+    disconnect: jest.fn(),
+    quit: jest.fn().mockResolvedValue("OK"),
+  },
 }));
 
 import { consumeRateLimit, rateLimit } from "../rateLimit.middleware";
