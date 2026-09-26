@@ -137,6 +137,7 @@ export default function Navbar2() {
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "X-CSRF-Protection": "1",
           },
         }
       );
