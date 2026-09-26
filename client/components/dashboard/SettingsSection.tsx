@@ -72,7 +72,11 @@ const availableCategories = [
 
 const availableTimes = ["Morning", "Afternoon", "Night"];
 
-const renderSettingInfo = (setting: string, showSettingInfo: string | null) => {
+const renderSettingInfo = (
+  setting: string,
+  showSettingInfo: string | null,
+  onClose: () => void
+) => {
   const infoContent = {
     "feed-type":
       'Choose how your feed is organized. "Categories" shows content organized by topics like Tech, Finance, AI etc. "Profiles" shows content from specific accounts you follow',
@@ -89,8 +93,16 @@ const renderSettingInfo = (setting: string, showSettingInfo: string | null) => {
   if (!showSettingInfo || showSettingInfo !== setting) return null;
 
   return (
-    <div className="mt-2 p-3 bg-[#111] border border-[#7FFFD4] rounded-lg text-white text-sm">
+    <div className="relative mt-2 rounded-lg border border-[#7FFFD4] bg-[#111] p-3 pr-9 text-sm text-white">
       {infoContent[setting as keyof typeof infoContent]}
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-2 top-2 text-gray-400 transition-colors hover:text-white"
+        aria-label="Close setting information"
+      >
+        <X size={16} />
+      </button>
     </div>
   );
 };
@@ -179,7 +191,7 @@ export const SettingsSection = ({
             </svg>
           </button>
         </div>
-        {renderSettingInfo("feed-type", showSettingInfo)}
+        {renderSettingInfo("feed-type", showSettingInfo, () => setShowSettingInfo(null))}
         <div className="flex gap-2 sm:gap-4">
           <button
             className={`rounded-full px-4 py-1.5 text-sm transition-colors sm:px-6 sm:py-2 sm:text-base ${
@@ -207,7 +219,12 @@ export const SettingsSection = ({
           onClick={onFeedTypeUpdate}
           disabled={loading}
         >
-          {loading ? "Updating..." : "Update Feed Type"}
+          {loading ? "Updating..." : (
+            <>
+              <span className="sm:hidden">Update</span>
+              <span className="hidden sm:inline">Update Feed Type</span>
+            </>
+          )}
         </button>
       </section>
 
@@ -239,7 +256,7 @@ export const SettingsSection = ({
             </svg>
           </button>
         </div>
-        {renderSettingInfo("twitter-connect", showSettingInfo)}
+        {renderSettingInfo("twitter-connect", showSettingInfo, () => setShowSettingInfo(null))}
 
         {linkedTwitter ? (
           <>
@@ -269,9 +286,6 @@ export const SettingsSection = ({
           </>
         ) : (
           <>
-            <p className="text-sm text-gray-400 sm:text-base">
-              Optional: connect your X account to quickly import profiles you already follow
-            </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 relative">
                 <input
@@ -447,7 +461,7 @@ export const SettingsSection = ({
             </svg>
           </button>
         </div>
-        {renderSettingInfo("categories", showSettingInfo)}
+        {renderSettingInfo("categories", showSettingInfo, () => setShowSettingInfo(null))}
 
         <div className="flex flex-wrap gap-2">
           {availableCategories.map((category) => (
@@ -477,7 +491,12 @@ export const SettingsSection = ({
             onClick={onCategoryUpdate}
             disabled={loading}
           >
-            {loading ? "Updating..." : "Update Categories"}
+            {loading ? "Updating..." : (
+              <>
+                <span className="sm:hidden">Update</span>
+                <span className="hidden sm:inline">Update Categories</span>
+              </>
+            )}
           </button>
         )}
       </section>}
@@ -510,7 +529,7 @@ export const SettingsSection = ({
             </svg>
           </button>
         </div>
-        {renderSettingInfo("profiles-manage", showSettingInfo)}
+        {renderSettingInfo("profiles-manage", showSettingInfo, () => setShowSettingInfo(null))}
         {unsavedProfiles && (
           <div className="p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg text-yellow-400">
             <div className="flex items-start gap-2">
@@ -617,7 +636,12 @@ export const SettingsSection = ({
             onClick={onProfileUpdate}
             disabled={loading}
           >
-            {loading ? "Updating..." : "Update Profiles"}
+            {loading ? "Updating..." : (
+              <>
+                <span className="sm:hidden">Update</span>
+                <span className="hidden sm:inline">Update Profiles</span>
+              </>
+            )}
           </button>
         )}
       </section>}
@@ -650,7 +674,7 @@ export const SettingsSection = ({
             </svg>
           </button>
         </div>
-        {renderSettingInfo("time-settings", showSettingInfo)}
+        {renderSettingInfo("time-settings", showSettingInfo, () => setShowSettingInfo(null))}
         <div className="flex flex-wrap gap-2">
           {availableTimes.map((timeOption) => (
             <button
@@ -678,7 +702,12 @@ export const SettingsSection = ({
           onClick={onTimeUpdate}
           disabled={loading}
         >
-          {loading ? "Updating..." : "Save Delivery Time"}
+          {loading ? "Updating..." : (
+            <>
+              <span className="sm:hidden">Save</span>
+              <span className="hidden sm:inline">Save Delivery Time</span>
+            </>
+          )}
         </button>
       </section>
     </div>

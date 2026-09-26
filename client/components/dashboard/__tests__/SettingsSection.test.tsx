@@ -87,6 +87,42 @@ describe("SettingsSection — Feed Type", () => {
     expect(screen.getByText(/Choose how your feed is organized/)).toBeInTheDocument();
   });
 
+  it("closes an open info panel from its dismiss button", async () => {
+    const user = userEvent.setup();
+    const setShowSettingInfo = jest.fn();
+    render(
+      <SettingsSection
+        {...baseProps({
+          showSettingInfo: "feed-type",
+          setShowSettingInfo,
+        })}
+      />
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Close setting information" })
+    );
+    expect(setShowSettingInfo).toHaveBeenCalledWith(null);
+  });
+
+  it.each([
+    ["categories", "categorywise"],
+    ["twitter-connect", "customProfiles"],
+    ["profiles-manage", "customProfiles"],
+    ["time-settings", "categorywise"],
+  ] as const)("dismisses the %s info panel", async (showSettingInfo, wise) => {
+    const user = userEvent.setup();
+    const setShowSettingInfo = jest.fn();
+    render(
+      <SettingsSection
+        {...baseProps({ wise, showSettingInfo, setShowSettingInfo })}
+      />
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Close setting information" })
+    );
+    expect(setShowSettingInfo).toHaveBeenCalledWith(null);
+  });
+
   it("opens the info panel when the info icon is clicked", async () => {
     const user = userEvent.setup();
     const setShowSettingInfo = jest.fn();
@@ -337,7 +373,7 @@ describe("SettingsSection — Categories", () => {
       />
     );
     await user.click(
-      screen.getByRole("button", { name: "Update Categories" })
+      screen.getByText("Update Categories").closest("button") as HTMLButtonElement
     );
     expect(onCategoryUpdate).toHaveBeenCalledTimes(1);
   });
