@@ -5,6 +5,12 @@ import mongoose from "mongoose";
 import { User } from "../models/user.model";
 import { authenticateJWT } from "../middleware/auth.middleware";
 import { signJWT, verifyJWT } from "../services/auth.service";
+import {
+  createRefreshToken,
+  refreshTokenTtlSeconds,
+  revokeRefreshToken,
+  rotateRefreshToken,
+} from "../services/refreshToken.service";
 import { logActivity, ActivityType } from "../services/auditLog.service";
 import {
   fetchTweetsForCategories,
@@ -26,6 +32,33 @@ import {
 } from "../middleware/rateLimit.middleware";
 
 const router = express.Router();
+const REFRESH_COOKIE = "feedrecap_refresh";
+
+function refreshCookieOptions() {
+  const production = process.env.NODE_ENV === "production";
+  return { httpOnly: true, secure: production, sameSite: production ? ("none" as const) : ("lax" as const), path: "/", maxAge: refreshTokenTtlSeconds * 1000 };
+}
+
+function readRefreshCookie(req: express.Request): string | undefined {
+  const header = req.headers.cookie;
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const [key, ...value] = part.trim().split("=");
+    if (key === REFRESH_COOKIE) return decodeURIComponent(value.join("="));
+  }
+  return undefined;
+}
+
+function trustedOrigin(req: express.Request): boolean {
+  const origin = req.get("origin");
+  if (!origin) return true;
+  return origin === process.env.ORIGIN || origin === process.env.CLIENT_URL;
+}
+
+async function setRefreshCookie(res: express.Response, userId: string, email: string) {
+  const refreshToken = await createRefreshToken({ userId, email });
+  res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOptions());
+}
 
 // Login route - JWT based
 router.post("/login", loginRateLimit, async (req, res) => {
@@ -56,6 +89,8 @@ router.post("/login", loginRateLimit, async (req, res) => {
       email: user.email,
     });
 
+    await setRefreshCookie(res, (user._id as mongoose.Types.ObjectId).toString(), user.email);
+
     // Log login activity
     await logActivity(req, {
       userId: (user._id as mongoose.Types.ObjectId).toString(),
@@ -77,8 +112,24 @@ router.post("/login", loginRateLimit, async (req, res) => {
   }
 });
 
-// Logout route - JWT based (client-side token removal)
+router.post("/refresh", async (req, res) => {
+  if (!trustedOrigin(req)) return res.status(403).json({ code: 1, message: "Invalid request origin" });
+  const current = readRefreshCookie(req);
+  if (!current) return res.status(401).json({ code: 1, message: "Refresh token required" });
+  const rotated = await rotateRefreshToken(current);
+  if (!rotated) {
+    res.clearCookie(REFRESH_COOKIE, refreshCookieOptions());
+    return res.status(401).json({ code: 1, message: "Invalid or expired refresh token" });
+  }
+  res.cookie(REFRESH_COOKIE, rotated.token, refreshCookieOptions());
+  return res.status(200).json({ code: 0, token: signJWT(rotated.session), email: rotated.session.email });
+});
+
 router.post("/logout", authenticateJWT, async (req, res) => {
+  if (!trustedOrigin(req)) return res.status(403).json({ code: 1, message: "Invalid request origin" });
+  const currentRefreshToken = readRefreshCookie(req);
+  if (currentRefreshToken) await revokeRefreshToken(currentRefreshToken);
+  res.clearCookie(REFRESH_COOKIE, refreshCookieOptions());
   const userFromToken = req.user!;
 
   // Log logout activity
@@ -133,6 +184,8 @@ router.post("/register", registerRateLimit, async (req, res) => {
       userId: (newUser._id as mongoose.Types.ObjectId).toString(),
       email: newUser.email,
     });
+
+    await setRefreshCookie(res, (newUser._id as mongoose.Types.ObjectId).toString(), newUser.email);
 
     // Log account creation
     await logActivity(req, {
@@ -303,6 +356,11 @@ router.get("/auth/google/callback", (req, res, next) => {
           userId: (existingUser._id as mongoose.Types.ObjectId).toString(),
           email: existingUser.email,
         });
+        await setRefreshCookie(
+          res,
+          (existingUser._id as mongoose.Types.ObjectId).toString(),
+          existingUser.email
+        );
         return res.redirect(
           `${
             process.env.CLIENT_URL
@@ -319,6 +377,11 @@ router.get("/auth/google/callback", (req, res, next) => {
           userId: (user._id as mongoose.Types.ObjectId).toString(),
           email: user.email,
         });
+        await setRefreshCookie(
+          res,
+          (user._id as mongoose.Types.ObjectId).toString(),
+          user.email
+        );
         return res.redirect(
           `${
             process.env.CLIENT_URL

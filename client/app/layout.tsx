@@ -7,6 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PageVisitLogger } from "@/components/PageVisitLogger";
 import "./globals.css";
 import { Montserrat } from "next/font/google";
+import "@/utils/authRefresh";
 
 const montserrat = Montserrat({ subsets: ["latin"] });
 const inter = Inter({ subsets: ["latin"] });

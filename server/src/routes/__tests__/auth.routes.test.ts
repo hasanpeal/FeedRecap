@@ -11,6 +11,7 @@ import {
 } from "../../services/newsletter.service";
 import sgMail, { sendAdminAlert } from "../../services/email.service";
 import { verifyJWT } from "../../services/auth.service";
+import { rotateRefreshToken, revokeRefreshToken } from "../../services/refreshToken.service";
 import {
   canRequestOtp,
   consumeResetToken,
@@ -38,6 +39,14 @@ jest.mock("../../models/user.model", () => {
     }),
   };
 });
+
+jest.mock("../../services/refreshToken.service", () => ({
+  __esModule: true,
+  createRefreshToken: jest.fn().mockResolvedValue("refresh-token"),
+  rotateRefreshToken: jest.fn().mockResolvedValue(null),
+  revokeRefreshToken: jest.fn().mockResolvedValue(undefined),
+  refreshTokenTtlSeconds: 2592000,
+}));
 
 jest.mock("../../services/passwordReset.service", () => ({
   __esModule: true,
@@ -164,6 +173,7 @@ describe("auth routes", () => {
       expect(res.status).toBe(200);
       expect(res.body.code).toBe(0);
       expect(res.body.token).toEqual(expect.any(String));
+      expect(String(res.headers["set-cookie"])).toContain("feedrecap_refresh=");
       expect(verifyJWT(res.body.token).email).toBe("a@b.com");
       expect(logActivity).toHaveBeenCalledWith(
         expect.anything(),
@@ -177,6 +187,45 @@ describe("auth routes", () => {
         .post("/login")
         .send({ email: "a@b.com", password: "pw" });
       expect(res.status).toBe(500);
+    });
+  });
+
+  describe("POST /refresh", () => {
+    it("returns 401 when the refresh cookie is missing", async () => {
+      const res = await request(app).post("/refresh");
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects an untrusted browser origin", async () => {
+      const res = await request(app)
+        .post("/refresh")
+        .set("Origin", "https://evil.example");
+      expect(res.status).toBe(403);
+      expect(rotateRefreshToken).not.toHaveBeenCalled();
+    });
+
+    it("returns 401 and clears an invalid refresh token", async () => {
+      (rotateRefreshToken as jest.Mock).mockResolvedValueOnce(null);
+      const res = await request(app)
+        .post("/refresh")
+        .set("Cookie", "feedrecap_refresh=old-token");
+      expect(res.status).toBe(401);
+      expect(String(res.headers["set-cookie"])).toContain("feedrecap_refresh=");
+    });
+
+    it("rotates the refresh token and returns a new access token", async () => {
+      (rotateRefreshToken as jest.Mock).mockResolvedValueOnce({
+        token: "next-refresh",
+        session: { userId: "u1", email: "a@b.com" },
+      });
+      const res = await request(app)
+        .post("/refresh")
+        .set("Cookie", "feedrecap_refresh=old-token");
+
+      expect(res.status).toBe(200);
+      expect(res.body.token).toEqual(expect.any(String));
+      expect(verifyJWT(res.body.token).email).toBe("a@b.com");
+      expect(String(res.headers["set-cookie"])).toContain("next-refresh");
     });
   });
 
@@ -196,6 +245,7 @@ describe("auth routes", () => {
         .set("Authorization", `Bearer ${token}`);
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ code: 0, message: "Logout successful" });
+      expect(revokeRefreshToken).not.toHaveBeenCalled();
       expect(logActivity).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ activityType: "LOGOUT" })
