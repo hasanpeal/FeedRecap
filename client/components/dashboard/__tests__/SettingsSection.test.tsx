@@ -298,7 +298,7 @@ describe("SettingsSection — Twitter connect", () => {
   });
 
   it("shows the single unsaved-profile warning in profile mode", () => {
-    render(<SettingsSection {...baseProps({ unsavedProfiles: true, wise: "customProfiles" })} />);
+    render(<SettingsSection {...baseProps({ unsavedProfiles: true, wise: "customProfiles", registeredWise: "customProfiles" })} />);
     expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
     expect(screen.getByText(/save your profile changes/i)).toBeInTheDocument();
   });
