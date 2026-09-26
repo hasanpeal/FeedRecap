@@ -72,7 +72,11 @@ const availableCategories = [
 
 const availableTimes = ["Morning", "Afternoon", "Night"];
 
-const renderSettingInfo = (\n  setting: string,\n  showSettingInfo: string | null,\n  onClose: () => void\n) => {
+const renderSettingInfo = (
+  setting: string,
+  showSettingInfo: string | null,
+  onClose: () => void
+) => {
   const infoContent = {
     "feed-type":
       'Choose how your feed is organized. "Categories" shows content organized by topics like Tech, Finance, AI etc. "Profiles" shows content from specific accounts you follow',
