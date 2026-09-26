@@ -253,7 +253,7 @@ FeedRecap uses JWT for stateless authentication.
 | `/sentOTP`                     | POST   | Send OTP for email verification    | No            |
 | `/resetPassword`               | POST   | Reset password                     | No            |
 | `/validateEmail`               | GET    | Check if email exists              | No            |
-| `/saveX`                       | POST   | Link Twitter account               | No            |
+| `/saveX`                       | POST   | Link Twitter account               | JWT           |
 | `/unlinkX`                     | POST   | Unlink Twitter account             | JWT           |
 | `/auth/google/signup`          | GET    | Google OAuth sign-up               | No            |
 | `/auth/google/signin`          | GET    | Google OAuth sign-in               | No            |
