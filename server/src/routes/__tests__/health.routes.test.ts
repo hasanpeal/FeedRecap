@@ -1,13 +1,3 @@
-jest.mock("../../config/db", () => ({
-  __esModule: true,
-  default: { readyState: 1 },
-}));
-
-jest.mock("../../config/redis", () => ({
-  __esModule: true,
-  default: { ping: jest.fn() },
-}));
-
 import express from "express";
 import request from "supertest";
 import db from "../../config/db";
@@ -20,7 +10,7 @@ app.use(healthRoutes);
 describe("GET /health", () => {
   beforeEach(() => {
     Object.defineProperty(db, "readyState", { value: 1, configurable: true });
-    (redis.ping as jest.Mock).mockResolvedValue("PONG");
+    jest.spyOn(redis, "ping").mockResolvedValue("PONG");
   });
 
   it("returns 200 with dependency and process health", async () => {
@@ -51,7 +41,7 @@ describe("GET /health", () => {
   });
 
   it("returns 503 when Redis is unavailable", async () => {
-    (redis.ping as jest.Mock).mockRejectedValue(new Error("redis unavailable"));
+    jest.spyOn(redis, "ping").mockRejectedValue(new Error("redis unavailable"));
     const res = await request(app).get("/health");
 
     expect(res.status).toBe(503);
