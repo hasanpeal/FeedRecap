@@ -13,6 +13,7 @@ import activityRoutes from "./routes/activity.routes";
 import adminRoutes from "./routes/admin.routes";
 import contactRoutes from "./routes/contact.routes";
 import bookmarkRoutes from "./routes/bookmark.routes";
+import healthRoutes from "./routes/health.routes";
 import { apiRateLimit } from "./middleware/rateLimit.middleware";
 
 const app = express();
@@ -41,6 +42,9 @@ process.on("SIGTERM", async () => {
   }
   process.exit(0);
 });
+
+// Health checks must remain available even if Redis-backed rate limiting is degraded.
+app.use(healthRoutes);
 
 // Apply a shared Redis-backed safety limit across API traffic before routes.
 app.use(apiRateLimit);
