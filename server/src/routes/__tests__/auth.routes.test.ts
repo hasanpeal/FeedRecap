@@ -39,6 +39,14 @@ jest.mock("../../models/user.model", () => {
   };
 });
 
+jest.mock("../../services/refreshToken.service", () => ({
+  __esModule: true,
+  createRefreshToken: jest.fn().mockResolvedValue("refresh-token"),
+  rotateRefreshToken: jest.fn().mockResolvedValue(null),
+  revokeRefreshToken: jest.fn().mockResolvedValue(undefined),
+  refreshTokenTtlSeconds: 2592000,
+}));
+
 jest.mock("../../services/passwordReset.service", () => ({
   __esModule: true,
   canRequestOtp: jest.fn().mockResolvedValue(true),
@@ -164,6 +172,7 @@ describe("auth routes", () => {
       expect(res.status).toBe(200);
       expect(res.body.code).toBe(0);
       expect(res.body.token).toEqual(expect.any(String));
+      expect(res.headers["set-cookie"]?.join(";")).toContain("feedrecap_refresh=");
       expect(verifyJWT(res.body.token).email).toBe("a@b.com");
       expect(logActivity).toHaveBeenCalledWith(
         expect.anything(),
