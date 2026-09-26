@@ -40,6 +40,10 @@
 - Web link for easy sharing
 - Share on X directly from the dashboard
 
+### Rate Limiting
+
+The Express API uses Redis-backed per-IP rate limiting shared across server replicas. The default API limit is 300 requests per 15 minutes. Sensitive public authentication endpoints use stricter limits: login 10 requests per 15 minutes, registration 5 per hour, password-reset/OTP flow 10 per 15 minutes, and email validation 30 per 15 minutes. Rate-limited requests return HTTP `429` with `Retry-After` and standard rate-limit metadata headers. The existing OTP per-email request limit remains an additional safeguard.
+
 ### Audit Logging
 
 All major user actions are logged automatically:
