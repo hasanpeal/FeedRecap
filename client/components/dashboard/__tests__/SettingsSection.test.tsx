@@ -69,15 +69,14 @@ describe("SettingsSection — Feed Type", () => {
     render(<SettingsSection {...baseProps({ setWise, onFeedTypeUpdate })} />);
     await user.click(screen.getByText("Profiles"));
     expect(setWise).toHaveBeenCalledWith("customProfiles");
-    await user.click(screen.getByText("Update Feed Type"));
+    await user.click(screen.getByText("Save Changes"));
     expect(onFeedTypeUpdate).toHaveBeenCalledTimes(1);
   });
 
-  it("shows 'Updating...' and disables every update button while loading", () => {
+  it("shows 'Saving...' and disables the save button while loading", () => {
     render(<SettingsSection {...baseProps({ loading: true })} />);
-    const buttons = screen.getAllByRole("button", { name: "Updating..." });
-    expect(buttons.length).toBeGreaterThan(0);
-    buttons.forEach((btn) => expect(btn).toBeDisabled());
+    const button = screen.getByRole("button", { name: "Saving..." });
+    expect(button).toBeDisabled();
   });
 
   it("shows the feed-type info panel when requested", () => {
@@ -372,9 +371,7 @@ describe("SettingsSection — Categories", () => {
         })}
       />
     );
-    await user.click(
-      screen.getByText("Update Categories").closest("button") as HTMLButtonElement
-    );
+    await user.click(screen.getByText("Save Changes"));
     expect(onCategoryUpdate).toHaveBeenCalledTimes(1);
   });
 });
@@ -442,7 +439,7 @@ describe("SettingsSection — Manage Profiles", () => {
         })}
       />
     );
-    await user.click(screen.getByText("Update Profiles"));
+    await user.click(screen.getByText("Save Changes"));
     expect(onProfileUpdate).toHaveBeenCalledTimes(1);
   });
 });
@@ -459,12 +456,12 @@ describe("SettingsSection — Time", () => {
     expect(updater(["Morning"])).toEqual(["Morning", "Afternoon"]);
     expect(updater(["Morning", "Afternoon"])).toEqual(["Morning"]);
 
-    await user.click(screen.getByText("Save Delivery Time"));
+    await user.click(screen.getByText("Save Changes"));
     expect(onTimeUpdate).toHaveBeenCalledTimes(1);
   });
 
-  it("shows 'Updating...' for the time button while loading", () => {
+  it("shows 'Saving...' for the consolidated save button while loading", () => {
     render(<SettingsSection {...baseProps({ loading: true })} />);
-    expect(screen.getAllByText("Updating...").length).toBeGreaterThan(0);
+    expect(screen.getByText("Saving...")).toBeInTheDocument();
   });
 });
