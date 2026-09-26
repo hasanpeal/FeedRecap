@@ -5,7 +5,7 @@ const BLOCKED_TAGS = new Set([
 
 const URL_ATTRIBUTES = new Set(["href", "src", "xlink:href", "formaction"]);
 
-function isSafeUrl(value: string): boolean {
+export function isSafeUrl(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("/")) return true;
   try {
@@ -50,4 +50,9 @@ export function sanitizeNewsletterHtml(html: string): string {
   }
 
   return doc.body.innerHTML;
+}
+
+export function safeExternalHref(value: unknown): string | undefined {
+  if (typeof value !== "string" || typeof window === "undefined") return undefined;
+  return isSafeUrl(value) ? value : undefined;
 }
