@@ -6,6 +6,8 @@ jest.mock("../../models/user.model", () => ({
   User: { find: jest.fn() },
 }));
 
+jest.mock("../../services/email.service", () => ({ sendCriticalSystemAlert: jest.fn() }));
+
 jest.mock("../../services/twitter.service", () => ({
   fetchAndStoreTweets: jest.fn(),
   fetchAndStoreTweetsForProfiles: jest.fn(),
@@ -14,6 +16,7 @@ jest.mock("../../services/twitter.service", () => ({
 import { Worker } from "bullmq";
 import { User } from "../../models/user.model";
 import * as twitterService from "../../services/twitter.service";
+import { sendCriticalSystemAlert } from "../../services/email.service";
 import { tweetFetchQueue, tweetFetchTaskQueue } from "../queues";
 import { startTweetFetchJob, getTweetFetchWorkers } from "../tweetFetch.job";
 
@@ -57,6 +60,17 @@ describe("startTweetFetchJob", () => {
       handler({ id: "job-x" }, new Error("boom"));
     });
     expect(errorSpy).toHaveBeenCalledTimes(2);
+    expect(sendCriticalSystemAlert).toHaveBeenCalledTimes(1);
+
+    const taskHandler = (workers[1] as any).on.mock.calls.find((c: any[]) => c[0] === "failed")[1];
+    taskHandler({ id: "retrying", attemptsMade: 1, opts: { attempts: 3 } }, new Error("temporary"));
+    expect(sendCriticalSystemAlert).toHaveBeenCalledTimes(1);
+    taskHandler({ id: "final", attemptsMade: 3, opts: { attempts: 3 } }, new Error("final"));
+    expect(sendCriticalSystemAlert).toHaveBeenCalledWith(
+      "TweetFetch task exhausted retries",
+      expect.any(Error),
+      "jobId=final"
+    );
   });
 });
 
