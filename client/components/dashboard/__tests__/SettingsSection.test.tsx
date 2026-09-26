@@ -202,6 +202,7 @@ describe("SettingsSection — Twitter connect", () => {
     const { rerender } = render(
       <SettingsSection
         {...baseProps({
+          wise: "customProfiles",
           showTwitterSuggestions: true,
           loadingTwitterSuggestions: true,
         })}
@@ -296,34 +297,10 @@ describe("SettingsSection — Twitter connect", () => {
     expect(screen.getByText("Loading more profiles...")).toBeInTheDocument();
   });
 
-  it("shows unsaved-profiles warning copy for the customProfiles+registered case", () => {
-    render(
-      <SettingsSection
-        {...baseProps({
-          unsavedProfiles: true,
-          wise: "customProfiles",
-          registeredWise: "customProfiles",
-        })}
-      />
-    );
-    expect(
-      screen.getByText(/Click "Update Profiles" to save your changes/)
-    ).toBeInTheDocument();
-  });
-
-  it("shows unsaved-profiles warning copy for the categorywise case", () => {
-    render(
-      <SettingsSection
-        {...baseProps({
-          unsavedProfiles: true,
-          wise: "categorywise",
-          registeredWise: "categorywise",
-        })}
-      />
-    );
-    expect(
-      screen.getByText(/currently using Category-wise feed/)
-    ).toBeInTheDocument();
+  it("shows the single unsaved-profile warning in profile mode", () => {
+    render(<SettingsSection {...baseProps({ unsavedProfiles: true, wise: "customProfiles" })} />);
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    expect(screen.getByText(/save your profile changes/i)).toBeInTheDocument();
   });
 });
 
