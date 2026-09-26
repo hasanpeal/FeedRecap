@@ -17,6 +17,27 @@ export function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
+
+// Newsletter source contains third-party tweet text and model-generated text.
+// Escape raw HTML and neutralize Markdown links/images before passing it to
+// marked; only links constructed by FeedRecap itself are allowed through.
+export function escapeUntrustedMarkdown(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]");
+}
+
+function safeXPostUrl(screenName: unknown, tweetId: unknown): string {
+  return `https://x.com/${encodeURIComponent(String(screenName ?? ""))}/status/${encodeURIComponent(
+    String(tweetId ?? "")
+  )}`;
+}
+
 // Posts are now retained for 7 days for the newsfeed, but the newsletter
 // should keep summarizing what's fresh, not resurface a viral post from
 // days ago every time it runs. So newsletter generation only looks at this
@@ -303,17 +324,13 @@ export async function generateNewsletter(
       model: process.env.OPENAI_MODEL || "",
     });
 
-    let result = response.choices[0].message.content;
+    let result = escapeUntrustedMarkdown(response.choices[0].message.content);
 
     // Manually append the top 15 tweets to the end of the newsletter
     const topTweetsText = top15Tweets
       .map(
         (tweet, index) =>
-          `${index + 1}. ${tweet.tweet.replace(/\n/g, " ")} @${
-            tweet.screenName
-          } <a href="https://x.com/${tweet.screenName}/status/${
-            tweet.tweet_id
-          }"> <em>View Post</em> </a>`
+          `${index + 1}. ${escapeUntrustedMarkdown(tweet.tweet.replace(/\\n/g, " "))} @${escapeUntrustedMarkdown(tweet.screenName)} <a href="${safeXPostUrl(tweet.screenName, tweet.tweet_id)}" target="_blank" rel="noopener noreferrer"> <em>View Post</em> </a>`
       )
       .join("\n\n");
 
@@ -367,7 +384,7 @@ export async function generateCustomProfileNewsletter(
       model: process.env.OPENAI_MODEL || "",
     });
 
-    let result = response.choices[0].message.content;
+    let result = escapeUntrustedMarkdown(response.choices[0].message.content);
 
     // Validate `top15Tweets` to ensure all objects have a valid `text`
     const validTopTweets = top15Tweets.filter(
@@ -378,11 +395,7 @@ export async function generateCustomProfileNewsletter(
     const topTweetsText = validTopTweets
       .map(
         (tweet, index) =>
-          `${index + 1}. ${tweet.text.replace(/\n/g, " ")} @${
-            tweet.screenName
-          } <a href="https://x.com/${tweet.screenName}/status/${
-            tweet.tweet_id
-          }"> <em>View Post</em> </a>`
+          `${index + 1}. ${escapeUntrustedMarkdown(tweet.text.replace(/\\n/g, " "))} @${escapeUntrustedMarkdown(tweet.screenName)} <a href="${safeXPostUrl(tweet.screenName, tweet.tweet_id)}" target="_blank" rel="noopener noreferrer"> <em>View Post</em> </a>`
       )
       .join("\n\n");
 
