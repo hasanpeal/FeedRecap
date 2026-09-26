@@ -132,6 +132,8 @@ export const SettingsSection = ({
   showSettingInfo,
   setShowSettingInfo,
   onFeedTypeUpdate,
+  onCategoryUpdate,
+  onProfileUpdate,
   onTimeUpdate,
   onConnectTwitter,
   onUnlinkTwitter,
@@ -157,6 +159,11 @@ export const SettingsSection = ({
 }: SettingsSectionProps) => {
   const handleSaveChanges = async () => {
     await onFeedTypeUpdate();
+    if (wise === "categorywise") {
+      await onCategoryUpdate();
+    } else {
+      await onProfileUpdate();
+    }
     await onTimeUpdate();
   };
 
